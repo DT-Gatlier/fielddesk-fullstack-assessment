@@ -37,284 +37,204 @@ enum NotificationJobStatus {
 model Organisation {
   id                String   @id @default(uuid())
   name              String
-
   storageLimitBytes BigInt   @default(104857600)
   storageUsedBytes  BigInt   @default(0)
-
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  users             User[]
-  workOrders        WorkOrder[]
-  attachments       Attachment[]
-  progressEvents    ProgressEvent[]
-  auditLogs         AuditLog[]
-  notificationJobs  NotificationJob[]
+  users            User[]
+  workOrders       WorkOrder[]
+  attachments      Attachment[]
+  progressEvents   ProgressEvent[]
+  auditLogs        AuditLog[]
+  notificationJobs NotificationJob[]
 
   @@map("organisations")
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id             String   @id @default(uuid())
   organisationId String
+  name           String
+  email          String
+  passwordHash   String
+  role           UserRole
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  name         String
-  email        String
-  passwordHash String
-  role         UserRole
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  createdWorkOrders WorkOrder[] @relation("CreatedBy")
-  assignedWorkOrders WorkOrder[] @relation("AssignedTechnician")
-
+  createdWorkOrders   WorkOrder[]       @relation("CreatedBy")
+  assignedWorkOrders  WorkOrder[]       @relation("AssignedTechnician")
   uploadedAttachments Attachment[]
   progressEvents      ProgressEvent[]
   auditLogs           AuditLog[]
   notificationJobs    NotificationJob[]
 
-  @@unique([organisationId, email])
   @@unique([organisationId, id])
-
+  @@unique([organisationId, email])
   @@index([organisationId])
   @@index([organisationId, role])
-
   @@map("users")
 }
 
 model WorkOrder {
-  id                  String   @id @default(uuid())
-
-  organisationId      String
-  createdById         String
+  id                   String  @id @default(uuid())
+  organisationId       String
+  createdById          String
   assignedTechnicianId String?
 
-  referenceNumber     String
-  title               String
-  description         String?
+  referenceNumber String
+  title           String
+  description     String?
 
-  priority            WorkOrderPriority
-  status              WorkOrderStatus
+  priority WorkOrderPriority
+  status   WorkOrderStatus
 
-  scheduledStart      DateTime?
-  scheduledEnd        DateTime?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
 
-  siteName            String
+  siteName String
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  createdBy User @relation(
-    "CreatedBy",
-    fields: [organisationId, createdById],
-    references: [organisationId, id]
-  )
+  createdBy User @relation("CreatedBy", fields: [organisationId, createdById], references: [organisationId, id])
 
-  assignedTechnician User? @relation(
-    "AssignedTechnician",
-    fields: [organisationId, assignedTechnicianId],
-    references: [organisationId, id]
-  )
+  assignedTechnician User? @relation("AssignedTechnician", fields: [organisationId, assignedTechnicianId], references: [organisationId, id])
 
   attachments      Attachment[]
   progressEvents   ProgressEvent[]
   auditLogs        AuditLog[]
   notificationJobs NotificationJob[]
 
+  @@unique([organisationId, id])
   @@unique([organisationId, referenceNumber])
-
   @@index([organisationId, status])
   @@index([organisationId, assignedTechnicianId])
   @@index([organisationId, scheduledStart])
   @@index([organisationId, createdAt])
-
   @@map("work_orders")
 }
 
 model Attachment {
-  id               String   @id @default(uuid())
-
-  organisationId   String
-  workOrderId      String
-  uploadedById     String
+  id             String @id @default(uuid())
+  organisationId String
+  workOrderId    String
+  uploadedById   String
 
   originalFilename String
   storageKey       String
   mimeType         String
   sizeBytes        BigInt
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  workOrder WorkOrder @relation(
-    fields: [organisationId, workOrderId],
-    references: [organisationId, id],
-    onDelete: Cascade
-  )
+  workOrder WorkOrder @relation(fields: [organisationId, workOrderId], references: [organisationId, id], onDelete: Cascade)
 
-  uploadedBy User @relation(
-    fields: [organisationId, uploadedById],
-    references: [organisationId, id]
-  )
+  uploadedBy User @relation(fields: [organisationId, uploadedById], references: [organisationId, id])
 
   @@index([organisationId, workOrderId])
-
   @@map("attachments")
 }
 
 model ProgressEvent {
-  id             String   @id @default(uuid())
-
+  id             String @id @default(uuid())
   eventId        String
   organisationId String
   workOrderId    String
   actorId        String
 
-  type           String
-  occurredAt     DateTime
-  payload        Json
+  type       String
+  occurredAt DateTime
+  payload    Json
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  workOrder WorkOrder @relation(
-    fields: [organisationId, workOrderId],
-    references: [organisationId, id],
-    onDelete: Cascade
-  )
+  workOrder WorkOrder @relation(fields: [organisationId, workOrderId], references: [organisationId, id], onDelete: Cascade)
 
-  actor User @relation(
-    fields: [organisationId, actorId],
-    references: [organisationId, id]
-  )
+  actor User @relation(fields: [organisationId, actorId], references: [organisationId, id])
 
   @@unique([organisationId, eventId])
-
   @@index([organisationId, workOrderId])
   @@index([organisationId, occurredAt])
-
   @@map("progress_events")
 }
 
 model AuditLog {
-  id             String   @id @default(uuid())
-
+  id             String  @id @default(uuid())
   organisationId String
   actorId        String?
 
-  action         String
-  targetType     String
-  targetId       String?
+  action     String
+  targetType String
+  targetId   String?
 
-  beforeData     Json?
-  afterData      Json?
+  beforeData Json?
+  afterData  Json?
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  actor User? @relation(
-    fields: [organisationId, actorId],
-    references: [organisationId, id]
-  )
+  actor       User?      @relation(fields: [organisationId, actorId], references: [organisationId, id])
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+  workOrderId String?
 
   @@index([organisationId, createdAt])
   @@index([organisationId, targetType, targetId])
-
   @@map("audit_logs")
 }
 
 model NotificationJob {
-  id             String   @id @default(uuid())
-
+  id             String @id @default(uuid())
   organisationId String
   workOrderId    String
   technicianId   String
 
-  dedupeKey      String
+  dedupeKey String
 
-  status         NotificationJobStatus @default(PENDING)
-  attempts       Int      @default(0)
+  status      NotificationJobStatus @default(PENDING)
+  attempts    Int                   @default(0)
+  availableAt DateTime              @default(now())
+  lastError   String?
 
-  availableAt    DateTime @default(now())
-  lastError      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  organisation Organisation @relation(
-    fields: [organisationId],
-    references: [id],
-    onDelete: Cascade
-  )
+  workOrder WorkOrder @relation(fields: [organisationId, workOrderId], references: [organisationId, id], onDelete: Cascade)
 
-  workOrder WorkOrder @relation(
-    fields: [organisationId, workOrderId],
-    references: [organisationId, id],
-    onDelete: Cascade
-  )
-
-  technician User @relation(
-    fields: [organisationId, technicianId],
-    references: [organisationId, id]
-  )
+  technician User @relation(fields: [organisationId, technicianId], references: [organisationId, id])
 
   attemptsLog NotificationAttempt[]
 
   @@unique([dedupeKey])
-
   @@index([status, availableAt])
   @@index([organisationId, workOrderId])
-
   @@map("notification_jobs")
 }
 
 model NotificationAttempt {
-  id                String   @id @default(uuid())
-
+  id                String @id @default(uuid())
   notificationJobId String
-  attemptNumber     Int
 
-  status            String
-  error             String?
+  attemptNumber Int
+  status        String
+  error         String?
 
-  startedAt         DateTime @default(now())
-  completedAt       DateTime?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
 
-  notificationJob NotificationJob @relation(
-    fields: [notificationJobId],
-    references: [id],
-    onDelete: Cascade
-  )
+  notificationJob NotificationJob @relation(fields: [notificationJobId], references: [id], onDelete: Cascade)
 
   @@unique([notificationJobId, attemptNumber])
-
   @@map("notification_attempts")
 }
