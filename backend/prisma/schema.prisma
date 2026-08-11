@@ -168,7 +168,8 @@ model ProgressEvent {
 }
 
 model AuditLog {
-  id             String  @id @default(uuid())
+  id String @id @default(uuid())
+
   organisationId String
   actorId        String?
 
@@ -183,12 +184,15 @@ model AuditLog {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  actor       User?      @relation(fields: [organisationId, actorId], references: [organisationId, id])
-  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+  actor User? @relation(fields: [organisationId, actorId], references: [organisationId, id])
+
   workOrderId String?
+
+  workOrder WorkOrder? @relation(fields: [organisationId, workOrderId], references: [organisationId, id], onDelete: Cascade)
 
   @@index([organisationId, createdAt])
   @@index([organisationId, targetType, targetId])
+  @@index([organisationId, workOrderId])
   @@map("audit_logs")
 }
 
