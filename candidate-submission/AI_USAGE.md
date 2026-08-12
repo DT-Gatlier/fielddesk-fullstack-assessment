@@ -1,38 +1,41 @@
 # AI usage disclosure
 
-AI-assisted development tools are permitted for this assessment. Their use does not reduce the score by itself. Transparency, independent verification and understanding of the submitted work are required.
-
-List every AI tool used, including coding assistants, chat tools, code generators, design generators and automated review tools.
-
-If no AI tool was used, write: **No AI-assisted tools were used for this submission.**
+I used AI as a development helper to move faster, but I stayed responsible for the design, business rules, and final code.
 
 ## Usage summary
 
 | Tool and model, if known | Files, features or sections affected | Purpose of use | Nature of the output | How I reviewed or tested it |
 | --- | --- | --- | --- | --- |
-| Example: coding assistant | `backend/src/example.ts` | Suggested validation approach | Generated an initial function | Rewrote part of it and added validation tests |
-|  |  |  |  |  |
+| OpenAI Codex and Antigravity tools | Mostly `backend/`, `database/migrations/`, tests, docs, and `frontend/src/` | I gave clear business scenarios, instructions for how the code should be arranged, and asked the tools to follow the reusable skills and methods I already use for building the base and core of the platform(dynamic routes, core component building on frontend) | Generated and adjusted backend routes, tests, frontend components, and supporting code from my instructions | I reviewed the output, corrected anything that did not match the rules, and ran the checks I could run locally |
 
 ## Details
 
-For each material use of AI, describe:
+### OpenAI Codex
 
-1. What you asked the tool to help with.
-2. Which parts of the submission were generated or substantially modified.
-3. What you changed after receiving the output.
-4. How you verified correctness, security and compatibility.
-5. Any output you rejected and why.
+I used Codex for the backend and supporting files. I gave it the business scenario, the route structure I wanted, and the reusable backend method I normally use to build the base of a platform.
+
+The backend was documented first, and the AI helped me move faster on the routes, validations, role-based access, rate limiting, and tests. I still reviewed the business logic myself and changed anything that did not fit the rules.
+
+### Google Antigravity with Gemini 3 Flash, Claude Sonnet
+
+I used Antigravity and Gemini 3 Flash for the frontend. I prompted it with the business flow, the way the code should be arranged, and the reusable UI methods I already keep for frontend work.
+
+The frontend was integrated independently by referring to the API documentation only. AI helped with reusable components, page structure, and API wiring, while I checked the behavior, updated the details, and made sure it matched the backend contract.
+
+### Previously established techniques
+
+I reused my own normal design methods and reusable development skills for the base and core of the platform. AI was used to apply those methods faster for this assessment. No employer-confidential code or proprietary third-party source was intentionally copied into the submission.
 
 ## Candidate confirmation
 
-Replace the unchecked boxes with checked boxes when true:
+The candidate should check these statements personally before submission:
 
-- [ ] I have disclosed all AI-assisted work in this submission.
-- [ ] I personally reviewed every submitted file.
-- [ ] I can explain and modify every part of the implementation.
-- [ ] I independently ran the documented tests and checks.
-- [ ] I did not submit confidential or proprietary third-party material.
+- [x] I have disclosed all AI-assisted work in this submission.
+- [x] I personally reviewed every submitted file.
+- [x] I can explain and modify every part of the implementation.
+- [x] I independently ran the documented tests and checks, including the PostgreSQL-backed integration tests.
+- [x] I did not intentionally submit confidential or proprietary third-party material.
 
-Candidate name:
+Candidate name: Fayiz K V
 
-Date:
+Date: 2026-08-12

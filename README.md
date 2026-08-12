@@ -47,3 +47,58 @@ Please do not include confidential information, credentials or code from a curre
 ---
 
 **Conducted by Gatlier**
+
+## Backend implementation
+
+The backend is implemented with Node.js, Express, strict TypeScript, PostgreSQL, Redis, and BullMQ. It includes tenant-safe administration and work orders, secure authentication, a configuration-driven CRUD/select router, idempotent progress events, attachments and quotas, notification processing, caching, SSE, audit history, and streaming CSV export.
+
+See [API reference](docs/API.md), [frontend integration](docs/FRONTEND_INTEGRATION.md), [backend architecture](docs/BACKEND.md), [database design](docs/DATABASE.md), and [queue/operations](docs/QUEUE_AND_OPERATIONS.md).
+
+### Local setup
+
+```bash
+cp .env.example .env
+npm install
+docker compose up -d postgres redis
+npm run db:migrate
+npm run db:seed
+npm run dev                    # terminal 1: API
+npm run worker:dev -w backend  # terminal 2: worker
+npm run frontend:dev           # terminal 3: frontend at http://localhost:5173
+```
+
+The API listens on `http://localhost:8000`. If PostgreSQL and Redis already run locally, Docker is not required; `docker-compose.yml` is only a convenient infrastructure option.
+
+The frontend runs at `http://localhost:5173` and includes lazy-loaded, role-aware workflows for the dashboard, work orders, attachments, technician progress, notifications, team management, and organisation settings. See [frontend architecture](docs/FRONTEND.md).
+
+### Sample accounts
+
+All seeded accounts use password `FieldDesk123!`.
+
+| Organisation slug | Owner | Dispatcher | Technician |
+| --- | --- | --- | --- |
+| `northwind` | `owner@northwind.test` | `dispatcher@northwind.test` | `technician@northwind.test` |
+| `contoso` | `owner@contoso.test` | `dispatcher@contoso.test` | `technician@contoso.test` |
+
+Example login:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"organisation":"northwind","email":"owner@northwind.test","password":"FieldDesk123!"}'
+```
+
+### Verification
+
+```bash
+npm run build
+npm run lint
+npm test
+```
+
+The fast suite runs without infrastructure. PostgreSQL-backed concurrency tests require a migrated test database supplied through `TEST_DATABASE_URL`.
+
+```bash
+DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate
+TEST_DATABASE_URL="$TEST_DATABASE_URL" npm test
+```

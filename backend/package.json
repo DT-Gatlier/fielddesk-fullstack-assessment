@@ -1,0 +1,53 @@
+{
+  "name": "@fielddesk/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "worker:dev": "tsx watch src/worker.ts",
+    "worker": "node dist/worker.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx src/database/migrate.ts",
+    "db:seed": "tsx src/database/seed.ts"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "bullmq": "^5.58.5",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "ioredis": "^5.7.0",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "pg-query-stream": "^4.10.3",
+    "pino": "^9.7.0",
+    "pino-http": "^10.5.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/cors": "^2.8.19",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^1.4.13",
+    "@types/node": "^22.17.1",
+    "@types/pg": "^8.15.5",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "^3.2.4"
+  }
+}
