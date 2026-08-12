@@ -1,18 +1,10 @@
-import express from "express";
-
-const app = express();
+import "dotenv/config";
+import app from "./app";
 
 const PORT = process.env.PORT || 4000;
 
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "fielddesk-api",
-  });
-});
-
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`FieldDesk API running on port ${PORT}`);
 });
+
+export default server;
