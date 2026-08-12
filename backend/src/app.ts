@@ -43,7 +43,7 @@ export function createApp(database: Database, config: Config, runtime: RuntimeSe
     catch { response.status(503).json({ status: 'not_ready', components: { postgres: 'not_ready', redis: runtime.ready ? 'ready' : 'not_ready' } }); }
   });
 
-  const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: true, legacyHeaders: false });
+  const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 50, standardHeaders: true, legacyHeaders: false });
   const eventLimiter = rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false });
   app.post('/api/v1/auth/login', authLimiter, login(database, config));
   app.post('/api/v1/auth/refresh', authLimiter, refresh(database, config));

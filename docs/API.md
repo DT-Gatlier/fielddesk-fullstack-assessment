@@ -8,7 +8,7 @@ JSON endpoints return `{ "data": ... }`. Paginated endpoints also return `meta: 
 
 ### `POST /auth/login`
 
-Rate limited to 10 attempts per 15 minutes per client.
+Rate limited to 50 attempts per 15 minutes per client.
 
 ```json
 {
