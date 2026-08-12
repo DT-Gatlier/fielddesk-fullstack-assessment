@@ -4,10 +4,10 @@ Complete this document as part of the submission.
 
 ## Candidate
 
-- Name:
-- GitHub username:
-- Final commit SHA:
-- Screen-recording link:
+- Name: Fayiz K V
+- GitHub username: `Fayizkv`
+- Final commit SHA: Pending final submission commit
+- Screen-recording link: Pending 10–15 minute recording
 
 ## Local setup
 
@@ -32,11 +32,11 @@ Two organisations are seeded: `northwind` and `contoso`. Each has `owner@<slug>.
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend tests | `npm test` | Passing |
-| Frontend tests | `npm run test -w frontend` | Passing |
-| Integration tests | `TEST_DATABASE_URL=... npm test` | Implemented; requires migrated PostgreSQL test database |
-| Lint | `npm run lint` | Passing |
-| Build | `npm run build` | Passing |
+| Backend tests | `npm run test -w backend` | 14 passed; 2 PostgreSQL integration tests skipped because `TEST_DATABASE_URL` was not configured |
+| Frontend tests | `npm run test -w frontend` | 1 passed |
+| PostgreSQL integration tests | `DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate && TEST_DATABASE_URL="$TEST_DATABASE_URL" npm run test -w backend` | Implemented but not run during the final documentation pass because Docker/PostgreSQL was unavailable; must be run before submission |
+| Lint | `npm run lint` | Passed (backend and frontend) |
+| Build | `npm run build` | Passed (TypeScript compilation and Vite production build) |
 
 ## Architecture
 
@@ -80,4 +80,4 @@ Redis is used for asynchronous and ephemeral concerns, while PostgreSQL constrai
 
 ## Known limitations or incomplete requirements
 
-Local uploads need object-storage replacement for multi-instance production. SSE delivery is ephemeral, so the fetch-based client refetches authoritative data after reconnection. PostgreSQL/Redis integration tests require external test services and were not executed in the current environment; fast backend/frontend tests, lint, and production builds were executed locally.
+Local uploads need object-storage replacement for multi-instance production. SSE delivery is ephemeral, so the fetch-based client refetches authoritative data after reconnection. PostgreSQL integration tests require an external migrated test database and were not executed during the final documentation pass; the fast backend/frontend tests, lint, and production builds passed. The final commit SHA and screen-recording link must be added after recording the final verified revision.
