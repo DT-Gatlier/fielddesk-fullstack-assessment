@@ -1,0 +1,18 @@
+{
+  "name": "fielddesk",
+  "private": true,
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev": "npm run dev -w backend",
+    "frontend:dev": "npm run dev -w frontend",
+    "start": "npm run start -w backend",
+    "worker:dev": "npm run worker:dev -w backend",
+    "worker": "npm run worker -w backend",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "lint": "npm run lint -w backend && npm run lint -w frontend",
+    "test": "npm run test -w backend && npm run test -w frontend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend"
+  },
+  "engines": { "node": ">=22" }
+}
