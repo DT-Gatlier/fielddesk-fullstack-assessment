@@ -4,6 +4,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import workOrderRoutes from "./modules/work-orders/work-order.routes";
 import progressEventRoutes from "./modules/progress-events/progress-event.routes";
 import attachmentRoutes from "./modules/attachments/attachment.routes";
+import auditLogRoutes from "./modules/audit-logs/audit-log.routes";
 
 const app = express();
 
@@ -21,5 +22,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/work-orders", workOrderRoutes)
 app.use("/api", progressEventRoutes);
 app.use("/api", attachmentRoutes);
+app.use("/api", auditLogRoutes);
 
 export default app;

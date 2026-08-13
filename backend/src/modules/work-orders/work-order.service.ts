@@ -5,6 +5,7 @@ import type {
   UpdateWorkOrderInput,
   WorkOrderListQuery,
 } from "./work-order.types";
+import { createAuditLog } from "../audit-logs/audit-log.service";
 
 export class WorkOrderNotFoundError extends Error {
   constructor() {
@@ -69,6 +70,16 @@ export const createWorkOrder = async (
         },
       },
     },
+  });
+
+  await createAuditLog({
+    organisationId,
+    actorId,
+    action: "WORK_ORDER_CREATED",
+    targetType: "WORK_ORDER",
+    targetId: workOrder.id,
+    workOrderId: workOrder.id,
+    afterData: workOrder,
   });
 
   return workOrder;
@@ -149,7 +160,7 @@ export const updateWorkOrder = async (
     }
   }
 
-  return prisma.workOrder.update({
+  const updatedWorkOrder = await prisma.workOrder.update({
     where: {
       id: workOrderId,
     },
@@ -157,6 +168,18 @@ export const updateWorkOrder = async (
       ...input,
     },
   });
+
+  await createAuditLog({
+    organisationId,
+    action: "WORK_ORDER_UPDATED",
+    targetType: "WORK_ORDER",
+    targetId: updatedWorkOrder.id,
+    workOrderId: updatedWorkOrder.id,
+    afterData: updatedWorkOrder,
+    beforeData: existing,
+  });
+
+  return updatedWorkOrder;
 };
 
 export const listWorkOrders = async (
