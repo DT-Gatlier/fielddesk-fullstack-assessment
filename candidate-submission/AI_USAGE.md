@@ -1,38 +1,39 @@
-# AI usage disclosure
+# AI Usage Disclosure
 
-AI-assisted development tools are permitted for this assessment. Their use does not reduce the score by itself. Transparency, independent verification and understanding of the submitted work are required.
+AI assistance was used during development of this assessment.
 
-List every AI tool used, including coding assistants, chat tools, code generators, design generators and automated review tools.
+## Tool Used
 
-If no AI tool was used, write: **No AI-assisted tools were used for this submission.**
+OpenAI ChatGPT.
 
-## Usage summary
+## How AI Assistance Was Used
 
-| Tool and model, if known | Files, features or sections affected | Purpose of use | Nature of the output | How I reviewed or tested it |
-| --- | --- | --- | --- | --- |
-| Example: coding assistant | `backend/src/example.ts` | Suggested validation approach | Generated an initial function | Rewrote part of it and added validation tests |
-|  |  |  |  |  |
+AI assistance was used for:
 
-## Details
+- Understanding the assessment requirements.
+- Reviewing implementation approaches.
+- Debugging TypeScript, Express, Prisma and PostgreSQL errors.
+- Reviewing authentication and authorization implementation.
+- Reviewing tenant-isolation logic.
+- Designing API structures and validation.
+- Developing and reviewing automated tests.
+- Troubleshooting local development and environment configuration.
+- Reviewing documentation and submission requirements.
 
-For each material use of AI, describe:
+## Candidate Responsibility
 
-1. What you asked the tool to help with.
-2. Which parts of the submission were generated or substantially modified.
-3. What you changed after receiving the output.
-4. How you verified correctness, security and compatibility.
-5. Any output you rejected and why.
+All generated suggestions were reviewed and adapted during implementation.
 
-## Candidate confirmation
+The application was run locally and the resulting behaviour was tested by the
+candidate.
 
-Replace the unchecked boxes with checked boxes when true:
+The candidate remains responsible for the final implementation and submitted
+code.
 
-- [ ] I have disclosed all AI-assisted work in this submission.
-- [ ] I personally reviewed every submitted file.
-- [ ] I can explain and modify every part of the implementation.
-- [ ] I independently ran the documented tests and checks.
-- [ ] I did not submit confidential or proprietary third-party material.
+## Verification
 
-Candidate name:
+The final implementation was tested locally using the documented test and
+build commands.
 
-Date:
+AI-generated suggestions were not treated as a substitute for application
+testing or security validation.

@@ -47,3 +47,42 @@ Please do not include confidential information, credentials or code from a curre
 ---
 
 **Conducted by Gatlier**
+
+# FieldDesk
+
+Multi-tenant field-service management application.
+
+## Stack
+
+### Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Backend
+
+- Node.js
+- Express
+- TypeScript
+- Prisma
+- PostgreSQL
+
+### Worker
+
+- Node.js
+- TypeScript
+
+## Prerequisites
+
+- Node.js 20+
+- Docker Desktop
+- PostgreSQL (or Docker)
+
+## Environment
+
+Copy:
+
+```bash
+cp .env.example .env
