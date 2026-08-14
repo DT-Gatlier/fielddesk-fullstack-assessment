@@ -15,14 +15,18 @@ export function generateAccessToken(payload: JwtPayload): string {
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
-  const payload = jwt.verify(token, env.jwt.secret);
+  const payload = jwt.verify(token, env.jwt.secret, {
+    algorithms: ["HS256"],
+  });
+
+  if (typeof payload === "string") {
+    throw new Error("Invalid JWT payload");
+  }
 
   if (
-    typeof payload !== "object" ||
-    payload === null ||
-    typeof payload.sub !== "string" ||
-    typeof payload.organisationId !== "string" ||
-    typeof payload.role !== "string"
+    !payload.sub ||
+    !payload.organisationId ||
+    !payload.role
   ) {
     throw new Error("Invalid JWT payload");
   }
@@ -30,6 +34,6 @@ export function verifyAccessToken(token: string): JwtPayload {
   return {
     sub: payload.sub,
     organisationId: payload.organisationId,
-    role: payload.role as UserRole,
+    role: payload.role,
   };
 }

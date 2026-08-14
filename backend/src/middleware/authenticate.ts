@@ -35,6 +35,7 @@ export const authenticate = async (
     const user = await prisma.user.findUnique({
       where: {
         id: payload.sub as string,
+        organisationId: payload.organisationId,
       },
     });
 
