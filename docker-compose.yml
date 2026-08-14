@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fielddesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fielddesk_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-fielddesk}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fielddesk} -d ${POSTGRES_DB:-fielddesk}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk_dev}@postgres:5432/${POSTGRES_DB:-fielddesk}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - UPLOAD_DIR=/app/uploads
+      - FRONTEND_URL=http://localhost:5173
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    command: npm run dev
+    volumes:
+      - ./worker:/app
+      - /app/node_modules
+      - ./backend/prisma:/app/prisma # Worker needs Prisma client
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk_dev}@postgres:5432/${POSTGRES_DB:-fielddesk}
+      - REDIS_URL=redis://redis:6379
+      - NOTIFICATION_PROVIDER_FAILURE_RATE=${NOTIFICATION_PROVIDER_FAILURE_RATE:-0.3}
+      - NOTIFICATION_PROVIDER_PERMANENT_FAILURE_RATE=${NOTIFICATION_PROVIDER_PERMANENT_FAILURE_RATE:-0.1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_uploads:
