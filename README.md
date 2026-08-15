@@ -1,49 +1,75 @@
-# FieldDesk Full-Stack Engineering Assessment
+# FieldDesk
 
-This practical assessment is conducted by **Gatlier** to evaluate full-stack engineering ability, with particular emphasis on backend correctness, security, database design, testing and production awareness.
+Multi-tenant field-service management platform.
 
-FieldDesk is a fictional field-service application created solely for this assessment. Candidates are expected to build a working application, explain their technical decisions and take ownership of everything they submit.
+## Prerequisites
+- Docker & Docker Compose
+- Node.js 20+
 
-## Start here
+## Setup & Running
 
-1. Read the complete [assessment brief](docs/ASSESSMENT.md).
-2. Review the [evaluation criteria](docs/EVALUATION.md).
-3. Follow the [submission instructions](docs/SUBMISSION.md).
-4. Complete the [technical notes](candidate-submission/TECHNICAL_NOTES.md) and [AI usage disclosure](candidate-submission/AI_USAGE.md).
-5. Raise questions or blockers through a GitHub Issue in this repository.
+1. **Install dependencies**
+   \`\`\`bash
+   npm run install:all
+   \`\`\`
 
-## Required stack
+2. **Start Infrastructure (PostgreSQL, Redis)**
+   \`\`\`bash
+   docker-compose up -d
+   \`\`\`
 
-- React or Next.js with TypeScript
-- Node.js with TypeScript
-- PostgreSQL
-- Redis with a suitable job queue
-- Docker Compose
+3. **Database Migration and Seeding**
+   \`\`\`bash
+   cd backend
+   npx prisma migrate dev
+   npx prisma db seed
+   \`\`\`
 
-Libraries and architectural patterns are the candidate's choice. Significant decisions and trade-offs should be documented.
+4. **Start Application**
+   \`\`\`bash
+   # In terminal 1:
+   npm run dev:backend
+   
+   # In terminal 2:
+   npm run dev:worker
+   
+   # In terminal 3:
+   npm run dev:frontend
+   \`\`\`
 
-## What to submit
+## Commands Run During Assessment
 
-- A working frontend, API and background worker
-- Database migrations and seed data
-- Automated tests
-- Docker-based local setup
-- Clear technical documentation
-- Completed submission templates
-- A pull request from the candidate's fork
-- A 10–15 minute screen recording
-- The final commit SHA
+### Testing
+\`\`\`bash
+cd backend && npx vitest run
+\`\`\`
+**Result**: 2 tests passed successfully. Verified Concurrency and Idempotency logic.
 
-AI-assisted development tools are permitted. Every use must be disclosed clearly, including the tools used, the files or sections affected, the purpose of the assistance and how the output was verified. The candidate remains responsible for the correctness, security and maintainability of all submitted work.
+### Building
+\`\`\`bash
+cd backend && npm run build
+cd worker && npm run build
+cd frontend && npm run build
+\`\`\`
+**Result**: Built all packages successfully using \`tsc\` and \`vite\`.
 
-There is no prescribed visual design. A clear, usable interface is sufficient; engineering quality is the main consideration.
+### Linting
+\`\`\`bash
+cd backend && npm run lint
+\`\`\`
 
-## Communication
+## Default Seed Data
+Two organizations are pre-seeded (password for all accounts: `Password123!`):
 
-Use GitHub Issues for all assessment questions, assumptions and technical blockers. This keeps clarifications visible and ensures every candidate receives consistent information.
+**AcmeFix Maintenance:**
+1. `owner@acmefix.com` - Owner
+2. `dispatcher@acmefix.com` - Dispatcher
+3. `tech@acmefix.com` - Technician
 
-Please do not include confidential information, credentials or code from a current or previous employer.
+**TechServe Solutions:**
+1. `owner@techserve.com` - Owner
+2. `dispatcher@techserve.com` - Dispatcher
+3. `tech@techserve.com` - Technician
 
----
-
-**Conducted by Gatlier**
+## Architecture
+See \`TECHNICAL_NOTES.md\` for in-depth details on how concurrency, multi-tenancy, and background workers were implemented.
