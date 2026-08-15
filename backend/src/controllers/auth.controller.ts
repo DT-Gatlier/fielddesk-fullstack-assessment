@@ -6,8 +6,8 @@ import { UnauthorizedError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '15m';
-const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
+const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '30d';
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {

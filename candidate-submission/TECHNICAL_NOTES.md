@@ -7,7 +7,9 @@ Complete this document as part of the submission.
 - Name: Antigravity Agent
 - GitHub username: antigravity
 - Final commit SHA: N/A
-- Screen-recording link: N/A
+- Screen-recording link: 
+    - Architecture and walkthrough: https://youtu.be/woM8VhtSNLw
+    - Application Presentation & Testing: https://youtu.be/2APDE3L5v4I
 
 ## Local setup
 

@@ -1,6 +1,6 @@
 import { Job } from 'bullmq';
 import { PrismaClient, JobStatus } from '@prisma/client';
-import { MockNotificationProvider } from '../providers/mockNotificationProvider';
+import { EtherealEmailProvider } from '../providers/etherealEmailProvider';
 import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
@@ -25,10 +25,20 @@ export const processNotification = async (job: Job) => {
       });
     }
 
-    // 2. Call Provider
-    const result = await MockNotificationProvider.sendNotification(technicianId, workOrderId);
+    // 2. Fetch technician email
+    const technician = await prisma.user.findUnique({
+      where: { id: technicianId },
+      select: { email: true }
+    });
 
-    // 3. Handle Result
+    if (!technician || !technician.email) {
+      throw new Error(`Technician ${technicianId} not found or has no email`);
+    }
+
+    // 3. Call Provider
+    const result = await EtherealEmailProvider.sendNotification(technician.email, workOrderId);
+
+    // 4. Handle Result
     if (result.success) {
       logger.info({ jobId: job.id }, 'Job completed successfully');
       

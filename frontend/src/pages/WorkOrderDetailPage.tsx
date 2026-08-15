@@ -7,10 +7,12 @@ import { Link } from 'react-router-dom';
 import { Trash2, Download } from 'lucide-react';
 import Loader from '../components/ui/Loader';
 import { useToastStore } from '../store/useToastStore';
+import { useSSEStore } from '../store/useSSEStore';
 
 export default function WorkOrderDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const lastUpdate = useSSEStore(state => state.lastUpdate);
   const [wo, setWo] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
@@ -57,8 +59,10 @@ export default function WorkOrderDetailPage() {
 
   const fetchTechnicians = async () => {
     try {
-      const res = await api.get('/users?role=TECHNICIAN');
-      setTechnicians(res.data.data);
+      const res = await api.get('/users');
+      // Dispatchers and Technicians can both be assigned
+      const assignableUsers = res.data.data.filter((u: any) => u.role === 'TECHNICIAN' || u.role === 'DISPATCHER');
+      setTechnicians(assignableUsers);
     } catch (e) {
       console.error('Failed to fetch technicians', e);
     }
@@ -69,7 +73,7 @@ export default function WorkOrderDetailPage() {
     if (user?.role === 'OWNER' || user?.role === 'DISPATCHER') {
       fetchTechnicians();
     }
-  }, [id, user]);
+  }, [id, user, lastUpdate]);
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +108,7 @@ export default function WorkOrderDetailPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       addToast('File uploaded successfully', 'success');
-      fetchDetails();
+      await fetchDetails();
     } catch (err: any) {
       setUploadError(err.response?.data?.error?.message || 'Upload failed');
     } finally {
@@ -207,7 +211,7 @@ export default function WorkOrderDetailPage() {
                     >
                       <Download size={14} />
                     </button>
-                    {(user?.role === 'OWNER' || user?.role === 'DISPATCHER' || user?.id === att.uploadedBy) && (
+                    {(user?.role === 'OWNER' || String(user?.id) === String(att.uploadedBy)) && (
                       <button 
                         onClick={() => handleDeleteAttachment(att.id)}
                         className="btn btn-outline" 

@@ -3,6 +3,7 @@ import { NotFoundError, ConflictError, ForbiddenError } from '../utils/errors';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import { sseManager } from '../utils/sseManager';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
 const unlinkAsync = promisify(fs.unlink);
@@ -69,6 +70,9 @@ export class AttachmentService {
           },
         });
 
+        // Broadcast to clients
+        sseManager.broadcast(orgId, 'work_order_updated', { id: workOrderId });
+
         return {
           ...attachment,
           sizeBytes: Number(attachment.sizeBytes), // Convert BigInt for JSON serialization
@@ -117,7 +121,7 @@ export class AttachmentService {
       throw new NotFoundError('Attachment not found');
     }
 
-    if (role !== 'OWNER' && role !== 'DISPATCHER' && attachment.uploadedBy !== actorId) {
+    if (role !== 'OWNER' && attachment.uploadedBy !== actorId) {
       throw new ForbiddenError('Not authorized to delete this attachment');
     }
 
@@ -151,6 +155,9 @@ export class AttachmentService {
           },
         },
       });
+      
+      // Broadcast to clients
+      sseManager.broadcast(orgId, 'work_order_updated', { id: workOrderId });
     });
 
     // Clean up file physically

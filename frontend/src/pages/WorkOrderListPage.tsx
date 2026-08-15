@@ -20,7 +20,7 @@ export default function WorkOrderListPage() {
 
   useEffect(() => {
     const stat = searchParams.get('status');
-    if (stat !== null) setStatus(stat);
+    setStatus(stat || '');
   }, [searchParams]);
   const [priority, setPriority] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
@@ -67,8 +67,6 @@ export default function WorkOrderListPage() {
     }
   };
 
-  if (loading) return <Loader text="Loading work orders..." />;
-
   return (
     <div className="container">
       <div className="flex items-center justify-between mb-4">
@@ -112,7 +110,8 @@ export default function WorkOrderListPage() {
         </select>
       </div>
 
-      <div className="table-container">
+      {loading && workOrders.length === 0 && <Loader text="Loading work orders..." />}
+      <div className="table-container" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
         <table>
           <thead>
             <tr>
