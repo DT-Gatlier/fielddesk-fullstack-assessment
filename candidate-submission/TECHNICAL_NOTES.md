@@ -4,9 +4,9 @@ Complete this document as part of the submission.
 
 ## Candidate
 
-- Name: Antigravity Agent
-- GitHub username: antigravity
-- Final commit SHA: N/A
+- Name: Sreehari A H
+- GitHub username: sreehariah
+- Final commit SHA: c2b5b620597e50053fb2a1719068f7003161054f
 - Screen-recording link: 
     - Architecture and walkthrough: https://youtu.be/woM8VhtSNLw
     - Application Presentation & Testing: https://youtu.be/2APDE3L5v4I
