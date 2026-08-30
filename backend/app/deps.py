@@ -1,0 +1,44 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from . import auth, models, database
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        user_id: str = payload.get("sub")
+        org_id: str = payload.get("org_id")
+        if user_id is None or org_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    # Set RLS for the current transaction so we can query the user and its related data safely
+    db.execute(text("SET LOCAL app.current_tenant_id = :org_id"), {"org_id": org_id})
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+def get_rls_db(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # By the time this runs, get_current_user has already set app.current_tenant_id on the db session.
+    # However, since FastAPI dependencies might resolve with the same db instance in the same request, 
+    # the SET LOCAL applies to the current transaction.
+    return db
