@@ -26,7 +26,6 @@ def upgrade() -> None:
         sa.Column('title', sa.String(), nullable=False),
         sa.Column('description', sa.String(), nullable=True),
         sa.Column('status', sa.String(), nullable=False, server_default='open'),
-        sa.Column('assigned_to', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.DateTime(), nullable=True, server_default=sa.text('now()')),
     )

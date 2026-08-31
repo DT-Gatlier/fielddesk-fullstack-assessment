@@ -1,0 +1,1 @@
+use "D:\Code-Projects\Misc\commit-message-convention.txt" as reference for commit message conventions

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
+from typing import Literal
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -18,11 +19,12 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+WorkOrderStatus = Literal["open", "assigned", "in_progress", "on_hold", "completed", "cancelled"]
+
 class WorkOrderBase(BaseModel):
     title: str
     description: str | None = None
-    status: str = "open"
-    assigned_to: UUID | None = None
+    status: WorkOrderStatus = "open"
 
 class WorkOrderCreate(WorkOrderBase):
     pass
@@ -30,12 +32,17 @@ class WorkOrderCreate(WorkOrderBase):
 class WorkOrderUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
-    status: str | None = None
-    assigned_to: UUID | None = None
+    status: WorkOrderStatus | None = None
 
 class WorkOrderResponse(WorkOrderBase):
     id: UUID
     organisation_id: UUID
+    created_at: str | None = None
     
     class Config:
         from_attributes = True
+
+class PaginatedWorkOrders(BaseModel):
+    data: list[WorkOrderResponse]
+    total: int
+

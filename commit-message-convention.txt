@@ -1,0 +1,24 @@
+## Commit Message Convention
+
+Use conventional commit format with the following prefixes:
+
+- `feat:` - Adds valuable new features or improvements that directly benefit and engage users
+  - Example: `feat(column): Added new feature`
+
+- `fix:` - Resolve user-related issues, improving the software's reliability and providing a smoother user experience
+  - Example: `fix(case): Fixed case sensitivity issue in search functionality for accurate results`
+
+- `docs:` - Making changes or updates to the documentation for better clarity and understanding
+  - Example: `docs(readme): Updated README file with installation instructions and usage examples`
+
+- `style:` - Focus on improving code appearance, such as formatting and fixing missing semicolons, without affecting functionality
+  - Example: `style(format): Corrected indentation and added missing semicolons for consistent code style`
+
+- `refactor:` - Modifying the production code, such as renaming variables, to improve its structure and maintainability
+  - Example: `refactor(variables): Renamed variables for improved code clarity and maintainability`
+
+- `test:` - Adding tests that were missing and improving existing tests, without changing the production code
+  - Example: `test(login): Added tests for user login functionality and refactored existing login tests`
+
+- `chore:` - Updating build tasks and other non-production code aspects, without changing the actual software
+  - Example: `chore(grunt): Updated Grunt tasks for better task automation and build process efficiency`

@@ -39,3 +39,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 def get_rls_db(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db
+
+def get_dispatcher_user(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    role = db.query(models.Role).filter(models.Role.id == current_user.role_id).first()
+    if not role or role.name not in ["dispatcher", "owner"]:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return current_user

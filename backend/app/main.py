@@ -68,19 +68,40 @@ async def validation_exception_handler(request, exc):
 def read_users_me(current_user: models.User = Depends(deps.get_current_user)):
     return current_user
 
-@app.get("/work-orders", response_model=List[schemas.WorkOrderResponse])
+from typing import List, Optional
+
+@app.get("/work-orders", response_model=schemas.PaginatedWorkOrders)
 def get_work_orders(
-    skip: int = 0, limit: int = 100,
+    current: int = 1, pageSize: int = 10,
+    status: Optional[str] = None,
     db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    return db.query(models.WorkOrder).offset(skip).limit(limit).all()
+    skip = (current - 1) * pageSize
+    query = db.query(models.WorkOrder)
+    if status:
+        query = query.filter(models.WorkOrder.status == status)
+    
+    total = query.count()
+    data = query.offset(skip).limit(pageSize).all()
+    return {"data": data, "total": total}
+
+@app.get("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
+def get_work_order(
+    work_order_id: str,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_dispatcher_user)
+):
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    return db_work_order
 
 @app.post("/work-orders", response_model=schemas.WorkOrderResponse, status_code=201)
 def create_work_order(
     work_order: schemas.WorkOrderCreate,
     db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
     db_work_order = models.WorkOrder(**work_order.model_dump(), organisation_id=current_user.organisation_id)
     db.add(db_work_order)
@@ -93,12 +114,15 @@ def update_work_order(
     work_order_id: str,
     work_order_update: schemas.WorkOrderUpdate,
     db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
     db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
     
+    if db_work_order.status in ["completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Cannot modify a terminal work order")
+        
     update_data = work_order_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_work_order, key, value)
@@ -106,3 +130,17 @@ def update_work_order(
     db.commit()
     db.refresh(db_work_order)
     return db_work_order
+
+@app.delete("/work-orders/{work_order_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_work_order(
+    work_order_id: str,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_dispatcher_user)
+):
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    
+    db.delete(db_work_order)
+    db.commit()
+    return None
