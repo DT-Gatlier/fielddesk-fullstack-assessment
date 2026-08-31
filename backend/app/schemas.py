@@ -17,3 +17,25 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class WorkOrderBase(BaseModel):
+    title: str
+    description: str | None = None
+    status: str = "open"
+    assigned_to: UUID | None = None
+
+class WorkOrderCreate(WorkOrderBase):
+    pass
+
+class WorkOrderUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    status: str | None = None
+    assigned_to: UUID | None = None
+
+class WorkOrderResponse(WorkOrderBase):
+    id: UUID
+    organisation_id: UUID
+    
+    class Config:
+        from_attributes = True

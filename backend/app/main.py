@@ -39,6 +39,70 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(deps.get_db)):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from typing import List
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": str(exc)},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail},
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"error": "Validation error", "detail": exc.errors()},
+    )
+
 @app.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(deps.get_current_user)):
     return current_user
+
+@app.get("/work-orders", response_model=List[schemas.WorkOrderResponse])
+def get_work_orders(
+    skip: int = 0, limit: int = 100,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    return db.query(models.WorkOrder).offset(skip).limit(limit).all()
+
+@app.post("/work-orders", response_model=schemas.WorkOrderResponse, status_code=201)
+def create_work_order(
+    work_order: schemas.WorkOrderCreate,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    db_work_order = models.WorkOrder(**work_order.model_dump(), organisation_id=current_user.organisation_id)
+    db.add(db_work_order)
+    db.commit()
+    db.refresh(db_work_order)
+    return db_work_order
+
+@app.patch("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
+def update_work_order(
+    work_order_id: str,
+    work_order_update: schemas.WorkOrderUpdate,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    
+    update_data = work_order_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_work_order, key, value)
+        
+    db.commit()
+    db.refresh(db_work_order)
+    return db_work_order
