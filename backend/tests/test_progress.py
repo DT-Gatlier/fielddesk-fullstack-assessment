@@ -81,7 +81,7 @@ async def test_progress_events(setup_db):
         }
         resp3 = await client.post(f"/work-orders/{wo1_id}/progress", json=payload_open, headers=headers)
         assert resp3.status_code == 400
-        assert "Cannot transition to open" in resp3.json()["error"]
+        assert "Cannot transition from" in resp3.json()["error"]
         
         # 4. Concurrent submission
         concurrent_event_id = str(uuid.uuid4())
@@ -107,4 +107,4 @@ async def test_progress_events(setup_db):
         # Assuming wo1 is now completed because of step 4
         resp5 = await client.post(f"/work-orders/{wo1_id}/progress", json=payload_after_terminal, headers=headers)
         assert resp5.status_code == 400
-        assert "Cannot transition from a terminal status" in resp5.json()["error"]
+        assert "Cannot transition from completed" in resp5.json()["error"]

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
 import api from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -41,6 +42,7 @@ const WorkOrders: React.FC = () => {
   
   const [progressModalVisible, setProgressModalVisible] = useState<boolean>(false);
   const [progressForm] = Form.useForm();
+  const [progressEventId, setProgressEventId] = useState<string>('');
 
   const fetchWorkOrders = async (current: number = pagination.current, pageSize: number = pagination.pageSize, status: string | null = statusFilter) => {
     setLoading(true);
@@ -164,6 +166,7 @@ const WorkOrders: React.FC = () => {
   const handleProgressClick = (record: WorkOrder) => {
     setAssigningOrder(record);
     progressForm.resetFields();
+    setProgressEventId(crypto.randomUUID());
     setProgressModalVisible(true);
   };
 
@@ -172,11 +175,11 @@ const WorkOrders: React.FC = () => {
       const values = await progressForm.validateFields();
       if (assigningOrder) {
         const payload = {
-          event_id: crypto.randomUUID(), // generate unique id for idempotency
+          event_id: progressEventId,
           status_to: values.status_to,
         };
         await api.post(`/work-orders/${assigningOrder.id}/progress`, payload);
-        message.success('Progress updated successfully');
+        message.success('Progress event submitted successfully');
         setProgressModalVisible(false);
         fetchWorkOrders();
       }
@@ -186,10 +189,13 @@ const WorkOrders: React.FC = () => {
       } else if (error.errorFields) {
          // Validation
       } else {
-         message.error('Progress update failed');
+         message.error('Failed to submit progress event');
       }
     }
   };
+
+  // Check user for conditional rendering
+  const { user } = useAuth();
 
   const columns = [
     {
@@ -245,9 +251,11 @@ const WorkOrders: React.FC = () => {
           <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
             Assign
           </Button>
-          <Button onClick={() => handleProgressClick(record)}>
-            Progress
-          </Button>
+          {user?.id === record.technician_id && (
+            <Button onClick={() => handleProgressClick(record)}>
+              Progress
+            </Button>
+          )}
           <Button icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             Edit
           </Button>
@@ -346,7 +354,7 @@ const WorkOrders: React.FC = () => {
       </Modal>
 
       <Modal
-        title={`Update Progress for ${assigningOrder?.title}`}
+        title={`Submit Progress Event for ${assigningOrder?.title}`}
         open={progressModalVisible}
         onOk={handleProgressOk}
         onCancel={() => setProgressModalVisible(false)}

@@ -229,11 +229,17 @@ def submit_progress_event(
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
         
-    if db_work_order.status in ["completed", "cancelled"]:
-        raise HTTPException(status_code=400, detail="Cannot transition from a terminal status")
+    if current_user.id != db_work_order.technician_id:
+        raise HTTPException(status_code=403, detail="Not assigned to this work order")
         
-    if event.status_to == "open":
-        raise HTTPException(status_code=400, detail="Cannot transition to open")
+    valid_transitions = {
+        "assigned": ["in_progress", "cancelled"],
+        "in_progress": ["on_hold", "completed", "cancelled"],
+        "on_hold": ["in_progress", "cancelled"]
+    }
+    
+    if event.status_to not in valid_transitions.get(db_work_order.status, []):
+        raise HTTPException(status_code=400, detail=f"Cannot transition from {db_work_order.status} to {event.status_to}")
 
     new_event = models.ProgressEvent(
         event_id=event.event_id,
