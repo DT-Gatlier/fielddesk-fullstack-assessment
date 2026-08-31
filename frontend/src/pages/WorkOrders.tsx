@@ -39,6 +39,9 @@ const WorkOrders: React.FC = () => {
   const [assignForm] = Form.useForm();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   
+  const [progressModalVisible, setProgressModalVisible] = useState<boolean>(false);
+  const [progressForm] = Form.useForm();
+
   const fetchWorkOrders = async (current: number = pagination.current, pageSize: number = pagination.pageSize, status: string | null = statusFilter) => {
     setLoading(true);
     setError(false);
@@ -158,6 +161,36 @@ const WorkOrders: React.FC = () => {
     }
   };
 
+  const handleProgressClick = (record: WorkOrder) => {
+    setAssigningOrder(record);
+    progressForm.resetFields();
+    setProgressModalVisible(true);
+  };
+
+  const handleProgressOk = async () => {
+    try {
+      const values = await progressForm.validateFields();
+      if (assigningOrder) {
+        const payload = {
+          event_id: crypto.randomUUID(), // generate unique id for idempotency
+          status_to: values.status_to,
+        };
+        await api.post(`/work-orders/${assigningOrder.id}/progress`, payload);
+        message.success('Progress updated successfully');
+        setProgressModalVisible(false);
+        fetchWorkOrders();
+      }
+    } catch (error: any) {
+      if (error.response?.data?.error) {
+         message.error(error.response.data.error);
+      } else if (error.errorFields) {
+         // Validation
+      } else {
+         message.error('Progress update failed');
+      }
+    }
+  };
+
   const columns = [
     {
       title: 'Title',
@@ -211,6 +244,9 @@ const WorkOrders: React.FC = () => {
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
             Assign
+          </Button>
+          <Button onClick={() => handleProgressClick(record)}>
+            Progress
           </Button>
           <Button icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             Edit
@@ -305,6 +341,29 @@ const WorkOrders: React.FC = () => {
             rules={[{ required: true, message: 'Please select the scheduled range!' }]}
           >
             <RangePicker showTime style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`Update Progress for ${assigningOrder?.title}`}
+        open={progressModalVisible}
+        onOk={handleProgressOk}
+        onCancel={() => setProgressModalVisible(false)}
+        destroyOnClose
+      >
+        <Form form={progressForm} layout="vertical">
+          <Form.Item
+            name="status_to"
+            label="New Status"
+            rules={[{ required: true, message: 'Please select a status!' }]}
+          >
+            <Select placeholder="Select a status">
+              <Option value="in_progress">In Progress</Option>
+              <Option value="on_hold">On Hold</Option>
+              <Option value="completed">Completed</Option>
+              <Option value="cancelled">Cancelled</Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

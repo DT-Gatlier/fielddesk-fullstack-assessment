@@ -55,3 +55,17 @@ class WorkOrder(Base):
     organisation = relationship("Organisation")
     technician = relationship("User", foreign_keys=[technician_id])
 
+class ProgressEvent(Base):
+    __tablename__ = "progress_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = Column(String, unique=True, index=True, nullable=False)
+    work_order_id = Column(UUID(as_uuid=True), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
+    status_from = Column(String, nullable=False)
+    status_to = Column(String, nullable=False)
+    technician_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    work_order = relationship("WorkOrder")
+    technician = relationship("User")
+

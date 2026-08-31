@@ -64,3 +64,19 @@ class PaginatedWorkOrders(BaseModel):
     data: list[WorkOrderResponse]
     total: int
 
+class ProgressEventCreate(BaseModel):
+    event_id: str
+    status_to: WorkOrderStatus
+
+class ProgressEventResponse(BaseModel):
+    id: UUID
+    event_id: str
+    work_order_id: UUID
+    status_from: str
+    status_to: str
+    technician_id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

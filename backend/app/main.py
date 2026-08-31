@@ -213,3 +213,49 @@ def assign_work_order(
         raise e
 
     return schemas.WorkOrderResponse.model_validate(db_work_order)
+@app.post("/work-orders/{work_order_id}/progress", response_model=schemas.ProgressEventResponse)
+def submit_progress_event(
+    work_order_id: str,
+    event: schemas.ProgressEventCreate,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_technician_user)
+):
+    # Idempotency check FIRST
+    existing_event = db.query(models.ProgressEvent).filter(models.ProgressEvent.event_id == event.event_id).first()
+    if existing_event:
+        return schemas.ProgressEventResponse.model_validate(existing_event)
+        
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+        
+    if db_work_order.status in ["completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Cannot transition from a terminal status")
+        
+    if event.status_to == "open":
+        raise HTTPException(status_code=400, detail="Cannot transition to open")
+
+    new_event = models.ProgressEvent(
+        event_id=event.event_id,
+        work_order_id=db_work_order.id,
+        status_from=db_work_order.status,
+        status_to=event.status_to,
+        technician_id=current_user.id
+    )
+    
+    db_work_order.status = event.status_to
+    
+    db.add(new_event)
+    try:
+        db.commit()
+        db.refresh(new_event)
+    except IntegrityError as e:
+        db.rollback()
+        # In case of concurrent submission with same event_id
+        if "ix_progress_events_event_id" in str(e) or "progress_events_event_id_key" in str(e):
+            existing_event = db.query(models.ProgressEvent).filter(models.ProgressEvent.event_id == event.event_id).first()
+            if existing_event:
+                return schemas.ProgressEventResponse.model_validate(existing_event)
+        raise e
+        
+    return schemas.ProgressEventResponse.model_validate(new_event)
