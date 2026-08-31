@@ -1,3 +1,4 @@
+# Provides reusable helpers for the route
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import Depends, HTTPException, status
@@ -29,8 +30,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError:
         raise credentials_exception
         
-    # Set RLS for the current transaction so we can query the user and its related data safely
-    db.execute(text("SET LOCAL app.current_tenant_id = :org_id"), {"org_id": org_id})
+    db.execute(text("SET LOCAL app.current_organisation_id = :org_id"), {"org_id": org_id})
     
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user is None:
@@ -38,7 +38,4 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 def get_rls_db(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # By the time this runs, get_current_user has already set app.current_tenant_id on the db session.
-    # However, since FastAPI dependencies might resolve with the same db instance in the same request, 
-    # the SET LOCAL applies to the current transaction.
     return db

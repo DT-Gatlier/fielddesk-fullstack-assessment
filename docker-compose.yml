@@ -3,16 +3,15 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: fielddesk
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: fielddesk
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fielddesk"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -33,10 +32,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://fielddesk:password@db:5432/fielddesk
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET=supersecretkey_change_in_production
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -51,8 +48,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
+    env_file:
+      - .env
     depends_on:
       - backend
     volumes:

@@ -1,54 +1,69 @@
 import pytest
-from sqlalchemy import text
-from app.models import User, Organisation, RoleEnum
-from app.database import SessionLocal
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from app.models import User, Organisation, Role, Base
 import uuid
+
+# Use a separate test database for tests
+TEST_DATABASE_URL = "postgresql://fielddesk:securepassword@localhost:5432/fielddesk_test"
+engine = create_engine(TEST_DATABASE_URL)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="module")
 def db():
-    # In a real test, this should use a test database and run migrations first
-    db = SessionLocal()
+    # Setup test DB schema
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    
+    # We apply the RLS setup here for testing
+    db.execute(text("ALTER TABLE organisations ENABLE ROW LEVEL SECURITY"))
+    db.execute(text("ALTER TABLE users ENABLE ROW LEVEL SECURITY"))
+    db.execute(text("ALTER TABLE roles ENABLE ROW LEVEL SECURITY"))
+    db.execute(text("ALTER TABLE organisations FORCE ROW LEVEL SECURITY"))
+    db.execute(text("ALTER TABLE users FORCE ROW LEVEL SECURITY"))
+    db.execute(text("ALTER TABLE roles FORCE ROW LEVEL SECURITY"))
+    db.execute(text("CREATE POLICY org_isolation ON organisations USING (id = current_setting('app.current_organisation_id', true)::uuid)"))
+    db.execute(text("CREATE POLICY user_isolation ON users USING (organisation_id = current_setting('app.current_organisation_id', true)::uuid)"))
+    db.execute(text("CREATE POLICY role_isolation ON roles USING (organisation_id = current_setting('app.current_organisation_id', true)::uuid)"))
+    db.commit()
+
     try:
         yield db
     finally:
         db.close()
 
 def test_cross_org_access_blocked(db):
-    # Bypass RLS to setup test data
-    db.execute(text("SET LOCAL app.current_tenant_id = ''"))
-    
     org1_id = uuid.uuid4()
     org2_id = uuid.uuid4()
     
-    # Create two organisations
+    # Run as a superuser/owner without RLS enforced for setup, or use bypassrls
+    # In this test environment, we haven't switched to a restricted role, but since FORCE RLS is on,
+    # we MUST set a valid UUID, so let's set it to some admin UUID or bypass it if possible.
+    # Postgres doesn't allow bypassing RLS easily without switching roles, but since we are the table owner,
+    # if we didn't use FORCE RLS we'd bypass it. With FORCE RLS, we must provide a UUID.
+    # Let's set it to org1_id first to insert org1, then org2_id to insert org2.
+    
+    db.execute(text("SET LOCAL app.current_organisation_id = :org_id"), {"org_id": str(org1_id)})
     org1 = Organisation(id=org1_id, name="Org 1")
-    org2 = Organisation(id=org2_id, name="Org 2")
-    db.add_all([org1, org2])
+    role1 = Role(organisation_id=org1_id, name="dispatcher")
+    user1 = User(email="user1@org1.com", hashed_password="pw", role=role1, organisation_id=org1_id)
+    db.add_all([org1, role1, user1])
     db.commit()
     
-    # Create a user in Org 2
-    user2 = User(
-        email="user2@org2.com",
-        hashed_password="hashed_password",
-        role=RoleEnum.dispatcher,
-        organisation_id=org2_id
-    )
-    db.add(user2)
+    db.execute(text("SET LOCAL app.current_organisation_id = :org_id"), {"org_id": str(org2_id)})
+    org2 = Organisation(id=org2_id, name="Org 2")
+    role2 = Role(organisation_id=org2_id, name="dispatcher")
+    user2 = User(email="user2@org2.com", hashed_password="pw", role=role2, organisation_id=org2_id)
+    db.add_all([org2, role2, user2])
     db.commit()
 
-    # Now, simulate a session for a user in Org 1
-    # We set the tenant context to Org 1
-    db.execute(text("SET LOCAL app.current_tenant_id = :org_id"), {"org_id": str(org1_id)})
+    # Now simulate a session for Org 1
+    db.execute(text("SET LOCAL app.current_organisation_id = :org_id"), {"org_id": str(org1_id)})
     
-    # Try to query users. We should NOT see user2
     users = db.query(User).all()
+    assert len(users) == 1
+    assert users[0].email == "user1@org1.com"
     
-    # Check that user2 is not in the results
-    assert not any(u.email == "user2@org2.com" for u in users), "RLS failed: Cross-org data access occurred"
-    
-    # Clean up (using a superuser/bypassing RLS)
-    db.execute(text("RESET app.current_tenant_id"))
-    db.delete(user2)
-    db.delete(org1)
-    db.delete(org2)
-    db.commit()
+    # Ensure Org 2 user is not visible
+    assert not any(u.email == "user2@org2.com" for u in users), "Cross-org access occurred"

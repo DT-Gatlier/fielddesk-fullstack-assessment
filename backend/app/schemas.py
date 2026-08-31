@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
-from .models import RoleEnum
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -13,7 +12,7 @@ class Token(BaseModel):
 class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
-    role: RoleEnum
+    role_id: UUID
     organisation_id: UUID
 
     class Config:
