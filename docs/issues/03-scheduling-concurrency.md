@@ -4,10 +4,10 @@ Introduce the `tstzrange` column for scheduled work and the GiST exclusion const
 
 ## Acceptance criteria
 
-- [ ] Database constraint prevents overlapping assignments for the same technician.
-- [ ] API returns a 409 Conflict gracefully when overlap occurs.
-- [ ] UI allows technician assignment and correctly displays conflict errors.
-- [ ] Automated concurrency test (`asyncio.gather`) passes, proving the constraint blocks simultaneous conflicting requests.
+- [x] Database constraint prevents overlapping assignments for the same technician.
+- [x] API returns a 409 Conflict gracefully when overlap occurs.
+- [x] UI allows technician assignment and correctly displays conflict errors.
+- [x] Automated concurrency test (`asyncio.gather`) passes, proving the constraint blocks simultaneous conflicting requests.
 
 ## Blocked by
 
