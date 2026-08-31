@@ -84,7 +84,8 @@ def get_work_orders(
     
     total = query.count()
     data = query.offset(skip).limit(pageSize).all()
-    return {"data": data, "total": total}
+    parsed_data = [schemas.WorkOrderResponse.model_validate(wo) for wo in data]
+    return {"data": parsed_data, "total": total}
 
 @app.get("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
 def get_work_order(
@@ -95,7 +96,7 @@ def get_work_order(
     db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
-    return db_work_order
+    return schemas.WorkOrderResponse.model_validate(db_work_order)
 
 @app.post("/work-orders", response_model=schemas.WorkOrderResponse, status_code=201)
 def create_work_order(
@@ -107,7 +108,7 @@ def create_work_order(
     db.add(db_work_order)
     db.commit()
     db.refresh(db_work_order)
-    return db_work_order
+    return schemas.WorkOrderResponse.model_validate(db_work_order)
 
 @app.patch("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
 def update_work_order(
@@ -129,7 +130,7 @@ def update_work_order(
         
     db.commit()
     db.refresh(db_work_order)
-    return db_work_order
+    return schemas.WorkOrderResponse.model_validate(db_work_order)
 
 @app.delete("/work-orders/{work_order_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_work_order(
@@ -198,7 +199,7 @@ def assign_work_order(
         raise HTTPException(status_code=400, detail="Start time must be before end time")
 
     db_work_order.technician_id = assignment.technician_id
-    db_work_order.scheduled_time = DateTimeTZRange(start_dt, end_dt, '[)')
+    db_work_order.scheduled_range = DateTimeTZRange(start_dt, end_dt, '[)')
     db_work_order.status = "assigned"
 
     try:
@@ -208,7 +209,7 @@ def assign_work_order(
         db.rollback()
         # Check if it's the exclusion constraint
         if 'no_overlapping_assignments' in str(e):
-            raise HTTPException(status_code=409, detail="Technician is already assigned to another work order during this time")
+            raise HTTPException(status_code=409, detail="Technician is already assigned to another work order during this scheduled range")
         raise e
 
-    return db_work_order
+    return schemas.WorkOrderResponse.model_validate(db_work_order)

@@ -46,15 +46,14 @@ class WorkOrderResponse(WorkOrderBase):
     organisation_id: UUID
     created_at: datetime | None = None
     technician_id: UUID | None = None
-    scheduled_time: tuple[datetime, datetime] | None = None
+    scheduled_range: tuple[datetime, datetime] | None = None
     
     @classmethod
     def model_validate(cls, obj, *args, **kwargs):
         # Handle psycopg2 DateTimeTZRange
-        if hasattr(obj, 'scheduled_time') and obj.scheduled_time:
-            # Create a dictionary from the ORM object to mutate
+        if hasattr(obj, 'scheduled_range') and obj.scheduled_range:
             data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
-            data['scheduled_time'] = (obj.scheduled_time.lower, obj.scheduled_time.upper)
+            data['scheduled_range'] = (obj.scheduled_range.lower, obj.scheduled_range.upper)
             return super().model_validate(data, *args, **kwargs)
         return super().model_validate(obj, *args, **kwargs)
 

@@ -30,9 +30,9 @@ def setup_db():
             ADD CONSTRAINT no_overlapping_assignments
             EXCLUDE USING gist (
                 technician_id WITH =,
-                scheduled_time WITH &&
+                scheduled_range WITH &&
             )
-            WHERE (technician_id IS NOT NULL AND scheduled_time IS NOT NULL AND status != 'cancelled');
+            WHERE (technician_id IS NOT NULL AND scheduled_range IS NOT NULL AND status != 'cancelled');
         """))
     except Exception:
         db.rollback()
@@ -83,7 +83,7 @@ async def test_concurrent_assignments(setup_db):
     
     headers = {"Authorization": f"Bearer {token}"}
     
-    # Assign same technician to same time slot for different work orders
+    # Assign same technician to same scheduled range for different work orders
     # This should fail due to gist exclusion constraint
     payload1 = {
         "technician_id": str(tech_id),

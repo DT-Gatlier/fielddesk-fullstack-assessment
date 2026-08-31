@@ -13,7 +13,7 @@ interface WorkOrder {
   status: string;
   created_at: string;
   technician_id?: string;
-  scheduled_time?: [string, string];
+  scheduled_range?: [string, string];
 }
 
 interface Technician {
@@ -137,8 +137,8 @@ const WorkOrders: React.FC = () => {
       if (assigningOrder) {
         const payload = {
           technician_id: values.technician_id,
-          scheduled_start: values.scheduled_time[0].toISOString(),
-          scheduled_end: values.scheduled_time[1].toISOString(),
+          scheduled_start: values.scheduled_range[0].toISOString(),
+          scheduled_end: values.scheduled_range[1].toISOString(),
         };
         await api.post(`/work-orders/${assigningOrder.id}/assign`, payload);
         message.success('Technician assigned successfully');
@@ -188,6 +188,21 @@ const WorkOrders: React.FC = () => {
       dataIndex: 'created_at',
       key: 'created_at',
       render: (text: string) => new Date(text).toLocaleString(),
+    },
+    {
+      title: 'Technician',
+      dataIndex: 'technician_id',
+      key: 'technician_id',
+      render: (id: string) => {
+        const tech = technicians.find(t => t.id === id);
+        return tech ? tech.email : 'Unassigned';
+      }
+    },
+    {
+      title: 'Scheduled Range',
+      dataIndex: 'scheduled_range',
+      key: 'scheduled_range',
+      render: (range: [string, string]) => range ? `${new Date(range[0]).toLocaleString()} - ${new Date(range[1]).toLocaleString()}` : 'N/A'
     },
     {
       title: 'Actions',
@@ -285,9 +300,9 @@ const WorkOrders: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name="scheduled_time"
-            label="Scheduled Time"
-            rules={[{ required: true, message: 'Please select the scheduled time!' }]}
+            name="scheduled_range"
+            label="Scheduled Range"
+            rules={[{ required: true, message: 'Please select the scheduled range!' }]}
           >
             <RangePicker showTime style={{ width: '100%' }} />
           </Form.Item>

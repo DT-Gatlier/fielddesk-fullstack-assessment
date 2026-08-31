@@ -50,7 +50,7 @@ class WorkOrder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     technician_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    scheduled_time = Column(postgresql.TSTZRANGE, nullable=True)
+    scheduled_range = Column(postgresql.TSTZRANGE, nullable=True)
 
     organisation = relationship("Organisation")
     technician = relationship("User", foreign_keys=[technician_id])
