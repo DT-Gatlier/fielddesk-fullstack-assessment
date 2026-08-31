@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Spin } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import api from '../api';
 
