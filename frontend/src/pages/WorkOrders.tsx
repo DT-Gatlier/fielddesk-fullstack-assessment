@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, message, DatePicker } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
 import api from '../api';
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 interface WorkOrder {
   id: string;
@@ -11,6 +12,13 @@ interface WorkOrder {
   description: string;
   status: string;
   created_at: string;
+  technician_id?: string;
+  scheduled_time?: [string, string];
+}
+
+interface Technician {
+  id: string;
+  email: string;
 }
 
 const WorkOrders: React.FC = () => {
@@ -25,6 +33,11 @@ const WorkOrders: React.FC = () => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
   const [form] = Form.useForm();
+
+  const [assignModalVisible, setAssignModalVisible] = useState<boolean>(false);
+  const [assigningOrder, setAssigningOrder] = useState<WorkOrder | null>(null);
+  const [assignForm] = Form.useForm();
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
   
   const fetchWorkOrders = async (current: number = pagination.current, pageSize: number = pagination.pageSize, status: string | null = statusFilter) => {
     setLoading(true);
@@ -47,8 +60,18 @@ const WorkOrders: React.FC = () => {
     }
   };
 
+  const fetchTechnicians = async () => {
+    try {
+      const response = await api.get('/technicians');
+      setTechnicians(response.data);
+    } catch (error) {
+      console.error("Failed to load technicians", error);
+    }
+  };
+
   useEffect(() => {
     fetchWorkOrders(pagination.current, pagination.pageSize, statusFilter);
+    fetchTechnicians();
   }, [pagination.current, pagination.pageSize, statusFilter]);
 
   const handleTableChange = (newPagination: any, filters: any) => {
@@ -102,6 +125,39 @@ const WorkOrders: React.FC = () => {
     }
   };
 
+  const handleAssignClick = (record: WorkOrder) => {
+    setAssigningOrder(record);
+    assignForm.resetFields();
+    setAssignModalVisible(true);
+  };
+
+  const handleAssignOk = async () => {
+    try {
+      const values = await assignForm.validateFields();
+      if (assigningOrder) {
+        const payload = {
+          technician_id: values.technician_id,
+          scheduled_start: values.scheduled_time[0].toISOString(),
+          scheduled_end: values.scheduled_time[1].toISOString(),
+        };
+        await api.post(`/work-orders/${assigningOrder.id}/assign`, payload);
+        message.success('Technician assigned successfully');
+        setAssignModalVisible(false);
+        fetchWorkOrders();
+      }
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        message.error('Conflict: ' + error.response.data.error);
+      } else if (error.response?.data?.error) {
+         message.error(error.response.data.error);
+      } else if (error.errorFields) {
+         // Validation
+      } else {
+         message.error('Assignment failed');
+      }
+    }
+  };
+
   const columns = [
     {
       title: 'Title',
@@ -138,6 +194,9 @@ const WorkOrders: React.FC = () => {
       key: 'actions',
       render: (_: any, record: WorkOrder) => (
         <div style={{ display: 'flex', gap: '8px' }}>
+          <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
+            Assign
+          </Button>
           <Button icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             Edit
           </Button>
@@ -202,6 +261,35 @@ const WorkOrders: React.FC = () => {
               <Option value="completed">Completed</Option>
               <Option value="cancelled">Cancelled</Option>
             </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`Assign Technician to ${assigningOrder?.title}`}
+        open={assignModalVisible}
+        onOk={handleAssignOk}
+        onCancel={() => setAssignModalVisible(false)}
+        destroyOnClose
+      >
+        <Form form={assignForm} layout="vertical">
+          <Form.Item
+            name="technician_id"
+            label="Technician"
+            rules={[{ required: true, message: 'Please select a technician!' }]}
+          >
+            <Select placeholder="Select a technician">
+              {technicians.map(tech => (
+                <Option key={tech.id} value={tech.id}>{tech.email}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="scheduled_time"
+            label="Scheduled Time"
+            rules={[{ required: true, message: 'Please select the scheduled time!' }]}
+          >
+            <RangePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

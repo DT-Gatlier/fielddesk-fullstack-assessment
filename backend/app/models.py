@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime
@@ -48,6 +49,9 @@ class WorkOrder(Base):
     status = Column(String, nullable=False, default="open")  # open, assigned, in_progress, on_hold, completed, cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    technician_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    scheduled_time = Column(postgresql.TSTZRANGE, nullable=True)
 
     organisation = relationship("Organisation")
+    technician = relationship("User", foreign_keys=[technician_id])
 

@@ -144,3 +144,71 @@ def delete_work_order(
     db.delete(db_work_order)
     db.commit()
     return None
+
+@app.get("/technicians", response_model=List[schemas.UserResponse])
+def get_technicians(
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_dispatcher_user)
+):
+    # Get the technician role id for the org
+    tech_role = db.query(models.Role).filter(
+        models.Role.organisation_id == current_user.organisation_id,
+        models.Role.name == "technician"
+    ).first()
+    
+    if not tech_role:
+        return []
+        
+    technicians = db.query(models.User).filter(
+        models.User.organisation_id == current_user.organisation_id,
+        models.User.role_id == tech_role.id
+    ).all()
+    
+    return technicians
+
+from sqlalchemy.exc import IntegrityError
+from psycopg2.extras import DateTimeTZRange
+
+@app.post("/work-orders/{work_order_id}/assign", response_model=schemas.WorkOrderResponse)
+def assign_work_order(
+    work_order_id: str,
+    assignment: schemas.WorkOrderAssign,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_dispatcher_user)
+):
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+        
+    if db_work_order.status in ["completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Cannot modify a terminal work order")
+
+    # verify technician exists and is in same org
+    tech = db.query(models.User).filter(
+        models.User.id == assignment.technician_id,
+        models.User.organisation_id == current_user.organisation_id
+    ).first()
+    if not tech:
+        raise HTTPException(status_code=404, detail="Technician not found in your organisation")
+
+    start_dt = assignment.scheduled_start
+    end_dt = assignment.scheduled_end
+    
+    if start_dt >= end_dt:
+        raise HTTPException(status_code=400, detail="Start time must be before end time")
+
+    db_work_order.technician_id = assignment.technician_id
+    db_work_order.scheduled_time = DateTimeTZRange(start_dt, end_dt, '[)')
+    db_work_order.status = "assigned"
+
+    try:
+        db.commit()
+        db.refresh(db_work_order)
+    except IntegrityError as e:
+        db.rollback()
+        # Check if it's the exclusion constraint
+        if 'no_overlapping_assignments' in str(e):
+            raise HTTPException(status_code=409, detail="Technician is already assigned to another work order during this time")
+        raise e
+
+    return db_work_order

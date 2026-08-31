@@ -34,11 +34,30 @@ class WorkOrderUpdate(BaseModel):
     description: str | None = None
     status: WorkOrderStatus | None = None
 
+from datetime import datetime
+
+class WorkOrderAssign(BaseModel):
+    technician_id: UUID
+    scheduled_start: datetime
+    scheduled_end: datetime
+
 class WorkOrderResponse(WorkOrderBase):
     id: UUID
     organisation_id: UUID
-    created_at: str | None = None
+    created_at: datetime | None = None
+    technician_id: UUID | None = None
+    scheduled_time: tuple[datetime, datetime] | None = None
     
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        # Handle psycopg2 DateTimeTZRange
+        if hasattr(obj, 'scheduled_time') and obj.scheduled_time:
+            # Create a dictionary from the ORM object to mutate
+            data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+            data['scheduled_time'] = (obj.scheduled_time.lower, obj.scheduled_time.upper)
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
+
     class Config:
         from_attributes = True
 
