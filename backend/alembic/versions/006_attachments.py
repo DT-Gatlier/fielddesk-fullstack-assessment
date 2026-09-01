@@ -17,14 +17,12 @@ def upgrade() -> None:
         'attachments',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('organisation_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('work_order_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('file_name', sa.String(), nullable=False),
         sa.Column('file_path', sa.String(), nullable=False),
         sa.Column('file_size', sa.BigInteger(), nullable=False),
         sa.Column('content_type', sa.String(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['work_order_id'], ['work_orders.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
 

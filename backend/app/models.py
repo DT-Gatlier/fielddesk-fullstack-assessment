@@ -11,7 +11,6 @@ class Attachment(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organisation_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
-    work_order_id = Column(UUID(as_uuid=True), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=True)
     file_name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     file_size = Column(BigInteger, nullable=False)
@@ -19,7 +18,6 @@ class Attachment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organisation = relationship("Organisation")
-    work_order = relationship("WorkOrder")
 
 class Organisation(Base):
     __tablename__ = "organisations"

@@ -318,19 +318,37 @@ UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/attachments", response_model=schemas.AttachmentResponse, status_code=201)
-def upload_attachment(
+async def upload_attachment(
     file: UploadFile = File(...),
-    work_order_id: Optional[str] = Form(None),
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    org = db.query(models.Organisation).filter(models.Organisation.id == current_user.organisation_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organisation not found")
+        
+    remaining_quota = org.storage_quota_bytes - org.storage_used_bytes
+    if remaining_quota <= 0:
+        raise HTTPException(status_code=400, detail="Storage quota exceeded")
+
     file_id = str(uuid.uuid4())
     disk_path = os.path.join(UPLOAD_DIR, file_id)
     
-    with open(disk_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    file_size = os.path.getsize(disk_path)
+    file_size = 0
+    try:
+        with open(disk_path, "wb") as buffer:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                file_size += len(chunk)
+                if file_size > remaining_quota:
+                    raise HTTPException(status_code=400, detail="Storage quota exceeded")
+                buffer.write(chunk)
+    except Exception as e:
+        if os.path.exists(disk_path):
+            os.remove(disk_path)
+        raise e
             
     # Atomic quota check and increment
     stmt = (
@@ -345,48 +363,45 @@ def upload_attachment(
     result = db.execute(stmt).scalar()
     
     if not result:
-        os.remove(disk_path)
+        if os.path.exists(disk_path):
+            os.remove(disk_path)
         raise HTTPException(status_code=400, detail="Storage quota exceeded")
         
     db_attachment = models.Attachment(
         id=file_id,
         organisation_id=current_user.organisation_id,
-        work_order_id=work_order_id,
         file_name=file.filename or "unnamed",
         file_path=file_id,
         file_size=file_size,
         content_type=file.content_type or "application/octet-stream"
     )
     db.add(db_attachment)
-    db.commit()
-    db.refresh(db_attachment)
+    try:
+        db.commit()
+        db.refresh(db_attachment)
+    except Exception as e:
+        db.rollback()
+        if os.path.exists(disk_path):
+            os.remove(disk_path)
+        # Attempt to rollback the quota increment
+        rollback_stmt = (
+            update(models.Organisation)
+            .where(models.Organisation.id == current_user.organisation_id)
+            .values(storage_used_bytes=models.Organisation.storage_used_bytes - file_size)
+        )
+        db.execute(rollback_stmt)
+        db.commit()
+        raise e
     
     return schemas.AttachmentResponse.model_validate(db_attachment)
 
 @app.get("/attachments", response_model=List[schemas.AttachmentResponse])
 def list_attachments(
-    work_order_id: Optional[str] = None,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    query = db.query(models.Attachment)
-    if work_order_id:
-        query = query.filter(models.Attachment.work_order_id == work_order_id)
-    else:
-        query = query.filter(models.Attachment.organisation_id == current_user.organisation_id)
-        
+    query = db.query(models.Attachment).filter(models.Attachment.organisation_id == current_user.organisation_id)
     return query.all()
-
-@app.get("/attachments/{attachment_id}")
-def get_attachment_info(
-    attachment_id: str,
-    db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_current_user)
-):
-    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
-    if not attachment:
-        raise HTTPException(status_code=404, detail="Attachment not found")
-    return schemas.AttachmentResponse.model_validate(attachment)
 
 @app.get("/attachments/{attachment_id}/download")
 def download_attachment(
@@ -407,6 +422,38 @@ def download_attachment(
         filename=attachment.file_name,
         media_type=attachment.content_type
     )
+
+@app.delete("/attachments/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_attachment(
+    attachment_id: str,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    file_size = attachment.file_size
+    disk_path = os.path.join(UPLOAD_DIR, attachment.file_path)
+
+    db.delete(attachment)
+    try:
+        # Decrement quota atomically
+        stmt = (
+            update(models.Organisation)
+            .where(models.Organisation.id == current_user.organisation_id)
+            .values(storage_used_bytes=models.Organisation.storage_used_bytes - file_size)
+        )
+        db.execute(stmt)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+
+    if os.path.exists(disk_path):
+        os.remove(disk_path)
+
+    return None
 
 app.mount('/socket.io', socketio.ASGIApp(sio, socketio_path=''))
 

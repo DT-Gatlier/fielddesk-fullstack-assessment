@@ -42,18 +42,15 @@ const WorkOrders: React.FC = () => {
   const [progressEventId, setProgressEventId] = useState<string>('');
 
   const [attachmentsModalVisible, setAttachmentsModalVisible] = useState<boolean>(false);
-  const [activeWorkOrderForFiles, setActiveWorkOrderForFiles] = useState<WorkOrder | null>(null);
 
   const { data: attachments = [], refetch: refetchAttachments } = useQuery({
-    queryKey: ['attachments', activeWorkOrderForFiles?.id],
+    queryKey: ['attachments'],
     queryFn: async () => {
-      if (!activeWorkOrderForFiles) return [];
-      const response = await api.get(`/attachments?work_order_id=${activeWorkOrderForFiles.id}`);
+      const response = await api.get(`/attachments`);
       return response.data;
     },
-    enabled: !!activeWorkOrderForFiles
+    enabled: attachmentsModalVisible
   });
-
 
   const { data: workOrdersData, isLoading: loading, isError: error } = useQuery({
     queryKey: ['workOrders', pagination.current, pagination.pageSize, statusFilter],
@@ -216,11 +213,6 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  const handleAttachmentsClick = (record: WorkOrder) => {
-    setActiveWorkOrderForFiles(record);
-    setAttachmentsModalVisible(true);
-  };
-
   const { user } = useAuth();
 
   const columns = [
@@ -277,9 +269,6 @@ const WorkOrders: React.FC = () => {
           <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
             Assign
           </Button>
-          <Button icon={<PaperClipOutlined />} onClick={() => handleAttachmentsClick(record)}>
-            Files
-          </Button>
           {user?.id === record.technician_id && (
             <Button onClick={() => handleProgressClick(record)}>
               Progress
@@ -300,9 +289,14 @@ const WorkOrders: React.FC = () => {
     <div style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
         <h2>Work Orders</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Create Work Order
-        </Button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button icon={<PaperClipOutlined />} onClick={() => setAttachmentsModalVisible(true)}>
+            Organisation Files
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Create Work Order
+          </Button>
+        </div>
       </div>
       
       <Table
@@ -406,21 +400,18 @@ const WorkOrders: React.FC = () => {
       </Modal>
 
       <Modal
-        title={`Files for ${activeWorkOrderForFiles?.title}`}
+        title={`Organisation Files`}
         open={attachmentsModalVisible}
         onCancel={() => setAttachmentsModalVisible(false)}
         footer={null}
         destroyOnClose
-        width={600}
+        width={700}
       >
         <Upload
           name="file"
           action={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments`}
           headers={{
             Authorization: `Bearer ${localStorage.getItem('token')}`,
-          }}
-          data={{
-            work_order_id: activeWorkOrderForFiles?.id || '',
           }}
           onChange={(info) => {
             if (info.file.status === 'done') {
@@ -456,32 +447,49 @@ const WorkOrders: React.FC = () => {
               title: 'Action',
               key: 'action',
               render: (_, record: any) => (
-                <Button 
-                  type="link" 
-                  onClick={() => {
-                    const token = localStorage.getItem('token');
-                    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments/${record.id}/download`, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    })
-                    .then(res => {
-                        if (!res.ok) throw new Error('Download failed');
-                        return res.blob();
-                    })
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = record.file_name;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    })
-                    .catch(() => message.error('Download failed'));
-                  }}
-                >
-                  Download
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button 
+                    type="link" 
+                    onClick={() => {
+                      const token = localStorage.getItem('token');
+                      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments/${record.id}/download`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      })
+                      .then(res => {
+                          if (!res.ok) throw new Error('Download failed');
+                          return res.blob();
+                      })
+                      .then(blob => {
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = record.file_name;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                      })
+                      .catch(() => message.error('Download failed'));
+                    }}
+                  >
+                    Download
+                  </Button>
+                  <Button 
+                    type="link" 
+                    danger
+                    onClick={async () => {
+                      try {
+                        await api.delete(`/attachments/${record.id}`);
+                        message.success('File deleted successfully');
+                        refetchAttachments();
+                      } catch (err) {
+                        message.error('Failed to delete file');
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
               )
             }
           ]}
