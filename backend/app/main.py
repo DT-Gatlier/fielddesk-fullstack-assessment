@@ -182,6 +182,8 @@ def get_technicians(
 from sqlalchemy.exc import IntegrityError
 from psycopg2.extras import DateTimeTZRange
 
+from .worker import send_assignment_notification
+
 @app.post("/work-orders/{work_order_id}/assign", response_model=schemas.WorkOrderResponse)
 def assign_work_order(
     work_order_id: str,
@@ -218,6 +220,29 @@ def assign_work_order(
     try:
         db.commit()
         db.refresh(db_work_order)
+        
+        # Prevent duplicate notifications
+        existing_notification = db.query(models.Notification).filter(
+            models.Notification.work_order_id == db_work_order.id,
+            models.Notification.technician_id == db_work_order.technician_id,
+            models.Notification.status.in_(["pending", "sent"])
+        ).first()
+        
+        if not existing_notification:
+            notification = models.Notification(
+                work_order_id=db_work_order.id,
+                technician_id=db_work_order.technician_id
+            )
+            db.add(notification)
+            try:
+                db.commit()
+                db.refresh(notification)
+                send_assignment_notification.delay(str(notification.id))
+            except IntegrityError as e:
+                db.rollback()
+                if 'uq_notification_work_order_tech' not in str(e):
+                    raise e
+            
     except IntegrityError as e:
         db.rollback()
         # Check if it's the exclusion constraint

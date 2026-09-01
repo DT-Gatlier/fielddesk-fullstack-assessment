@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
@@ -69,3 +69,20 @@ class ProgressEvent(Base):
     work_order = relationship("WorkOrder")
     technician = relationship("User")
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    work_order_id = Column(UUID(as_uuid=True), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=False)
+    technician_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    status = Column(String, nullable=False, default="pending")  # pending, sent, failed
+    attempts = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('work_order_id', 'technician_id', name='uq_notification_work_order_tech'),
+    )
+
+    work_order = relationship("WorkOrder")
+    technician = relationship("User")

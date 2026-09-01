@@ -12,7 +12,7 @@ import uuid
 
 # revision identifiers, used by Alembic.
 revision = '004_progress_events'
-down_revision = '003_add_assignment_constraints'
+down_revision = '003'
 branch_labels = None
 depends_on = None
 
