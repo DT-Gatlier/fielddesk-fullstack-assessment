@@ -4,11 +4,11 @@ Setup Celery worker with Redis. Enqueue a notification task when a work order is
 
 ## Acceptance criteria
 
-- [ ] Celery worker runs independently from the API process in Docker Compose.
-- [ ] Temporary provider failures are retried with exponential backoff.
-- [ ] Permanent provider failures stop retrying and are logged.
-- [ ] Task execution updates the DB with attempts and the final outcome.
-- [ ] Duplicate notifications are prevented.
+- [x] Celery worker runs independently from the API process in Docker Compose.
+- [x] Temporary provider failures are retried with exponential backoff.
+- [x] Permanent provider failures stop retrying and are logged.
+- [x] Task execution updates the DB with attempts and the final outcome.
+- [x] Duplicate notifications are prevented.
 
 ## Blocked by
 
