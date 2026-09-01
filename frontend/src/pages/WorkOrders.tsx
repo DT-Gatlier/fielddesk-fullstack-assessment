@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, message, DatePicker, Upload, UploadProps } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, PaperClipOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import api from '../api';
@@ -40,6 +40,20 @@ const WorkOrders: React.FC = () => {
   const [progressModalVisible, setProgressModalVisible] = useState<boolean>(false);
   const [progressForm] = Form.useForm();
   const [progressEventId, setProgressEventId] = useState<string>('');
+
+  const [attachmentsModalVisible, setAttachmentsModalVisible] = useState<boolean>(false);
+  const [activeWorkOrderForFiles, setActiveWorkOrderForFiles] = useState<WorkOrder | null>(null);
+
+  const { data: attachments = [], refetch: refetchAttachments } = useQuery({
+    queryKey: ['attachments', activeWorkOrderForFiles?.id],
+    queryFn: async () => {
+      if (!activeWorkOrderForFiles) return [];
+      const response = await api.get(`/attachments?work_order_id=${activeWorkOrderForFiles.id}`);
+      return response.data;
+    },
+    enabled: !!activeWorkOrderForFiles
+  });
+
 
   const { data: workOrdersData, isLoading: loading, isError: error } = useQuery({
     queryKey: ['workOrders', pagination.current, pagination.pageSize, statusFilter],
@@ -202,6 +216,11 @@ const WorkOrders: React.FC = () => {
     }
   };
 
+  const handleAttachmentsClick = (record: WorkOrder) => {
+    setActiveWorkOrderForFiles(record);
+    setAttachmentsModalVisible(true);
+  };
+
   const { user } = useAuth();
 
   const columns = [
@@ -254,9 +273,12 @@ const WorkOrders: React.FC = () => {
       title: 'Actions',
       key: 'actions',
       render: (_: any, record: WorkOrder) => (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
             Assign
+          </Button>
+          <Button icon={<PaperClipOutlined />} onClick={() => handleAttachmentsClick(record)}>
+            Files
           </Button>
           {user?.id === record.technician_id && (
             <Button onClick={() => handleProgressClick(record)}>
@@ -381,6 +403,89 @@ const WorkOrders: React.FC = () => {
             </Select>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`Files for ${activeWorkOrderForFiles?.title}`}
+        open={attachmentsModalVisible}
+        onCancel={() => setAttachmentsModalVisible(false)}
+        footer={null}
+        destroyOnClose
+        width={600}
+      >
+        <Upload
+          name="file"
+          action={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments`}
+          headers={{
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          }}
+          data={{
+            work_order_id: activeWorkOrderForFiles?.id || '',
+          }}
+          onChange={(info) => {
+            if (info.file.status === 'done') {
+              message.success(`${info.file.name} uploaded successfully`);
+              refetchAttachments();
+            } else if (info.file.status === 'error') {
+              message.error(info.file.response?.error || `${info.file.name} upload failed.`);
+            }
+          }}
+          showUploadList={false}
+        >
+          <Button icon={<UploadOutlined />} type="primary">Upload File</Button>
+        </Upload>
+        
+        <Table
+          dataSource={attachments}
+          rowKey="id"
+          style={{ marginTop: 16 }}
+          pagination={false}
+          columns={[
+            {
+              title: 'Name',
+              dataIndex: 'file_name',
+              key: 'file_name',
+            },
+            {
+              title: 'Size',
+              dataIndex: 'file_size',
+              key: 'file_size',
+              render: (size: number) => `${(size / 1024).toFixed(1)} KB`
+            },
+            {
+              title: 'Action',
+              key: 'action',
+              render: (_, record: any) => (
+                <Button 
+                  type="link" 
+                  onClick={() => {
+                    const token = localStorage.getItem('token');
+                    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments/${record.id}/download`, {
+                      headers: { Authorization: `Bearer ${token}` }
+                    })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Download failed');
+                        return res.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = record.file_name;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    })
+                    .catch(() => message.error('Download failed'));
+                  }}
+                >
+                  Download
+                </Button>
+              )
+            }
+          ]}
+        />
       </Modal>
     </div>
   );

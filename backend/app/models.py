@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, UniqueConstraint, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
@@ -6,12 +6,29 @@ import uuid
 from datetime import datetime
 from .database import Base
 
+class Attachment(Base):
+    __tablename__ = "attachments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False)
+    work_order_id = Column(UUID(as_uuid=True), ForeignKey("work_orders.id", ondelete="CASCADE"), nullable=True)
+    file_name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    file_size = Column(BigInteger, nullable=False)
+    content_type = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organisation = relationship("Organisation")
+    work_order = relationship("WorkOrder")
+
 class Organisation(Base):
     __tablename__ = "organisations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    storage_used_bytes = Column(BigInteger, default=0, nullable=False)
+    storage_quota_bytes = Column(BigInteger, default=104857600, nullable=False)
 
     users = relationship("User", back_populates="organisation")
     roles = relationship("Role", back_populates="organisation")

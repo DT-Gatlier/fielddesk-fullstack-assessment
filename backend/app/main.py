@@ -307,5 +307,106 @@ def submit_progress_event(
     background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return schemas.ProgressEventResponse.model_validate(new_event)
 
+from fastapi import UploadFile, File, Form
+from fastapi.responses import FileResponse
+from sqlalchemy import update
+import os
+import uuid
+import shutil
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@app.post("/attachments", response_model=schemas.AttachmentResponse, status_code=201)
+def upload_attachment(
+    file: UploadFile = File(...),
+    work_order_id: Optional[str] = Form(None),
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    file_id = str(uuid.uuid4())
+    disk_path = os.path.join(UPLOAD_DIR, file_id)
+    
+    with open(disk_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    file_size = os.path.getsize(disk_path)
+            
+    # Atomic quota check and increment
+    stmt = (
+        update(models.Organisation)
+        .where(
+            models.Organisation.id == current_user.organisation_id,
+            models.Organisation.storage_used_bytes + file_size <= models.Organisation.storage_quota_bytes
+        )
+        .values(storage_used_bytes=models.Organisation.storage_used_bytes + file_size)
+        .returning(models.Organisation.id)
+    )
+    result = db.execute(stmt).scalar()
+    
+    if not result:
+        os.remove(disk_path)
+        raise HTTPException(status_code=400, detail="Storage quota exceeded")
+        
+    db_attachment = models.Attachment(
+        id=file_id,
+        organisation_id=current_user.organisation_id,
+        work_order_id=work_order_id,
+        file_name=file.filename or "unnamed",
+        file_path=file_id,
+        file_size=file_size,
+        content_type=file.content_type or "application/octet-stream"
+    )
+    db.add(db_attachment)
+    db.commit()
+    db.refresh(db_attachment)
+    
+    return schemas.AttachmentResponse.model_validate(db_attachment)
+
+@app.get("/attachments", response_model=List[schemas.AttachmentResponse])
+def list_attachments(
+    work_order_id: Optional[str] = None,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    query = db.query(models.Attachment)
+    if work_order_id:
+        query = query.filter(models.Attachment.work_order_id == work_order_id)
+    else:
+        query = query.filter(models.Attachment.organisation_id == current_user.organisation_id)
+        
+    return query.all()
+
+@app.get("/attachments/{attachment_id}")
+def get_attachment_info(
+    attachment_id: str,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    return schemas.AttachmentResponse.model_validate(attachment)
+
+@app.get("/attachments/{attachment_id}/download")
+def download_attachment(
+    attachment_id: str,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+        
+    disk_path = os.path.join(UPLOAD_DIR, attachment.file_path)
+    if not os.path.exists(disk_path):
+        raise HTTPException(status_code=404, detail="File missing on disk")
+        
+    return FileResponse(
+        path=disk_path,
+        filename=attachment.file_name,
+        media_type=attachment.content_type
+    )
+
 app.mount('/socket.io', socketio.ASGIApp(sio, socketio_path=''))
 
