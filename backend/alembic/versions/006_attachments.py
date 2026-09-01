@@ -28,7 +28,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
 
+    op.execute("ALTER TABLE attachments ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE attachments FORCE ROW LEVEL SECURITY")
+    op.execute("""
+        CREATE POLICY attachment_isolation_policy ON attachments
+        USING (organisation_id = current_setting('app.current_organisation_id', true)::uuid);
+    """)
+
 def downgrade() -> None:
+    op.execute("DROP POLICY attachment_isolation_policy ON attachments")
+    op.execute("ALTER TABLE attachments DISABLE ROW LEVEL SECURITY")
     op.drop_table('attachments')
     op.drop_column('organisations', 'storage_quota_bytes')
     op.drop_column('organisations', 'storage_used_bytes')

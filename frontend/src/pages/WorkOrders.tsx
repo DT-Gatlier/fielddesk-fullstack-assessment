@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, DatePicker, Upload, UploadProps } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, message, DatePicker, Upload } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, PaperClipOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
