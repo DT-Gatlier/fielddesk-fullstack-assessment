@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -6,8 +6,14 @@ from sqlalchemy import text
 from datetime import timedelta
 
 from . import auth, models, schemas, database, deps
+from .socket import sio, sio_app
+import socketio
 
 app = FastAPI(title="FieldDesk API")
+
+async def emit_work_order_update(org_id: str):
+    await sio.emit('work_order_updated', room=f"org_{org_id}")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,6 +107,7 @@ def get_work_order(
 @app.post("/work-orders", response_model=schemas.WorkOrderResponse, status_code=201)
 def create_work_order(
     work_order: schemas.WorkOrderCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
@@ -108,12 +115,14 @@ def create_work_order(
     db.add(db_work_order)
     db.commit()
     db.refresh(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return schemas.WorkOrderResponse.model_validate(db_work_order)
 
 @app.patch("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
 def update_work_order(
     work_order_id: str,
     work_order_update: schemas.WorkOrderUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
@@ -130,11 +139,13 @@ def update_work_order(
         
     db.commit()
     db.refresh(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return schemas.WorkOrderResponse.model_validate(db_work_order)
 
 @app.delete("/work-orders/{work_order_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_work_order(
     work_order_id: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
@@ -144,6 +155,7 @@ def delete_work_order(
     
     db.delete(db_work_order)
     db.commit()
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return None
 
 @app.get("/technicians", response_model=List[schemas.UserResponse])
@@ -174,6 +186,7 @@ from psycopg2.extras import DateTimeTZRange
 def assign_work_order(
     work_order_id: str,
     assignment: schemas.WorkOrderAssign,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
@@ -212,11 +225,13 @@ def assign_work_order(
             raise HTTPException(status_code=409, detail="Technician is already assigned to another work order during this scheduled range")
         raise e
 
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return schemas.WorkOrderResponse.model_validate(db_work_order)
 @app.post("/work-orders/{work_order_id}/progress", response_model=schemas.ProgressEventResponse)
 def submit_progress_event(
     work_order_id: str,
     event: schemas.ProgressEventCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_technician_user)
 ):
@@ -264,4 +279,8 @@ def submit_progress_event(
                 return schemas.ProgressEventResponse.model_validate(existing_event)
         raise e
         
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
     return schemas.ProgressEventResponse.model_validate(new_event)
+
+app.mount('/socket.io', socketio.ASGIApp(sio, socketio_path=''))
+

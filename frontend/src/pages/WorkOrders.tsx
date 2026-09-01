@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { io, Socket } from 'socket.io-client';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,11 +25,7 @@ interface Technician {
 }
 
 const WorkOrders: React.FC = () => {
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  const [total, setTotal] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<boolean>(false);
-  
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
@@ -38,46 +36,56 @@ const WorkOrders: React.FC = () => {
   const [assignModalVisible, setAssignModalVisible] = useState<boolean>(false);
   const [assigningOrder, setAssigningOrder] = useState<WorkOrder | null>(null);
   const [assignForm] = Form.useForm();
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
   
   const [progressModalVisible, setProgressModalVisible] = useState<boolean>(false);
   const [progressForm] = Form.useForm();
   const [progressEventId, setProgressEventId] = useState<string>('');
 
-  const fetchWorkOrders = async (current: number = pagination.current, pageSize: number = pagination.pageSize, status: string | null = statusFilter) => {
-    setLoading(true);
-    setError(false);
-    try {
+  const { data: workOrdersData, isLoading: loading, isError: error } = useQuery({
+    queryKey: ['workOrders', pagination.current, pagination.pageSize, statusFilter],
+    queryFn: async () => {
       const params = new URLSearchParams({
-        current: current.toString(),
-        pageSize: pageSize.toString()
+        current: pagination.current.toString(),
+        pageSize: pagination.pageSize.toString()
       });
-      if (status) params.append('status', status);
-
+      if (statusFilter) params.append('status', statusFilter);
       const response = await api.get(`/work-orders?${params.toString()}`);
-      setWorkOrders(response.data.data);
-      setTotal(response.data.total);
-    } catch (error: any) {
-      setError(true);
-      message.error(error.response?.data?.error || 'Failed to load work orders');
-    } finally {
-      setLoading(false);
+      return response.data;
     }
-  };
+  });
 
-  const fetchTechnicians = async () => {
-    try {
+  const { data: technicians = [] } = useQuery<Technician[]>({
+    queryKey: ['technicians'],
+    queryFn: async () => {
       const response = await api.get('/technicians');
-      setTechnicians(response.data);
-    } catch (error) {
-      console.error("Failed to load technicians", error);
+      return response.data;
     }
-  };
+  });
+
+  const workOrders = workOrdersData?.data || [];
+  const total = workOrdersData?.total || 0;
 
   useEffect(() => {
-    fetchWorkOrders(pagination.current, pagination.pageSize, statusFilter);
-    fetchTechnicians();
-  }, [pagination.current, pagination.pageSize, statusFilter]);
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
+      auth: { token },
+      path: '/socket.io'
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket connected');
+    });
+
+    socket.on('work_order_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [queryClient]);
 
   const handleTableChange = (newPagination: any, filters: any) => {
     setPagination(newPagination);
@@ -101,9 +109,9 @@ const WorkOrders: React.FC = () => {
     try {
       await api.delete(`/work-orders/${id}`);
       message.success('Work order deleted');
-      fetchWorkOrders();
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to delete work order');
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+    } catch (err: any) {
+      message.error(err.response?.data?.error || 'Failed to delete work order');
     }
   };
 
@@ -118,11 +126,11 @@ const WorkOrders: React.FC = () => {
         message.success('Work order created');
       }
       setModalVisible(false);
-      fetchWorkOrders();
-    } catch (error: any) {
-      if (error.response?.data?.error) {
-         message.error(error.response.data.error);
-      } else if (error.errorFields) {
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+    } catch (err: any) {
+      if (err.response?.data?.error) {
+         message.error(err.response.data.error);
+      } else if (err.errorFields) {
          // Form validation error
       } else {
          message.error('Operation failed');
@@ -148,14 +156,14 @@ const WorkOrders: React.FC = () => {
         await api.post(`/work-orders/${assigningOrder.id}/assign`, payload);
         message.success('Technician assigned successfully');
         setAssignModalVisible(false);
-        fetchWorkOrders();
+        queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       }
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        message.error('Conflict: ' + error.response.data.error);
-      } else if (error.response?.data?.error) {
-         message.error(error.response.data.error);
-      } else if (error.errorFields) {
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        message.error('Conflict: ' + err.response.data.error);
+      } else if (err.response?.data?.error) {
+         message.error(err.response.data.error);
+      } else if (err.errorFields) {
          // Validation
       } else {
          message.error('Assignment failed');
@@ -181,12 +189,12 @@ const WorkOrders: React.FC = () => {
         await api.post(`/work-orders/${assigningOrder.id}/progress`, payload);
         message.success('Progress event submitted successfully');
         setProgressModalVisible(false);
-        fetchWorkOrders();
+        queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       }
-    } catch (error: any) {
-      if (error.response?.data?.error) {
-         message.error(error.response.data.error);
-      } else if (error.errorFields) {
+    } catch (err: any) {
+      if (err.response?.data?.error) {
+         message.error(err.response.data.error);
+      } else if (err.errorFields) {
          // Validation
       } else {
          message.error('Failed to submit progress event');
@@ -194,7 +202,6 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  // Check user for conditional rendering
   const { user } = useAuth();
 
   const columns = [
