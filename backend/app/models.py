@@ -102,7 +102,7 @@ class Notification(Base):
     work_order = relationship("WorkOrder")
     technician = relationship("User")
 
-class AuditLog(Base):
+class AuditEntry(Base):
     __tablename__ = "audit_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

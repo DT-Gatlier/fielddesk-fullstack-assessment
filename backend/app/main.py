@@ -102,7 +102,7 @@ def export_work_orders(
         output.seek(0)
         output.truncate(0)
 
-        query = db.query(models.WorkOrder).yield_per(100)
+        query = db.query(models.WorkOrder).execution_options(stream_results=True).yield_per(100)
         for wo in query:
             writer.writerow([
                 sanitize_csv_field(wo.id),
@@ -163,7 +163,7 @@ def create_work_order(
     db_work_order = models.WorkOrder(**work_order.model_dump(), organisation_id=current_user.organisation_id)
     db.add(db_work_order)
     db.flush()
-    audit_log = models.AuditLog(
+    audit_log = models.AuditEntry(
         organisation_id=current_user.organisation_id,
         user_id=current_user.id,
         action="create_work_order",
@@ -193,8 +193,30 @@ def update_work_order(
         raise HTTPException(status_code=400, detail="Cannot modify a terminal work order")
         
     update_data = work_order_update.model_dump(exclude_unset=True)
+    
+    if "status" in update_data:
+        status_from = db_work_order.status
+        status_to = update_data["status"]
+        audit_details = {"status_from": status_from, "status_to": status_to, "updates": update_data}
+        audit_action = "status_change"
+    else:
+        audit_details = {"updates": update_data}
+        audit_action = "update_work_order"
+        
     for key, value in update_data.items():
         setattr(db_work_order, key, value)
+        
+    db.flush()
+    if update_data:
+        audit_entry = models.AuditEntry(
+            organisation_id=current_user.organisation_id,
+            user_id=current_user.id,
+            action=audit_action,
+            entity_type="work_order",
+            entity_id=db_work_order.id,
+            details=audit_details
+        )
+        db.add(audit_entry)
         
     db.commit()
     db.refresh(db_work_order)
@@ -278,7 +300,7 @@ def assign_work_order(
 
     try:
         db.flush()
-        audit_log = models.AuditLog(
+        audit_log = models.AuditEntry(
             organisation_id=current_user.organisation_id,
             user_id=current_user.id,
             action="assign_work_order",
@@ -363,7 +385,7 @@ def submit_progress_event(
     db.add(new_event)
     try:
         db.flush()
-        audit_log = models.AuditLog(
+        audit_log = models.AuditEntry(
             organisation_id=current_user.organisation_id,
             user_id=current_user.id,
             action="status_change",
