@@ -4,11 +4,11 @@ Implement the atomic `storage_used_bytes` counter. Build upload and download API
 
 ## Acceptance criteria
 
-- [ ] Files are stored on disk with safe UUID identifiers; original filenames are not trusted.
-- [ ] Uploads fail if the organisation's quota is exceeded (implemented safely against race conditions).
-- [ ] Users can securely download their organisation's files.
-- [ ] Local filesystem paths are never exposed through the API.
-- [ ] Users cannot access files belonging to other organisations.
+- [x] Files are stored on disk with safe UUID identifiers; original filenames are not trusted.
+- [x] Uploads fail if the organisation's quota is exceeded (implemented safely against race conditions).
+- [x] Users can securely download their organisation's files.
+- [x] Local filesystem paths are never exposed through the API.
+- [x] Users cannot access files belonging to other organisations.
 
 ## Blocked by
 
