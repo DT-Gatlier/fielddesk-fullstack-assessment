@@ -4,11 +4,11 @@ Create the `audit_logs` table (JSONB). Hook critical API actions to insert audit
 
 ## Acceptance criteria
 
-- [ ] Audit records are created for work order creation, assignment changes, and status changes.
-- [ ] Audit data is strictly append-only and immutable.
-- [ ] Owner can trigger an organisation-scoped CSV export of work orders.
-- [ ] CSV export is streamed without loading the entire dataset into memory.
-- [ ] Spreadsheet-formula injection is prevented in the CSV export.
+- [x] Audit records are created for work order creation, assignment changes, and status changes.
+- [x] Audit data is strictly append-only and immutable.
+- [x] Owner can trigger an organisation-scoped CSV export of work orders.
+- [x] CSV export is streamed without loading the entire dataset into memory.
+- [x] Spreadsheet-formula injection is prevented in the CSV export.
 
 ## Blocked by
 
