@@ -4,10 +4,10 @@ Mount `python-socketio` into FastAPI. Secure it with JWT auth and join org-speci
 
 ## Acceptance criteria
 
-- [ ] Websocket connection requires a valid JWT.
-- [ ] Updates to a work order instantly reflect on the Dispatcher's dashboard without a full page refresh.
-- [ ] Organisation A does not receive events for Organisation B (strict org isolation).
-- [ ] Client handles reconnection automatically.
+- [x] Websocket connection requires a valid JWT.
+- [x] Updates to a work order instantly reflect on the Dispatcher's dashboard without a full page refresh.
+- [x] Organisation A does not receive events for Organisation B (strict org isolation).
+- [x] Client handles reconnection automatically.
 
 ## Blocked by
 
