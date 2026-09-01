@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message, DatePicker, Upload } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, PaperClipOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, PaperClipOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import api from '../api';
@@ -293,6 +293,34 @@ const WorkOrders: React.FC = () => {
           <Button icon={<PaperClipOutlined />} onClick={() => setAttachmentsModalVisible(true)}>
             Organisation Files
           </Button>
+          {user?.role === 'owner' && (
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => {
+                const token = localStorage.getItem('token');
+                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/work-orders/export`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Export failed');
+                    return res.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'work_orders.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(() => message.error('Export failed'));
+              }}
+            >
+              Export CSV
+            </Button>
+          )}
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Create Work Order
           </Button>

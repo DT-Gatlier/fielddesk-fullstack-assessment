@@ -40,7 +40,7 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(deps.get_db)):
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     # Note: user.role is now a Role object. We extract its name or ID.
     access_token = auth.create_access_token(
-        data={"sub": str(user.id), "org_id": str(user.organisation_id), "role_id": str(user.role_id)},
+        data={"sub": str(user.id), "org_id": str(user.organisation_id), "role_id": str(user.role_id), "role": user.role.name},
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -76,7 +76,56 @@ def read_users_me(current_user: models.User = Depends(deps.get_current_user)):
 
 from typing import List, Optional
 
+
+import csv
+import io
+from fastapi.responses import StreamingResponse
+
+def sanitize_csv_field(value):
+    if value is None:
+        return ""
+    val_str = str(value)
+    if val_str.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return "'" + val_str
+    return val_str
+
+@app.get("/work-orders/export")
+def export_work_orders(
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_owner_user)
+):
+    def iter_csv():
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Title", "Description", "Status", "Technician ID", "Created At", "Updated At", "Scheduled Range"])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+        query = db.query(models.WorkOrder).yield_per(100)
+        for wo in query:
+            writer.writerow([
+                sanitize_csv_field(wo.id),
+                sanitize_csv_field(wo.title),
+                sanitize_csv_field(wo.description),
+                sanitize_csv_field(wo.status),
+                sanitize_csv_field(wo.technician_id),
+                sanitize_csv_field(wo.created_at.isoformat() if wo.created_at else ""),
+                sanitize_csv_field(wo.updated_at.isoformat() if wo.updated_at else ""),
+                sanitize_csv_field(str(wo.scheduled_range) if wo.scheduled_range else "")
+            ])
+            yield output.getvalue()
+            output.seek(0)
+            output.truncate(0)
+
+    headers = {
+        "Content-Disposition": "attachment; filename=work_orders.csv",
+        "Content-Type": "text/csv"
+    }
+    return StreamingResponse(iter_csv(), headers=headers)
+
 @app.get("/work-orders", response_model=schemas.PaginatedWorkOrders)
+
 def get_work_orders(
     current: int = 1, pageSize: int = 10,
     status: Optional[str] = None,
@@ -113,6 +162,16 @@ def create_work_order(
 ):
     db_work_order = models.WorkOrder(**work_order.model_dump(), organisation_id=current_user.organisation_id)
     db.add(db_work_order)
+    db.flush()
+    audit_log = models.AuditLog(
+        organisation_id=current_user.organisation_id,
+        user_id=current_user.id,
+        action="create_work_order",
+        entity_type="work_order",
+        entity_id=db_work_order.id,
+        details=work_order.model_dump()
+    )
+    db.add(audit_log)
     db.commit()
     db.refresh(db_work_order)
     background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
@@ -218,6 +277,16 @@ def assign_work_order(
     db_work_order.status = "assigned"
 
     try:
+        db.flush()
+        audit_log = models.AuditLog(
+            organisation_id=current_user.organisation_id,
+            user_id=current_user.id,
+            action="assign_work_order",
+            entity_type="work_order",
+            entity_id=db_work_order.id,
+            details={"technician_id": str(assignment.technician_id), "scheduled_start": assignment.scheduled_start.isoformat(), "scheduled_end": assignment.scheduled_end.isoformat()}
+        )
+        db.add(audit_log)
         db.commit()
         db.refresh(db_work_order)
         
@@ -293,6 +362,16 @@ def submit_progress_event(
     
     db.add(new_event)
     try:
+        db.flush()
+        audit_log = models.AuditLog(
+            organisation_id=current_user.organisation_id,
+            user_id=current_user.id,
+            action="status_change",
+            entity_type="work_order",
+            entity_id=db_work_order.id,
+            details={"status_from": db_work_order.status, "status_to": event.status_to, "event_id": event.event_id}
+        )
+        db.add(audit_log)
         db.commit()
         db.refresh(new_event)
     except IntegrityError as e:
