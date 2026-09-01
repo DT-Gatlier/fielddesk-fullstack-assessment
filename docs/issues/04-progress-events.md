@@ -4,10 +4,10 @@ Build the Progress Events table with a `UNIQUE(event_id)` constraint. Create the
 
 ## Acceptance criteria
 
-- [ ] Technician can submit progress events via the UI.
-- [ ] API handles duplicate `eventId` submissions idempotently (returns successful original response, no duplicate DB entries, no partial updates).
-- [ ] Work order status transitions are validated (e.g., cannot transition from `completed` to `open`).
-- [ ] Automated test verifies duplicate and concurrent event submission behavior.
+- [x] Technician can submit progress events via the UI.
+- [x] API handles duplicate `eventId` submissions idempotently (returns successful original response, no duplicate DB entries, no partial updates).
+- [x] Work order status transitions are validated (e.g., cannot transition from `completed` to `open`).
+- [x] Automated test verifies duplicate and concurrent event submission behavior.
 
 ## Blocked by
 
