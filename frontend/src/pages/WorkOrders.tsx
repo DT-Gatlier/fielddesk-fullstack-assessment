@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, DatePicker, Upload } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserAddOutlined, PaperClipOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
-
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+import { Plus, Search, MapPin, Calendar, User as UserIcon, Paperclip } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Modal } from '../components/ui/modal';
+import { cn } from '../lib/utils';
 
 interface WorkOrder {
   id: string;
@@ -24,43 +24,41 @@ interface Technician {
   email: string;
 }
 
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'open': return 'default';
+    case 'assigned': return 'secondary';
+    case 'in_progress': return 'warning';
+    case 'completed': return 'success';
+    case 'cancelled': return 'destructive';
+    case 'on_hold': return 'outline';
+    default: return 'default';
+  }
+};
+
 const WorkOrders: React.FC = () => {
   const queryClient = useQueryClient();
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
-  const [form] = Form.useForm();
-
-  const [assignModalVisible, setAssignModalVisible] = useState<boolean>(false);
-  const [assigningOrder, setAssigningOrder] = useState<WorkOrder | null>(null);
-  const [assignForm] = Form.useForm();
+  const { user } = useAuth();
+  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
   
-  const [progressModalVisible, setProgressModalVisible] = useState<boolean>(false);
-  const [progressForm] = Form.useForm();
-  const [progressEventId, setProgressEventId] = useState<string>('');
+  // Modals state
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isAssignModalOpen, setAssignModalOpen] = useState(false);
+  const [isProgressModalOpen, setProgressModalOpen] = useState(false);
+  
+  // Form states
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState('open');
+  const [techId, setTechId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [progressStatus, setProgressStatus] = useState('');
 
-  const [attachmentsModalVisible, setAttachmentsModalVisible] = useState<boolean>(false);
-
-  const { data: attachments = [], refetch: refetchAttachments } = useQuery({
-    queryKey: ['attachments'],
+  const { data: workOrdersData, isLoading } = useQuery({
+    queryKey: ['workOrders'],
     queryFn: async () => {
-      const response = await api.get(`/attachments`);
-      return response.data;
-    },
-    enabled: attachmentsModalVisible
-  });
-
-  const { data: workOrdersData, isLoading: loading, isError: error } = useQuery({
-    queryKey: ['workOrders', pagination.current, pagination.pageSize, statusFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        current: pagination.current.toString(),
-        pageSize: pagination.pageSize.toString()
-      });
-      if (statusFilter) params.append('status', statusFilter);
-      const response = await api.get(`/work-orders?${params.toString()}`);
+      const response = await api.get(`/work-orders?pageSize=100`);
       return response.data;
     }
   });
@@ -73,8 +71,7 @@ const WorkOrders: React.FC = () => {
     }
   });
 
-  const workOrders = workOrdersData?.data || [];
-  const total = workOrdersData?.total || 0;
+  const workOrders: WorkOrder[] = workOrdersData?.data || [];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -85,443 +82,255 @@ const WorkOrders: React.FC = () => {
       path: '/socket.io'
     });
 
-    socket.on('connect', () => {
-      console.log('Socket connected');
-    });
-
-    socket.on('work_order_updated', () => {
+    socket.on('work_order_updated', (updatedOrder) => {
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+      // If the currently selected order was updated, update local selection
+      setSelectedOrder(prev => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, [queryClient]);
 
-  const handleTableChange = (newPagination: any, filters: any) => {
-    setPagination(newPagination);
-    const newStatus = filters.status ? filters.status[0] : null;
-    setStatusFilter(newStatus);
-  };
-
-  const handleCreate = () => {
-    setEditingOrder(null);
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  const handleEdit = (record: WorkOrder) => {
-    setEditingOrder(record);
-    form.setFieldsValue(record);
-    setModalVisible(true);
-  };
-  
-  const handleDelete = async (id: string) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      await api.delete(`/work-orders/${id}`);
-      message.success('Work order deleted');
+      await api.post('/work-orders', { title, description, status });
+      setCreateModalOpen(false);
+      setTitle(''); setDescription(''); setStatus('open');
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-    } catch (err: any) {
-      message.error(err.response?.data?.error || 'Failed to delete work order');
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleModalOk = async () => {
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
     try {
-      const values = await form.validateFields();
-      if (editingOrder) {
-        await api.patch(`/work-orders/${editingOrder.id}`, values);
-        message.success('Work order updated');
-      } else {
-        await api.post('/work-orders', values);
-        message.success('Work order created');
-      }
-      setModalVisible(false);
+      await api.post(`/work-orders/${selectedOrder.id}/assign`, {
+        technician_id: techId,
+        scheduled_start: new Date(startDate).toISOString(),
+        scheduled_end: new Date(endDate).toISOString(),
+      });
+      setAssignModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-    } catch (err: any) {
-      if (err.response?.data?.error) {
-         message.error(err.response.data.error);
-      } else if (err.errorFields) {
-         // Form validation error
-      } else {
-         message.error('Operation failed');
-      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleAssignClick = (record: WorkOrder) => {
-    setAssigningOrder(record);
-    assignForm.resetFields();
-    setAssignModalVisible(true);
-  };
-
-  const handleAssignOk = async () => {
+  const handleProgressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
     try {
-      const values = await assignForm.validateFields();
-      if (assigningOrder) {
-        const payload = {
-          technician_id: values.technician_id,
-          scheduled_start: values.scheduled_range[0].toISOString(),
-          scheduled_end: values.scheduled_range[1].toISOString(),
-        };
-        await api.post(`/work-orders/${assigningOrder.id}/assign`, payload);
-        message.success('Technician assigned successfully');
-        setAssignModalVisible(false);
-        queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      }
-    } catch (err: any) {
-      if (err.response?.status === 409) {
-        message.error('Conflict: ' + err.response.data.error);
-      } else if (err.response?.data?.error) {
-         message.error(err.response.data.error);
-      } else if (err.errorFields) {
-         // Validation
-      } else {
-         message.error('Assignment failed');
-      }
+      await api.post(`/work-orders/${selectedOrder.id}/progress`, {
+        event_id: crypto.randomUUID(),
+        status_to: progressStatus,
+      });
+      setProgressModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleProgressClick = (record: WorkOrder) => {
-    setAssigningOrder(record);
-    progressForm.resetFields();
-    setProgressEventId(crypto.randomUUID());
-    setProgressModalVisible(true);
-  };
-
-  const handleProgressOk = async () => {
+  const handleDelete = async () => {
+    if (!selectedOrder) return;
     try {
-      const values = await progressForm.validateFields();
-      if (assigningOrder) {
-        const payload = {
-          event_id: progressEventId,
-          status_to: values.status_to,
-        };
-        await api.post(`/work-orders/${assigningOrder.id}/progress`, payload);
-        message.success('Progress event submitted successfully');
-        setProgressModalVisible(false);
-        queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-      }
-    } catch (err: any) {
-      if (err.response?.data?.error) {
-         message.error(err.response.data.error);
-      } else if (err.errorFields) {
-         // Validation
-      } else {
-         message.error('Failed to submit progress event');
-      }
+      await api.delete(`/work-orders/${selectedOrder.id}`);
+      setSelectedOrder(null);
+      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+    } catch (err) {
+      console.error(err);
     }
   };
-
-  const { user } = useAuth();
-
-  const columns = [
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      filters: [
-        { text: 'Open', value: 'open' },
-        { text: 'Assigned', value: 'assigned' },
-        { text: 'In Progress', value: 'in_progress' },
-        { text: 'On Hold', value: 'on_hold' },
-        { text: 'Completed', value: 'completed' },
-        { text: 'Cancelled', value: 'cancelled' },
-      ],
-      filterMultiple: false,
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Created At',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (text: string) => new Date(text).toLocaleString(),
-    },
-    {
-      title: 'Technician',
-      dataIndex: 'technician_id',
-      key: 'technician_id',
-      render: (id: string) => {
-        const tech = technicians.find(t => t.id === id);
-        return tech ? tech.email : 'Unassigned';
-      }
-    },
-    {
-      title: 'Scheduled Range',
-      dataIndex: 'scheduled_range',
-      key: 'scheduled_range',
-      render: (range: [string, string]) => range ? `${new Date(range[0]).toLocaleString()} - ${new Date(range[1]).toLocaleString()}` : 'N/A'
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: any, record: WorkOrder) => (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <Button icon={<UserAddOutlined />} onClick={() => handleAssignClick(record)}>
-            Assign
-          </Button>
-          {user?.id === record.technician_id && (
-            <Button onClick={() => handleProgressClick(record)}>
-              Progress
-            </Button>
-          )}
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            Edit
-          </Button>
-          <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2>Work Orders</h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button icon={<PaperClipOutlined />} onClick={() => setAttachmentsModalVisible(true)}>
-            Organisation Files
-          </Button>
-          {user?.role === 'owner' && (
-            <Button 
-              icon={<DownloadOutlined />} 
-              onClick={() => {
-                const token = localStorage.getItem('token');
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/work-orders/export`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('Export failed');
-                    return res.blob();
-                })
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'work_orders.csv';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                })
-                .catch(() => message.error('Export failed'));
-              }}
-            >
-              Export CSV
+    <div className="flex h-full w-full overflow-hidden">
+      
+      {/* Master List View */}
+      <div className="w-[400px] flex-shrink-0 border-r border-zinc-200 bg-white flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col gap-4 p-4 border-b border-zinc-100">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Work Orders</h1>
+            <Button aria-label="Create Work Order" size="icon" onClick={() => setCreateModalOpen(true)} className="h-8 w-8 rounded-full">
+              <Plus className="h-4 w-4" />
             </Button>
-          )}
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create Work Order
-          </Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input 
+              type="text" 
+              placeholder="Search orders..." 
+              className="w-full h-10 pl-9 pr-4 rounded-xl bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
+            />
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {isLoading ? (
+            <div className="p-4 text-center text-sm text-zinc-500">Loading orders...</div>
+          ) : workOrders.map(order => (
+            <button 
+              key={order.id}
+              onClick={() => setSelectedOrder(order)}
+              className={cn(
+                "w-full text-left p-3 rounded-xl transition-all border",
+                selectedOrder?.id === order.id 
+                  ? "bg-zinc-50 border-zinc-200 shadow-sm" 
+                  : "bg-transparent border-transparent hover:bg-zinc-50"
+              )}
+            >
+              <div className="flex items-start justify-between mb-1">
+                <span className="font-semibold text-zinc-900 truncate pr-2">{order.title}</span>
+                <Badge variant={getStatusColor(order.status) as any} className="capitalize flex-shrink-0 text-[10px] px-1.5 py-0">
+                  {order.status.replace('_', ' ')}
+                </Badge>
+              </div>
+              <p className="text-xs text-zinc-500 line-clamp-1 mb-2">{order.description}</p>
+              <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
+                <span className="flex items-center gap-1">
+                  <UserIcon className="h-3 w-3" />
+                  {order.technician_id ? technicians.find(t => t.id === order.technician_id)?.email.split('@')[0] : 'Unassigned'}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(order.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
-      
-      <Table
-        dataSource={workOrders}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ ...pagination, total }}
-        onChange={handleTableChange}
-        locale={{ emptyText: error ? 'Error loading data' : 'No work orders found' }}
-      />
 
-      <Modal
-        title={editingOrder ? 'Edit Work Order' : 'Create Work Order'}
-        open={modalVisible}
-        onOk={handleModalOk}
-        onCancel={() => setModalVisible(false)}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="Title"
-            rules={[{ required: true, message: 'Please input the title!' }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Description"
-          >
-            <Input.TextArea rows={4} />
-          </Form.Item>
-          <Form.Item
-            name="status"
-            label="Status"
-            initialValue="open"
-          >
-            <Select>
-              <Option value="open">Open</Option>
-              <Option value="assigned">Assigned</Option>
-              <Option value="in_progress">In Progress</Option>
-              <Option value="on_hold">On Hold</Option>
-              <Option value="completed">Completed</Option>
-              <Option value="cancelled">Cancelled</Option>
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={`Assign Technician to ${assigningOrder?.title}`}
-        open={assignModalVisible}
-        onOk={handleAssignOk}
-        onCancel={() => setAssignModalVisible(false)}
-        destroyOnClose
-      >
-        <Form form={assignForm} layout="vertical">
-          <Form.Item
-            name="technician_id"
-            label="Technician"
-            rules={[{ required: true, message: 'Please select a technician!' }]}
-          >
-            <Select placeholder="Select a technician">
-              {technicians.map(tech => (
-                <Option key={tech.id} value={tech.id}>{tech.email}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="scheduled_range"
-            label="Scheduled Range"
-            rules={[{ required: true, message: 'Please select the scheduled range!' }]}
-          >
-            <RangePicker showTime style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={`Submit Progress Event for ${assigningOrder?.title}`}
-        open={progressModalVisible}
-        onOk={handleProgressOk}
-        onCancel={() => setProgressModalVisible(false)}
-        destroyOnClose
-      >
-        <Form form={progressForm} layout="vertical">
-          <Form.Item
-            name="status_to"
-            label="New Status"
-            rules={[{ required: true, message: 'Please select a status!' }]}
-          >
-            <Select placeholder="Select a status">
-              <Option value="in_progress">In Progress</Option>
-              <Option value="on_hold">On Hold</Option>
-              <Option value="completed">Completed</Option>
-              <Option value="cancelled">Cancelled</Option>
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={`Organisation Files`}
-        open={attachmentsModalVisible}
-        onCancel={() => setAttachmentsModalVisible(false)}
-        footer={null}
-        destroyOnClose
-        width={700}
-      >
-        <Upload
-          name="file"
-          action={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments`}
-          headers={{
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          }}
-          onChange={(info) => {
-            if (info.file.status === 'done') {
-              message.success(`${info.file.name} uploaded successfully`);
-              refetchAttachments();
-            } else if (info.file.status === 'error') {
-              message.error(info.file.response?.error || `${info.file.name} upload failed.`);
-            }
-          }}
-          showUploadList={false}
-        >
-          <Button icon={<UploadOutlined />} type="primary">Upload File</Button>
-        </Upload>
-        
-        <Table
-          dataSource={attachments}
-          rowKey="id"
-          style={{ marginTop: 16 }}
-          pagination={false}
-          columns={[
-            {
-              title: 'Name',
-              dataIndex: 'file_name',
-              key: 'file_name',
-            },
-            {
-              title: 'Size',
-              dataIndex: 'file_size',
-              key: 'file_size',
-              render: (size: number) => `${(size / 1024).toFixed(1)} KB`
-            },
-            {
-              title: 'Action',
-              key: 'action',
-              render: (_, record: any) => (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button 
-                    type="link" 
-                    onClick={() => {
-                      const token = localStorage.getItem('token');
-                      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/attachments/${record.id}/download`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                      })
-                      .then(res => {
-                          if (!res.ok) throw new Error('Download failed');
-                          return res.blob();
-                      })
-                      .then(blob => {
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = record.file_name;
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          document.body.removeChild(a);
-                      })
-                      .catch(() => message.error('Download failed'));
-                    }}
-                  >
-                    Download
-                  </Button>
-                  <Button 
-                    type="link" 
-                    danger
-                    onClick={async () => {
-                      try {
-                        await api.delete(`/attachments/${record.id}`);
-                        message.success('File deleted successfully');
-                        refetchAttachments();
-                      } catch (err) {
-                        message.error('Failed to delete file');
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
+      {/* Detail View */}
+      <div className="flex-1 bg-zinc-50/50 flex flex-col h-full overflow-hidden">
+        {selectedOrder ? (
+          <div className="flex-1 overflow-y-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="max-w-3xl mx-auto space-y-6">
+              
+              <div className="flex items-start justify-between">
+                <div>
+                  <Badge variant={getStatusColor(selectedOrder.status) as any} className="capitalize mb-3">
+                    {selectedOrder.status.replace('_', ' ')}
+                  </Badge>
+                  <h2 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">{selectedOrder.title}</h2>
+                  <p className="text-zinc-500">ID: {selectedOrder.id}</p>
                 </div>
-              )
-            }
-          ]}
-        />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setAssignModalOpen(true)}>Assign Tech</Button>
+                  {user?.id === selectedOrder.technician_id && (
+                    <Button onClick={() => setProgressModalOpen(true)}>Update Progress</Button>
+                  )}
+                  <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-6 rounded-[2rem] bg-white shadow-sm ring-1 ring-zinc-200">
+                  <h3 className="text-sm font-semibold tracking-tight text-zinc-900 mb-4 flex items-center gap-2">
+                    <UserIcon className="h-4 w-4 text-zinc-400" />
+                    Assignment Details
+                  </h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Technician</span>
+                      <span className="font-medium text-zinc-900">
+                        {selectedOrder.technician_id ? technicians.find(t => t.id === selectedOrder.technician_id)?.email : 'Unassigned'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Scheduled Start</span>
+                      <span className="font-medium text-zinc-900">
+                        {selectedOrder.scheduled_range ? new Date(selectedOrder.scheduled_range[0]).toLocaleString() : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Scheduled End</span>
+                      <span className="font-medium text-zinc-900">
+                        {selectedOrder.scheduled_range ? new Date(selectedOrder.scheduled_range[1]).toLocaleString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-[2rem] bg-white shadow-sm ring-1 ring-zinc-200">
+                  <h3 className="text-sm font-semibold tracking-tight text-zinc-900 mb-4 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-zinc-400" />
+                    Location & Description
+                  </h3>
+                  <p className="text-sm text-zinc-600 leading-relaxed">
+                    {selectedOrder.description || 'No description provided.'}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
+            <div className="h-16 w-16 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
+              <Paperclip className="h-6 w-6 text-zinc-300" />
+            </div>
+            <p className="font-medium text-zinc-500">Select a work order to view details</p>
+          </div>
+        )}
+      </div>
+
+      {/* Create Modal */}
+      <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Work Order">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="title" className="text-sm font-medium">Title</label>
+            <input id="title" required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium">Description</label>
+            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" rows={4} />
+          </div>
+          <Button type="submit" className="w-full rounded-full">Create Order</Button>
+        </form>
+      </Modal>
+
+      {/* Assign Modal */}
+      <Modal isOpen={isAssignModalOpen} onClose={() => setAssignModalOpen(false)} title="Assign Technician">
+        <form onSubmit={handleAssignSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Technician</label>
+            <select required value={techId} onChange={e => setTechId(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm">
+              <option value="">Select Technician...</option>
+              {technicians.map(t => <option key={t.id} value={t.id}>{t.email}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Start Date/Time</label>
+              <input required type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">End Date/Time</label>
+              <input required type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
+            </div>
+          </div>
+          <Button type="submit" className="w-full rounded-full">Save Assignment</Button>
+        </form>
+      </Modal>
+
+      {/* Progress Modal */}
+      <Modal isOpen={isProgressModalOpen} onClose={() => setProgressModalOpen(false)} title="Update Progress">
+        <form onSubmit={handleProgressSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">New Status</label>
+            <select required value={progressStatus} onChange={e => setProgressStatus(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm">
+              <option value="">Select Status...</option>
+              <option value="in_progress">In Progress</option>
+              <option value="on_hold">On Hold</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <Button type="submit" className="w-full rounded-full">Submit Event</Button>
+        </form>
       </Modal>
     </div>
   );

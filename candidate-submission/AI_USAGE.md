@@ -11,7 +11,7 @@ If no AI tool was used, write: **No AI-assisted tools were used for this submiss
 | Tool and model, if known | Files, features or sections affected | Purpose of use | Nature of the output | How I reviewed or tested it |
 | --- | --- | --- | --- | --- |
 | ChatGPT (OpenAI) | Concept research | Learning distributed systems, Redis, and RLS | Explanations and analogies | Cross-referenced with documentation |
-| Antigravity (Gemini) | Backend endpoints, RLS setup, Celery jobs, Testing (Pytest/Vitest) | Pair-programming and implementation | Generated boilerplate, SQL constraints, and API logic | TDD, manual code reviews, interactive AI interviews to align on design, UI manual testing, and log verification |
+| Antigravity (Gemini) | Backend endpoints, RLS setup, Celery jobs, Testing (Pytest/Vitest), Frontend UI Redesign | Pair-programming and implementation | Generated boilerplate, SQL constraints, API logic, and overhauled React UI using Shadcn/Tailwind | TDD, manual code reviews, interactive AI interviews to align on design, UI manual testing, and log verification |
 
 ## Details
 
@@ -21,7 +21,7 @@ For each material use of AI, describe:
    I used ChatGPT to research and solidify deep architectural concepts (like Row Level Security and task queues). I used Antigravity as a pair-programmer to implement the backend (Postgres constraints, Celery, Socket.IO) and write tests.
 
 2. **Which parts of the submission were generated or substantially modified.**
-   Most of the backend infrastructure (`main.py`, `models.py`, `worker.py`), the database setup scripts, and the automated test suites were generated or heavily modified alongside the AI.
+   Most of the backend infrastructure (`main.py`, `models.py`, `worker.py`), the database setup scripts, the automated test suites, and the complete frontend redesign (replacing standard components with a custom Split-List layout in Tailwind) were generated or heavily modified alongside the AI.
 
 3. **What you changed after receiving the output.**
    I actively directed the architecture. I used interactive AI interviews (grilling sessions) to challenge the AI's assumptions before letting it write code, ensuring it matched the assessment constraints.

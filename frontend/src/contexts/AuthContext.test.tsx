@@ -1,7 +1,6 @@
 import { render, screen, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AuthProvider, useAuth } from './AuthContext'
-import React from 'react'
 import * as jwtDecodeModule from 'jwt-decode'
 
 vi.mock('jwt-decode', () => ({

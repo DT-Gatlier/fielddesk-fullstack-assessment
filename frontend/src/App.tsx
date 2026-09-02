@@ -1,12 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout, Menu, Button } from 'antd';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import WorkOrders from './pages/WorkOrders';
-
-const { Header, Content, Sider } = Layout;
+import { LogOut, LayoutDashboard, MapPin } from 'lucide-react';
+import { Button } from './components/ui/button';
+import { cn } from './lib/utils';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -16,33 +16,65 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+const SidebarItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  
+  return (
+    <Link to={to} className={cn(
+      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.98]",
+      isActive ? "bg-zinc-900 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+    )}>
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  )
+}
+
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
-        <div className="logo" style={{ fontSize: '20px', fontWeight: 'bold' }}>FieldDesk</div>
-        <div>
-          <span style={{ marginRight: '16px' }}>{user?.email}</span>
-          <Button type="primary" onClick={logout}>Log Out</Button>
+    <div className="flex h-screen w-full bg-zinc-50 overflow-hidden font-sans text-zinc-900">
+      {/* Sidebar */}
+      <aside className="w-64 flex-shrink-0 flex flex-col border-r border-zinc-200 bg-white/50 backdrop-blur-xl">
+        <div className="flex h-16 items-center px-6 border-b border-zinc-100">
+          <div className="flex items-center gap-2 font-bold tracking-tight text-zinc-900">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white shadow-sm">
+              <MapPin className="h-4 w-4" />
+            </div>
+            FieldDesk
+          </div>
         </div>
-      </Header>
-      <Layout>
-        <Sider width={200} theme="light">
-          <Menu mode="inline" defaultSelectedKeys={['1']} style={{ height: '100%', borderRight: 0 }}>
-            <Menu.Item key="1">
-              <Link to="/">Work Orders</Link>
-            </Menu.Item>
-          </Menu>
-        </Sider>
-        <Layout style={{ padding: '0 24px 24px' }}>
-          <Content style={{ padding: 24, margin: 0, minHeight: 280 }}>
-            {children}
-          </Content>
-        </Layout>
-      </Layout>
-    </Layout>
+        
+        <div className="flex-1 overflow-y-auto px-3 py-6 flex flex-col gap-1">
+          <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Main Menu</div>
+          <SidebarItem to="/" icon={LayoutDashboard} label="Work Orders" />
+        </div>
+        
+        <div className="border-t border-zinc-100 p-4">
+          <div className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-zinc-200 shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-sm font-bold text-zinc-600">
+              {user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="truncate text-sm font-medium text-zinc-900">{user?.email}</p>
+              <p className="truncate text-xs text-zinc-500 capitalize">{user?.role || 'User'}</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-zinc-400 hover:text-zinc-900" onClick={logout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-zinc-50/50">
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 

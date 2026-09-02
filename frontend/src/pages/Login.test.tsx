@@ -5,7 +5,6 @@ import { BrowserRouter } from 'react-router-dom'
 import Login from './Login'
 import api from '../api'
 import { AuthProvider } from '../contexts/AuthContext'
-import React from 'react'
 
 vi.mock('../api', () => ({
   default: {
