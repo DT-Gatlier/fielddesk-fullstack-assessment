@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import WorkOrders from './pages/WorkOrders';
+import OwnerDashboard from './pages/OwnerDashboard';
 import { LogOut, LayoutDashboard, MapPin } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
@@ -12,6 +13,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const RoleRoute: React.FC<{ children: React.ReactNode, allowedRoles: string[] }> = ({ children, allowedRoles }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!allowedRoles.includes(user.role)) {
+    // If they try to access a route they shouldn't, send them to their designated home
+    return <Navigate to="/" replace />;
   }
   return <>{children}</>;
 };
@@ -80,6 +91,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 const queryClient = new QueryClient();
 
+const RoleRedirect = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'owner') return <Navigate to="/owner" replace />;
+  if (user?.role === 'dispatcher') return <Navigate to="/dispatcher" replace />;
+  if (user?.role === 'technician') return <Navigate to="/technician" replace />;
+  
+  // Tradeoff: If a user has an unknown role, we log them out instead of failing silently or guessing.
+  return <Navigate to="/login" replace />;
+};
+
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -89,10 +111,29 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={
               <ProtectedRoute>
+                <RoleRedirect />
+              </ProtectedRoute>
+            } />
+            <Route path="/owner" element={
+              <RoleRoute allowedRoles={['owner']}>
+                <DashboardLayout>
+                  <OwnerDashboard />
+                </DashboardLayout>
+              </RoleRoute>
+            } />
+            <Route path="/dispatcher" element={
+              <RoleRoute allowedRoles={['dispatcher', 'owner']}>
                 <DashboardLayout>
                   <WorkOrders />
                 </DashboardLayout>
-              </ProtectedRoute>
+              </RoleRoute>
+            } />
+            <Route path="/technician" element={
+              <RoleRoute allowedRoles={['technician']}>
+                <DashboardLayout>
+                  <div className="p-8"><h1 className="text-2xl font-bold">Technician View</h1></div>
+                </DashboardLayout>
+              </RoleRoute>
             } />
           </Routes>
         </Router>

@@ -36,7 +36,8 @@ describe('WorkOrders Component', () => {
     
     // Mock user auth
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
-      user: { id: 'user-1', email: 'dispatcher@demo.com', role: 'dispatcher' },
+      user: { id: 'user-1', email: 'dispatcher@demo.com', role: 'dispatcher', org_id: 'org-1' },
+      token: 'fake-token',
       login: vi.fn(),
       logout: vi.fn(),
     })
