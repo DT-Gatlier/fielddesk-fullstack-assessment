@@ -3,7 +3,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = '006'
-down_revision = '005'
+down_revision = '005_notifications'
 branch_labels = None
 depends_on = None
 
