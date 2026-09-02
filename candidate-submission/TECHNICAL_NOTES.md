@@ -6,7 +6,7 @@ Complete this document as part of the submission.
 
 - Name: Arjun M S
 - GitHub username: arjun-ms
-- Final commit SHA: (To be added before submission)
+- Final commit SHA: 824a6e9063fdb7d8cd3b278743a4ac4d81c173c0
 - Screen-recording link: (To be provided after recording)
 
 ## Local setup
@@ -27,11 +27,11 @@ The seed script creates a "Demo Org" with the following accounts (password is `p
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend tests |  |  |
-| Frontend tests |  |  |
-| Integration tests |  |  |
-| Lint |  |  |
-| Build |  |  |
+| Backend tests | `pytest` (in backend container) | Passed |
+| Frontend tests | `npm run test` (in frontend dir) | Passed |
+| Integration tests | (Covered by backend test suite) | Passed |
+| Lint | `flake8` / `eslint` | (No strict linter configured in base template) |
+| Build | `docker-compose build` | Passed |
 
 ## Architecture
 
@@ -104,4 +104,4 @@ PostgreSQL with Alembic migrations.
 
 ## Known limitations or incomplete requirements
 
-List anything incomplete or not working. If none, state that explicitly.
+None. All requirements listed in `docs/ASSESSMENT.md` and `issues/missing.md` have been fully implemented, including the extra API operational quality steps and the frontend testing suite.
