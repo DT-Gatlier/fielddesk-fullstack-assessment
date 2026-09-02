@@ -126,8 +126,24 @@ def sanitize_csv_field(value):
         return "'" + val_str
     return val_str
 
+import jwt
+from .auth import SECRET_KEY, ALGORITHM
+
+def get_user_id(request: Request) -> str:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return get_remote_address(request)
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub") or get_remote_address(request)
+    except jwt.PyJWTError:
+        return get_remote_address(request)
+
 @app.get("/work-orders/export")
+@limiter.limit("4/minute", key_func=get_user_id)
 def export_work_orders(
+    request: Request,
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_owner_user)
 ):
