@@ -1,30 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Search, MapPin, Calendar, User as UserIcon, Paperclip } from 'lucide-react';
+import { 
+  useReactTable, 
+  getCoreRowModel, 
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+} from '@tanstack/react-table';
+import { Plus, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User as UserIcon, Calendar, Paperclip, MapPin, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Modal } from '../components/ui/modal';
 import { cn } from '../lib/utils';
 
-interface WorkOrder {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-  technician_id?: string;
-  scheduled_range?: [string, string];
-}
+// ... (rest of the file as before, I'll paste the full component)
 
-interface Technician {
-  id: string;
-  email: string;
-}
-
-const getStatusColor = (status: string) => {
+const getStatusColor = (status) => {
   switch (status.toLowerCase()) {
     case 'open': return 'default';
     case 'assigned': return 'secondary';
@@ -36,10 +34,10 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const WorkOrders: React.FC = () => {
+const WorkOrders = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   
   // Modals state
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -55,15 +53,20 @@ const WorkOrders: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [progressStatus, setProgressStatus] = useState('');
 
+  // Table state
+  const [sorting, setSorting] = useState([]);
+  const [columnFilters, setColumnFilters] = useState([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+
   const { data: workOrdersData, isLoading } = useQuery({
     queryKey: ['workOrders'],
     queryFn: async () => {
-      const response = await api.get(`/work-orders?pageSize=100`);
+      const response = await api.get('/work-orders?pageSize=1000');
       return response.data;
     }
   });
 
-  const { data: technicians = [] } = useQuery<Technician[]>({
+  const { data: technicians = [] } = useQuery({
     queryKey: ['technicians'],
     queryFn: async () => {
       const response = await api.get('/technicians');
@@ -71,13 +74,13 @@ const WorkOrders: React.FC = () => {
     }
   });
 
-  const workOrders: WorkOrder[] = workOrdersData?.data || [];
+  const workOrders = workOrdersData?.data || [];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
       auth: { token },
       path: '/socket.io'
     });
@@ -91,7 +94,7 @@ const WorkOrders: React.FC = () => {
     return () => { socket.disconnect(); };
   }, [queryClient]);
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
       await api.post('/work-orders', { title, description, status });
@@ -103,7 +106,7 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  const handleAssignSubmit = async (e: React.FormEvent) => {
+  const handleAssignSubmit = async (e) => {
     e.preventDefault();
     if (!selectedOrder) return;
     try {
@@ -119,7 +122,7 @@ const WorkOrders: React.FC = () => {
     }
   };
 
-  const handleProgressSubmit = async (e: React.FormEvent) => {
+  const handleProgressSubmit = async (e) => {
     e.preventDefault();
     if (!selectedOrder) return;
     try {
@@ -145,79 +148,243 @@ const WorkOrders: React.FC = () => {
     }
   };
 
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: (info) => <span className="font-mono text-xs">{info.getValue().split('-')[0]}</span>,
+    },
+    {
+      accessorKey: 'title',
+      header: 'Title',
+      cell: (info) => <span className="font-medium text-zinc-900">{info.getValue()}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: (info) => {
+        const val = info.getValue();
+        return (
+          <Badge variant={getStatusColor(val)} className="capitalize">
+            {val.replace('_', ' ')}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorFn: (row) => {
+        if (!row.technician_id) return 'Unassigned';
+        const t = technicians.find(tech => tech.id === row.technician_id);
+        return t ? t.email : row.technician_id;
+      },
+      id: 'technician',
+      header: 'Technician',
+      cell: (info) => {
+        const val = info.getValue();
+        if (val === 'Unassigned') {
+          return <span className="text-sm text-zinc-400">Unassigned</span>;
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <UserIcon className="h-3 w-3 text-zinc-400" />
+            <span className="text-sm">{val.split('@')[0]}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Created',
+      cell: (info) => {
+        const val = info.getValue();
+        return (
+          <div className="flex items-center gap-2 text-zinc-500">
+            <Calendar className="h-3 w-3" />
+            <span className="text-sm">{new Date(val).toLocaleDateString()}</span>
+          </div>
+        );
+      },
+    },
+  ], [technicians]);
+
+  const table = useReactTable({
+    data: workOrders,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden bg-zinc-50/50">
       
-      {/* Master List View */}
-      <div className="w-[400px] flex-shrink-0 border-r border-zinc-200 bg-white flex flex-col h-full z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col gap-4 p-4 border-b border-zinc-100">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Work Orders</h1>
-            <Button aria-label="Create Work Order" size="icon" onClick={() => setCreateModalOpen(true)} className="h-8 w-8 rounded-full">
-              <Plus className="h-4 w-4" />
+      {/* Data Table */}
+      <div className={cn("flex flex-col h-full z-10 transition-all duration-300", selectedOrder ? "w-[600px] border-r border-zinc-200 bg-white shadow-lg" : "w-full bg-white")}>
+        <div className="p-6 border-b border-zinc-200">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Work Orders</h1>
+              <p className="text-sm text-zinc-500 mt-1">Manage and dispatch field service requests.</p>
+            </div>
+            <Button aria-label="Create Work Order" onClick={() => setCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Create Order
             </Button>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <input 
-              type="text" 
-              placeholder="Search orders..." 
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 transition-all"
-            />
+
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input 
+                type="text" 
+                placeholder="Search orders..." 
+                value={globalFilter ?? ''}
+                onChange={e => setGlobalFilter(e.target.value)}
+                className="w-full h-10 pl-9 pr-4 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              />
+            </div>
+            
+            <select 
+              className="h-10 px-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              value={(table.getColumn('status')?.getFilterValue()) ?? ''}
+              onChange={e => table.getColumn('status')?.setFilterValue(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="assigned">Assigned</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="on_hold">On Hold</option>
+            </select>
           </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {isLoading ? (
-            <div className="p-4 text-center text-sm text-zinc-500">Loading orders...</div>
-          ) : workOrders.map(order => (
-            <button 
-              key={order.id}
-              onClick={() => setSelectedOrder(order)}
-              className={cn(
-                "w-full text-left p-3 rounded-xl transition-all border",
-                selectedOrder?.id === order.id 
-                  ? "bg-zinc-50 border-zinc-200 shadow-sm" 
-                  : "bg-transparent border-transparent hover:bg-zinc-50"
-              )}
-            >
-              <div className="flex items-start justify-between mb-1">
-                <span className="font-semibold text-zinc-900 truncate pr-2">{order.title}</span>
-                <Badge variant={getStatusColor(order.status) as any} className="capitalize flex-shrink-0 text-[10px] px-1.5 py-0">
-                  {order.status.replace('_', ' ')}
-                </Badge>
-              </div>
-              <p className="text-xs text-zinc-500 line-clamp-1 mb-2">{order.description}</p>
-              <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
-                <span className="flex items-center gap-1">
-                  <UserIcon className="h-3 w-3" />
-                  {order.technician_id ? technicians.find(t => t.id === order.technician_id)?.email.split('@')[0] : 'Unassigned'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {new Date(order.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </button>
-          ))}
+
+        <div className="flex-1 overflow-auto p-6">
+          <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th key={header.id} className="px-4 py-3 font-medium text-zinc-500">
+                        {header.isPlaceholder ? null : (
+                          <div 
+                            className={cn("flex items-center gap-2", header.column.getCanSort() && "cursor-pointer select-none hover:text-zinc-900")}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {{
+                              asc: <ChevronUp className="h-4 w-4" />,
+                              desc: <ChevronDown className="h-4 w-4" />,
+                            }[header.column.getIsSorted()] ?? (header.column.getCanSort() ? <div className="w-4" /> : null)}
+                          </div>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-zinc-200 bg-white">
+                {isLoading ? (
+                  <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-zinc-500">Loading work orders...</td></tr>
+                ) : table.getRowModel().rows.length === 0 ? (
+                  <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-zinc-500">No results found.</td></tr>
+                ) : (
+                  table.getRowModel().rows.map(row => (
+                    <tr 
+                      key={row.id} 
+                      onClick={() => setSelectedOrder(row.original)}
+                      className={cn("hover:bg-zinc-50 transition-colors cursor-pointer", selectedOrder?.id === row.original.id && "bg-zinc-50")}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id} className="px-4 py-3">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-zinc-500">
+              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (table.getFilteredRowModel().rows.length > 0 ? 1 : 0)} to{' '}
+              {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of{' '}
+              {table.getFilteredRowModel().rows.length} results
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Detail View */}
-      <div className="flex-1 bg-zinc-50/50 flex flex-col h-full overflow-hidden">
-        {selectedOrder ? (
-          <div className="flex-1 overflow-y-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Detail View / Slide-out side panel */}
+      {selectedOrder && (
+        <div className="flex-1 bg-zinc-50/50 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 relative">
+          <div className="absolute top-4 right-4 z-20">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8 pt-16">
             <div className="max-w-3xl mx-auto space-y-6">
               
               <div className="flex items-start justify-between">
                 <div>
-                  <Badge variant={getStatusColor(selectedOrder.status) as any} className="capitalize mb-3">
+                  <Badge variant={getStatusColor(selectedOrder.status)} className="capitalize mb-3">
                     {selectedOrder.status.replace('_', ' ')}
                   </Badge>
                   <h2 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">{selectedOrder.title}</h2>
                   <p className="text-zinc-500">ID: {selectedOrder.id}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                   <Button variant="outline" onClick={() => setAssignModalOpen(true)}>Assign Tech</Button>
                   {user?.id === selectedOrder.technician_id && (
                     <Button onClick={() => setProgressModalOpen(true)}>Update Progress</Button>
@@ -226,7 +393,7 @@ const WorkOrders: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="p-6 rounded-[2rem] bg-white shadow-sm ring-1 ring-zinc-200">
                   <h3 className="text-sm font-semibold tracking-tight text-zinc-900 mb-4 flex items-center gap-2">
                     <UserIcon className="h-4 w-4 text-zinc-400" />
@@ -267,15 +434,8 @@ const WorkOrders: React.FC = () => {
 
             </div>
           </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
-            <div className="h-16 w-16 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
-              <Paperclip className="h-6 w-6 text-zinc-300" />
-            </div>
-            <p className="font-medium text-zinc-500">Select a work order to view details</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Create Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Work Order">
