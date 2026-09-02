@@ -1,18 +1,40 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll, afterEach, beforeAll } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { setupServer } from 'msw/node'
+import { http, HttpResponse } from 'msw'
 import WorkOrders from './WorkOrders'
-import api from '../api'
 import * as AuthContext from '../contexts/AuthContext'
 
-vi.mock('../api', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    delete: vi.fn(),
-  }
-}))
+// Generate 25 mock work orders
+const mockWorkOrders = Array.from({ length: 25 }, (_, i) => ({
+  id: `wo-${i + 1}`,
+  title: `Order ${i + 1}`,
+  description: `Description ${i + 1}`,
+  status: i % 2 === 0 ? 'open' : 'in_progress',
+  created_at: '2026-09-02T10:00:00Z',
+  technician_id: `tech-1`,
+}));
+
+const mockTechnicians = [
+  { id: 'tech-1', email: 'tech1@demo.com' }
+];
+
+export const handlers = [
+  http.get('*/work-orders', () => {
+    return HttpResponse.json({ data: mockWorkOrders, total: mockWorkOrders.length })
+  }),
+  http.get('*/technicians', () => {
+    return HttpResponse.json(mockTechnicians)
+  }),
+  http.post('*/work-orders', async ({ request }) => {
+    const body = await request.json();
+    return HttpResponse.json({ id: 'wo-new', ...body })
+  }),
+]
+
+const server = setupServer(...handlers)
 
 vi.mock('socket.io-client', () => ({
   io: () => ({
@@ -30,10 +52,15 @@ const queryClient = new QueryClient({
 })
 
 describe('WorkOrders Component', () => {
-  beforeEach(() => {
+  beforeAll(() => server.listen())
+  afterEach(() => {
+    server.resetHandlers()
     vi.clearAllMocks()
     queryClient.clear()
-    
+  })
+  afterAll(() => server.close())
+
+  beforeEach(() => {
     // Mock user auth
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
       user: { id: 'user-1', email: 'dispatcher@demo.com', role: 'dispatcher', org_id: 'org-1' },
@@ -51,78 +78,74 @@ describe('WorkOrders Component', () => {
     )
   }
 
-  it('renders work orders list and handles creation flow', async () => {
-    // Mock API responses
-    vi.mocked(api.get).mockImplementation(async (url) => {
-      if (url.includes('/work-orders')) {
-        return {
-          data: {
-            data: [
-              {
-                id: 'wo-1',
-                title: 'Test Order 1',
-                description: 'Description 1',
-                status: 'open',
-                created_at: '2026-09-02T10:00:00Z',
-              }
-            ],
-            total: 1
-          }
-        }
-      }
-      if (url.includes('/technicians')) {
-        return { data: [{ id: 'tech-1', email: 'tech1@demo.com' }] }
-      }
-      return { data: [] }
-    })
-
-    vi.mocked(api.post).mockResolvedValueOnce({ data: { id: 'wo-2', title: 'New Order' } })
-
+  it('renders table and handles pagination', async () => {
     renderComponent()
 
-    // 1. Verify fetching and rendering of existing orders
-    expect(screen.getByText(/Loading orders.../i)).toBeInTheDocument()
+    expect(screen.getByText(/Loading work orders.../i)).toBeInTheDocument()
     
+    // Default page size is 10 in React Table
     await waitFor(() => {
-      expect(screen.getByText('Test Order 1')).toBeInTheDocument()
+      expect(screen.getByText('Order 1')).toBeInTheDocument()
     })
 
-    // 2. Open Create Modal
-    // The button has a plus icon, we can query it or add an aria-label. 
-    // The Create button in WorkOrders.tsx doesn't have text inside the button tag itself for the icon version? 
-    // Wait, WorkOrders.tsx has a button with className="h-8 w-8 rounded-full" and <Plus> inside. It doesn't have an aria-label or title.
-    // Let me fix that in the test or find it by role. Let's find all buttons and click the one that opens the modal.
-    // Actually, I should update WorkOrders.tsx to have an aria-label="Create Work Order" for the plus button, but for now I can find it via testing-library
+    // Should display only 10 items initially (Order 1 to Order 10)
+    expect(screen.getByText('Order 10')).toBeInTheDocument()
+    expect(screen.queryByText('Order 11')).not.toBeInTheDocument()
     
-    // In WorkOrders.tsx: <Button size="icon" onClick={() => setCreateModalOpen(true)} className="..."> <Plus className="h-4 w-4" /> </Button>
-    // I can query by role 'button' and filter.
-    const createBtn = screen.getAllByRole('button').find(b => b.className.includes('rounded-full'))
-    expect(createBtn).toBeDefined()
-    
-    await userEvent.click(createBtn!)
+    // Pagination text
+    expect(screen.getByText(/Showing 1 to 10 of 25 results/i)).toBeInTheDocument()
 
-    // 3. Fill out Create form
+    // Next page button
+    const nextBtn = screen.getAllByRole('button').find(b => b.querySelector('.lucide-chevron-right'))
+    expect(nextBtn).toBeDefined()
+    expect(nextBtn).not.toBeDisabled()
+    
+    await userEvent.click(nextBtn!)
+
     await waitFor(() => {
-      expect(screen.getByText('Create Work Order')).toBeInTheDocument()
+      expect(screen.getByText('Order 11')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Order 1')).not.toBeInTheDocument()
+    expect(screen.getByText(/Showing 11 to 20 of 25 results/i)).toBeInTheDocument()
+  })
+
+  it('handles global filtering', async () => {
+    renderComponent()
+    
+    await waitFor(() => {
+      expect(screen.getByText('Order 1')).toBeInTheDocument()
     })
 
-    // Label for title is "Title"
-    const titleInput = screen.getByLabelText(/Title/i)
-    const descInput = screen.getByLabelText(/Description/i)
-    
-    await userEvent.type(titleInput, 'Emergency Fix')
-    await userEvent.type(descInput, 'Pipe burst in sector 7')
+    const searchInput = screen.getByPlaceholderText(/Search orders.../i)
+    await userEvent.type(searchInput, 'Order 15')
 
-    // Submit form
-    await userEvent.click(screen.getByRole('button', { name: /Create Order/i }))
-
-    // 4. Verify API call
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/work-orders', {
-        title: 'Emergency Fix',
-        description: 'Pipe burst in sector 7',
-        status: 'open'
-      })
+      expect(screen.getByText('Order 15')).toBeInTheDocument()
     })
+    
+    // Order 1 shouldn't be there unless '15' matches it (which it doesn't)
+    expect(screen.queryByText('Order 1')).not.toBeInTheDocument()
+    // 1 item should be shown
+    expect(screen.getByText(/Showing 1 to 1 of 1 results/i)).toBeInTheDocument()
+  })
+
+  it('handles column filtering by status', async () => {
+    renderComponent()
+    
+    await waitFor(() => {
+      expect(screen.getByText('Order 1')).toBeInTheDocument() // Order 1 is 'open' (i=0)
+      expect(screen.getByText('Order 2')).toBeInTheDocument() // Order 2 is 'in_progress' (i=1)
+    })
+
+    const select = screen.getByRole('combobox')
+    await userEvent.selectOptions(select, 'open')
+
+    await waitFor(() => {
+      // 25 items total, 13 are open
+      expect(screen.getByText(/Showing 1 to 10 of 13 results/i)).toBeInTheDocument()
+    })
+    
+    expect(screen.getByText('Order 1')).toBeInTheDocument() // still open
+    expect(screen.queryByText('Order 2')).not.toBeInTheDocument() // in_progress should be hidden
   })
 })
