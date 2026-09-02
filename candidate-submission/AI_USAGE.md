@@ -33,7 +33,8 @@ For each material use of AI, describe:
 
 5. **Any output you rejected and why.**
    *(Context: Evaluators ask this to prove you didn't blindly copy-paste. It shows engineering judgment.)*
-   I rejected early attempts by the AI to use simple application-level filters for tenant isolation, enforcing strict Postgres Row Level Security (RLS) instead. I also rejected a botched `README.md` replacement and forced a revert, ensuring documentation integrity.
+   I rejected early attempts by the AI to use simple application-level filters for tenant isolation, enforcing strict Postgres Row Level Security (RLS) instead. I also rejected a messed up `README.md` replacement and forced a revert, ensuring documentation integrity.
+   Since, I did most of my architectural decisions and directed the AI on the correct path there were less corrections.
 
 ## Candidate confirmation
 
@@ -47,4 +48,4 @@ Replace the unchecked boxes with checked boxes when true:
 
 Candidate name: Arjun M S
 
-Date: 2026-09-02
+Date: 02-09-2026

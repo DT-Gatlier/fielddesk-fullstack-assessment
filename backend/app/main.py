@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request
 
+
 structlog.configure(
     processors=[
         structlog.stdlib.add_log_level,
