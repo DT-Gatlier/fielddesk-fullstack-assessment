@@ -9,12 +9,42 @@ from . import auth, models, schemas, database, deps
 from .socket import sio, sio_app
 import socketio
 
+import logging
+import structlog
+from asgi_correlation_id import CorrelationIdMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer(),
+    ],
+)
+logger = structlog.get_logger()
+
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="FieldDesk API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("application_startup")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("application_shutdown")
+    database.engine.dispose()
 
 async def emit_work_order_update(org_id: str):
     await sio.emit('work_order_updated', room=f"org_{org_id}")
 
-
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # In production, restrict this
@@ -23,8 +53,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.post("/login", response_model=schemas.Token)
-def login(form_data: schemas.UserLogin, db: Session = Depends(deps.get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, form_data: schemas.UserLogin, db: Session = Depends(deps.get_db)):
+    logger.info("login_attempt", email=form_data.email)
     # To log in, we must query the user by email without knowing their org_id.
     # Since FORCE RLS is on, we bypass RLS for this specific transaction.
     db.execute(text("SET LOCAL row_security = OFF"))
