@@ -1,7 +1,9 @@
 import os
 if hasattr(os, "add_dll_directory"):
     os.add_dll_directory(r"C:\Program Files\PostgreSQL\17\bin")
-import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
