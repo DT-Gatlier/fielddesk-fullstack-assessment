@@ -127,7 +127,7 @@ def sanitize_csv_field(value):
         return "'" + val_str
     return val_str
 
-import jwt
+from jose import jwt, JWTError
 from .auth import SECRET_KEY, ALGORITHM
 
 def get_user_id(request: Request) -> str:
@@ -138,7 +138,7 @@ def get_user_id(request: Request) -> str:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub") or get_remote_address(request)
-    except jwt.PyJWTError:
+    except JWTError:
         return get_remote_address(request)
 
 @app.get("/work-orders/export")
