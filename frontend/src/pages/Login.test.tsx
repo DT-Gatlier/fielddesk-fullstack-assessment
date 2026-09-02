@@ -63,8 +63,10 @@ describe('Login Component', () => {
   })
 
   it('calls login and navigates on success', async () => {
+    // Valid 3-part JWT structure so jwtDecode doesn't throw
+    const fakeJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyJ9.signature'
     vi.mocked(api.post).mockResolvedValueOnce({
-      data: { access_token: 'fake-jwt-token' }
+      data: { access_token: fakeJwt }
     })
 
     renderLogin()
@@ -78,7 +80,7 @@ describe('Login Component', () => {
         email: 'owner@demo.com',
         password: 'password123'
       })
-      expect(localStorage.getItem('token')).toBe('fake-jwt-token')
+      expect(localStorage.getItem('token')).toBe(fakeJwt)
       expect(mockNavigate).toHaveBeenCalledWith('/')
     })
   })
