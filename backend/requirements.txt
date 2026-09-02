@@ -11,9 +11,10 @@ bcrypt==4.0.1
 pytest==7.4.2
 httpx==0.25.0
 redis==5.0.0
-python-socketio
+python-socketio==5.9.0
 celery==5.3.4
 python-multipart
-structlog
-slowapi
-asgi-correlation-id
+structlog==23.1.0
+slowapi==0.1.8
+asgi-correlation-id==4.2.0
+email-validator==2.1.0.post1
