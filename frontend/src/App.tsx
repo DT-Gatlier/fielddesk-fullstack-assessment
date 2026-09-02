@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import WorkOrders from './pages/WorkOrders';
 import OwnerDashboard from './pages/OwnerDashboard';
+import TechnicianFeed from './pages/TechnicianFeed';
 import { LogOut, LayoutDashboard, MapPin } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
@@ -131,7 +132,7 @@ const App: React.FC = () => {
             <Route path="/technician" element={
               <RoleRoute allowedRoles={['technician']}>
                 <DashboardLayout>
-                  <div className="p-8"><h1 className="text-2xl font-bold">Technician View</h1></div>
+                  <TechnicianFeed />
                 </DashboardLayout>
               </RoleRoute>
             } />
