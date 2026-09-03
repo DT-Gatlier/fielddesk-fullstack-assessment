@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -11,8 +11,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table';
-import { Plus, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User as UserIcon, Calendar, Paperclip, MapPin, X } from 'lucide-react';
+import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import { Plus, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User as UserIcon, Calendar, MapPin, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Modal } from '../components/ui/modal';
@@ -20,7 +20,7 @@ import { cn } from '../lib/utils';
 
 // ... (rest of the file as before, I'll paste the full component)
 
-const getStatusColor = (status) => {
+const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case 'open': return 'default';
     case 'assigned': return 'secondary';
@@ -35,7 +35,7 @@ const getStatusColor = (status) => {
 const WorkOrders = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
   // Modals state
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -52,8 +52,8 @@ const WorkOrders = () => {
   const [progressStatus, setProgressStatus] = useState('');
 
   // Table state
-  const [sorting, setSorting] = useState([]);
-  const [columnFilters, setColumnFilters] = useState([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
   const { data: workOrdersData, isLoading } = useQuery({
@@ -86,13 +86,13 @@ const WorkOrders = () => {
     socket.on('work_order_updated', (updatedOrder) => {
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
       // If the currently selected order was updated, update local selection
-      setSelectedOrder(prev => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
+      setSelectedOrder((prev: any) => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
     });
 
     return () => { socket.disconnect(); };
   }, [queryClient]);
 
-  const handleCreateSubmit = async (e) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.post('/work-orders', { title, description, status });
@@ -104,7 +104,7 @@ const WorkOrders = () => {
     }
   };
 
-  const handleAssignSubmit = async (e) => {
+  const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
     try {
@@ -120,7 +120,7 @@ const WorkOrders = () => {
     }
   };
 
-  const handleProgressSubmit = async (e) => {
+  const handleProgressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
     try {
@@ -150,17 +150,17 @@ const WorkOrders = () => {
     {
       accessorKey: 'id',
       header: 'ID',
-      cell: (info) => <span className="font-mono text-xs">{info.getValue().split('-')[0]}</span>,
+      cell: (info: any) => <span className="font-mono text-xs">{info.getValue().split('-')[0]}</span>,
     },
     {
       accessorKey: 'title',
       header: 'Title',
-      cell: (info) => <span className="font-medium text-zinc-900">{info.getValue()}</span>,
+      cell: (info: any) => <span className="font-medium text-zinc-900">{info.getValue()}</span>,
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: (info) => {
+      cell: (info: any) => {
         const val = info.getValue();
         return (
           <Badge variant={getStatusColor(val)} className="capitalize">
@@ -170,14 +170,14 @@ const WorkOrders = () => {
       },
     },
     {
-      accessorFn: (row) => {
+      accessorFn: (row: any) => {
         if (!row.technician_id) return 'Unassigned';
-        const t = technicians.find(tech => tech.id === row.technician_id);
+        const t = technicians.find((tech: any) => tech.id === row.technician_id);
         return t ? t.email : row.technician_id;
       },
       id: 'technician',
       header: 'Technician',
-      cell: (info) => {
+      cell: (info: any) => {
         const val = info.getValue();
         if (val === 'Unassigned') {
           return <span className="text-sm text-zinc-400">Unassigned</span>;
@@ -193,7 +193,7 @@ const WorkOrders = () => {
     {
       accessorKey: 'created_at',
       header: 'Created',
-      cell: (info) => {
+      cell: (info: any) => {
         const val = info.getValue();
         return (
           <div className="flex items-center gap-2 text-zinc-500">
@@ -252,7 +252,7 @@ const WorkOrders = () => {
             
             <select 
               className="h-10 px-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-              value={(table.getColumn('status')?.getFilterValue()) ?? ''}
+              value={(table.getColumn('status')?.getFilterValue() as string) ?? ''}
               onChange={e => table.getColumn('status')?.setFilterValue(e.target.value)}
             >
               <option value="">All Statuses</option>
@@ -283,7 +283,7 @@ const WorkOrders = () => {
                             {{
                               asc: <ChevronUp className="h-4 w-4" />,
                               desc: <ChevronDown className="h-4 w-4" />,
-                            }[header.column.getIsSorted()] ?? (header.column.getCanSort() ? <div className="w-4" /> : null)}
+                            }[header.column.getIsSorted() as string] ?? (header.column.getCanSort() ? <div className="w-4" /> : null)}
                           </div>
                         )}
                       </th>
@@ -401,7 +401,7 @@ const WorkOrders = () => {
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Technician</span>
                       <span className="font-medium text-zinc-900">
-                        {selectedOrder.technician_id ? technicians.find(t => t.id === selectedOrder.technician_id)?.email : 'Unassigned'}
+                        {selectedOrder.technician_id ? technicians.find((t: any) => (t as any).id === selectedOrder.technician_id)?.email : 'Unassigned'}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -457,7 +457,7 @@ const WorkOrders = () => {
             <label className="text-sm font-medium">Technician</label>
             <select required value={techId} onChange={e => setTechId(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm">
               <option value="">Select Technician...</option>
-              {technicians.map(t => <option key={t.id} value={t.id}>{t.email}</option>)}
+              {technicians.map((t: any) => <option key={t.id} value={t.id}>{t.email}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">

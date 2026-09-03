@@ -4,7 +4,7 @@ import api from '../api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Calendar, MapPin, AlertCircle } from 'lucide-react';
-import { cn } from '../lib/utils';
+
 
 export interface WorkOrder {
   id: string;

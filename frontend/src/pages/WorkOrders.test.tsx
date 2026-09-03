@@ -30,7 +30,7 @@ export const handlers = [
   }),
   http.post('*/work-orders', async ({ request }) => {
     const body = await request.json();
-    return HttpResponse.json({ id: 'wo-new', ...body })
+    return HttpResponse.json({ id: 'wo-new', ...(body as any) })
   }),
 ]
 
