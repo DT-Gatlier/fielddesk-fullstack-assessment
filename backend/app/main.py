@@ -475,6 +475,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.post("/attachments", response_model=schemas.AttachmentResponse, status_code=201)
 async def upload_attachment(
     file: UploadFile = File(...),
+    work_order_id: Optional[uuid.UUID] = Form(None),
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -525,6 +526,7 @@ async def upload_attachment(
     db_attachment = models.Attachment(
         id=file_id,
         organisation_id=current_user.organisation_id,
+        work_order_id=work_order_id,
         file_name=file.filename or "unnamed",
         file_path=file_id,
         file_size=file_size,

@@ -85,6 +85,7 @@ class ProgressEventResponse(BaseModel):
 class AttachmentResponse(BaseModel):
     id: UUID
     organisation_id: UUID
+    work_order_id: UUID | None = None
     file_name: str
     file_size: int
     content_type: str

@@ -5,6 +5,7 @@ import { Modal } from './ui/modal';
 import { Button } from './ui/button';
 import type { WorkOrder } from '../pages/TechnicianFeed';
 import { Upload, Paperclip } from 'lucide-react';
+import { message } from 'antd';
 
 interface Props {
   workOrder: WorkOrder | null;
@@ -27,9 +28,12 @@ export function TechnicianExecutionView({ workOrder, isOpen, onClose }: Props) {
       return response.data;
     },
     onSuccess: () => {
+      message.success('Status updated successfully');
       queryClient.invalidateQueries({ queryKey: ['technician-work-orders'] });
-      // Call onClose to close modal or let the UI update. 
-      // Based on typical flows, we might leave it open to see state.
+      onClose();
+    },
+    onError: () => {
+      message.error('Failed to update status');
     }
   });
 
@@ -37,13 +41,20 @@ export function TechnicianExecutionView({ workOrder, isOpen, onClose }: Props) {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
+      if (workOrder) {
+        formData.append('work_order_id', workOrder.id);
+      }
       const response = await api.post('/attachments', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       return response.data;
     },
     onSuccess: (data) => {
+      message.success('Upload successful');
       setAttachments(prev => [...prev, data]);
+    },
+    onError: () => {
+      message.error('Upload failed');
     },
     onSettled: () => {
       setUploading(false);

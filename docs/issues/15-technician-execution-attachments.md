@@ -8,10 +8,10 @@ labels: ["ready-for-agent"]
 Add a touch-friendly detail view for the Technician (opened by tapping a card) containing large action buttons for state transitions (e.g., Start Work, Complete Work). Implement a prominent file upload UI for attaching images/PDFs.
 
 ## Acceptance criteria
-- [ ] Tapping a card opens the detail execution view.
-- [ ] Technician can transition work order states via large, touch-friendly buttons.
-- [ ] Technician can upload image/PDF attachments.
-- [ ] Integration tests verify state transitions and file upload handling via MSW.
+- [x] Tapping a card opens the detail execution view.
+- [x] Technician can transition work order states via large, touch-friendly buttons.
+- [x] Technician can upload image/PDF attachments.
+- [x] Integration tests verify state transitions and file upload handling via MSW.
 
 ## Blocked by
 - [14-technician-card-feed.md](14-technician-card-feed.md)

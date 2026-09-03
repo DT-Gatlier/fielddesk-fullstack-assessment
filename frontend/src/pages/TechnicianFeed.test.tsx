@@ -43,7 +43,11 @@ const handlers = [
     
     return HttpResponse.json({ id: 'progress_event_1', work_order_id: id, status_to: body.status_to });
   }),
-  http.post('*/attachments', async () => {
+  http.post('*/attachments', async ({ request }) => {
+    const formData = await request.formData();
+    if (!formData.get('work_order_id')) {
+      return HttpResponse.json({ detail: 'work_order_id is required' }, { status: 400 });
+    }
     return HttpResponse.json({ id: 'attachment_1', file_name: 'test.png', file_size: 1024, content_type: 'image/png' }, { status: 201 });
   })
 ];
@@ -160,16 +164,55 @@ describe('TechnicianFeed', () => {
     await user.click(startWorkBtn);
 
     await waitFor(() => {
+      // Modal should close, toast should appear
+      expect(screen.getByText(/status updated successfully/i)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /start work/i })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /complete work/i })).toBeInTheDocument();
     });
 
+    // We can open it again to test Complete
+    await user.click(screen.getByText('Fix AC Unit'));
     const completeWorkBtn = screen.getByRole('button', { name: /complete work/i });
     await user.click(completeWorkBtn);
 
     await waitFor(() => {
-      // In the modal or updated UI
-      expect(screen.getByText(/status: completed/i)).toBeInTheDocument();
+      expect(screen.getByText(/status updated successfully/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /complete work/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders empty state when no work orders', async () => {
+    server.use(
+      http.get('*/work-orders', () => {
+        return HttpResponse.json({ data: [] });
+      })
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TechnicianFeed />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/no work orders assigned/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders error state on API failure', async () => {
+    server.use(
+      http.get('*/work-orders', () => {
+        return new HttpResponse(null, { status: 500 });
+      })
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TechnicianFeed />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to load work orders/i)).toBeInTheDocument();
     });
   });
 });
