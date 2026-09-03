@@ -39,7 +39,6 @@ const WorkOrders = () => {
   
   // Modals state
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [isAssignModalOpen, setAssignModalOpen] = useState(false);
   const [isProgressModalOpen, setProgressModalOpen] = useState(false);
   
   // Form states
@@ -50,6 +49,25 @@ const WorkOrders = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [progressStatus, setProgressStatus] = useState('');
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedOrder) {
+      setTechId(selectedOrder.technician_id || '');
+      if (selectedOrder.scheduled_range) {
+        const formatLocal = (d: Date) => {
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
+        setStartDate(formatLocal(new Date(selectedOrder.scheduled_range[0])));
+        setEndDate(formatLocal(new Date(selectedOrder.scheduled_range[1])));
+      } else {
+        setStartDate('');
+        setEndDate('');
+      }
+      setAssignError(null);
+    }
+  }, [selectedOrder]);
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -107,16 +125,20 @@ const WorkOrders = () => {
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
+    setAssignError(null);
     try {
       await api.post(`/work-orders/${selectedOrder.id}/assign`, {
         technician_id: techId,
         scheduled_start: new Date(startDate).toISOString(),
         scheduled_end: new Date(endDate).toISOString(),
       });
-      setAssignModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setAssignError(err.response.data.error || 'Technician is already booked for this time slot.');
+      } else {
+        console.error(err);
+      }
     }
   };
 
@@ -383,7 +405,6 @@ const WorkOrders = () => {
                   <p className="text-zinc-500">ID: {selectedOrder.id}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-end">
-                  <Button variant="outline" onClick={() => setAssignModalOpen(true)}>Assign Tech</Button>
                   {user?.id === selectedOrder.technician_id && (
                     <Button onClick={() => setProgressModalOpen(true)}>Update Progress</Button>
                   )}
@@ -397,26 +418,47 @@ const WorkOrders = () => {
                     <UserIcon className="h-4 w-4 text-zinc-400" />
                     Assignment Details
                   </h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Technician</span>
-                      <span className="font-medium text-zinc-900">
-                        {selectedOrder.technician_id ? technicians.find((t: any) => (t as any).id === selectedOrder.technician_id)?.email : 'Unassigned'}
-                      </span>
+                  <form onSubmit={handleAssignSubmit} className="space-y-3 text-sm">
+                    <div className="space-y-1">
+                      <label className="text-zinc-500 block">Technician</label>
+                      <select 
+                        required 
+                        aria-label="Technician"
+                        value={techId} 
+                        onChange={e => setTechId(e.target.value)} 
+                        className={cn("w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm", assignError && "border-red-500")}
+                      >
+                        <option value="">Select Technician...</option>
+                        {technicians.map((t: any) => <option key={t.id} value={t.id}>{t.email}</option>)}
+                      </select>
+                      {assignError && <p className="text-red-500 text-xs mt-1">{assignError}</p>}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Scheduled Start</span>
-                      <span className="font-medium text-zinc-900">
-                        {selectedOrder.scheduled_range ? new Date(selectedOrder.scheduled_range[0]).toLocaleString() : 'N/A'}
-                      </span>
+                    <div className="space-y-1">
+                      <label className="text-zinc-500 block">Start Date/Time</label>
+                      <input 
+                        required 
+                        aria-label="Start Date/Time"
+                        type="datetime-local" 
+                        value={startDate} 
+                        onChange={e => setStartDate(e.target.value)} 
+                        className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm"
+                      />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Scheduled End</span>
-                      <span className="font-medium text-zinc-900">
-                        {selectedOrder.scheduled_range ? new Date(selectedOrder.scheduled_range[1]).toLocaleString() : 'N/A'}
-                      </span>
+                    <div className="space-y-1">
+                      <label className="text-zinc-500 block">End Date/Time</label>
+                      <input 
+                        required 
+                        aria-label="End Date/Time"
+                        type="datetime-local" 
+                        value={endDate} 
+                        onChange={e => setEndDate(e.target.value)} 
+                        className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm"
+                      />
                     </div>
-                  </div>
+                    <div className="pt-2">
+                      <Button type="submit" className="w-full rounded-full">Save Assignment</Button>
+                    </div>
+                  </form>
                 </div>
 
                 <div className="p-6 rounded-[2rem] bg-white shadow-sm ring-1 ring-zinc-200">
@@ -447,30 +489,6 @@ const WorkOrders = () => {
             <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" rows={4} />
           </div>
           <Button type="submit" className="w-full rounded-full">Create Order</Button>
-        </form>
-      </Modal>
-
-      {/* Assign Modal */}
-      <Modal isOpen={isAssignModalOpen} onClose={() => setAssignModalOpen(false)} title="Assign Technician">
-        <form onSubmit={handleAssignSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Technician</label>
-            <select required value={techId} onChange={e => setTechId(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm">
-              <option value="">Select Technician...</option>
-              {technicians.map((t: any) => <option key={t.id} value={t.id}>{t.email}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date/Time</label>
-              <input required type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">End Date/Time</label>
-              <input required type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
-            </div>
-          </div>
-          <Button type="submit" className="w-full rounded-full">Save Assignment</Button>
         </form>
       </Modal>
 

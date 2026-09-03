@@ -148,4 +148,41 @@ describe('WorkOrders Component', () => {
     expect(screen.getByText('Order 1')).toBeInTheDocument() // still open
     expect(screen.queryByText('Order 2')).not.toBeInTheDocument() // in_progress should be hidden
   })
+  it('shows 409 conflict error in side panel during assignment', async () => {
+    server.use(
+      http.post('*/work-orders/:id/assign', () => {
+        return HttpResponse.json({ error: 'Technician is already booked for this time slot.' }, { status: 409 })
+      })
+    )
+
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getByText('Order 1')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByText('Order 1'))
+
+    expect(screen.getByText('ID: wo-1')).toBeInTheDocument()
+
+    const techSelect = screen.getByLabelText(/Technician/i, { selector: 'select' })
+    await userEvent.selectOptions(techSelect, 'tech-1')
+
+    // Using placeholder or label, but since it's an input we might need a specific label
+    const startDateInput = screen.getByLabelText(/Start Date\/Time/i)
+    await userEvent.type(startDateInput, '2026-09-04T10:00')
+
+    const endDateInput = screen.getByLabelText(/End Date\/Time/i)
+    await userEvent.type(endDateInput, '2026-09-04T12:00')
+
+    const assignBtn = screen.getByRole('button', { name: /Save Assignment/i })
+    await userEvent.click(assignBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Technician is already booked for this time slot/i)).toBeInTheDocument()
+    })
+
+    // The side panel should still be open
+    expect(screen.getByText('ID: wo-1')).toBeInTheDocument()
+  })
 })
