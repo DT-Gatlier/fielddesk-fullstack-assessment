@@ -157,7 +157,7 @@ def export_work_orders(
     def iter_csv():
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Title", "Description", "Status", "Technician ID", "Created At", "Updated At", "Scheduled Range"])
+        writer.writerow(["ID", "Title", "Description", "Location", "Status", "Technician ID", "Created At", "Updated At", "Scheduled Range"])
         yield output.getvalue()
         output.seek(0)
         output.truncate(0)
@@ -168,6 +168,7 @@ def export_work_orders(
                 sanitize_csv_field(wo.id),
                 sanitize_csv_field(wo.title),
                 sanitize_csv_field(wo.description),
+                sanitize_csv_field(wo.location),
                 sanitize_csv_field(wo.status),
                 sanitize_csv_field(wo.technician_id),
                 sanitize_csv_field(wo.created_at.isoformat() if wo.created_at else ""),
