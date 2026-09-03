@@ -3,7 +3,10 @@ from jose import jwt, JWTError
 from urllib.parse import parse_qs
 from .auth import SECRET_KEY, ALGORITHM
 
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins=[]
+)
 sio_app = socketio.ASGIApp(sio)
 
 @sio.on('connect')
