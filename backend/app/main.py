@@ -412,6 +412,48 @@ def assign_work_order(
     response_data = schemas.WorkOrderResponse.model_validate(db_work_order)
     background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), response_data.model_dump(mode="json"))
     return response_data
+@app.post("/work-orders/{work_order_id}/unassign", response_model=schemas.WorkOrderResponse)
+def unassign_work_order(
+    work_order_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(deps.get_rls_db),
+    current_user: models.User = Depends(deps.get_dispatcher_user)
+):
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    if not db_work_order:
+        raise HTTPException(status_code=404, detail="Work order not found")
+        
+    if db_work_order.status in ["completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Cannot modify a terminal work order")
+
+    db_work_order.technician_id = None
+    db_work_order.scheduled_range = None
+    db_work_order.status = "open"
+
+    db.flush()
+    audit_log = models.AuditEntry(
+        organisation_id=current_user.organisation_id,
+        user_id=current_user.id,
+        action="unassign_work_order",
+        entity_type="work_order",
+        entity_id=db_work_order.id,
+        details={}
+    )
+    db.add(audit_log)
+    
+    # We can remove pending notifications if needed, but not strictly required
+    db.query(models.Notification).filter(
+        models.Notification.work_order_id == db_work_order.id,
+        models.Notification.status == 'pending'
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    db.refresh(db_work_order)
+    
+    response_data = schemas.WorkOrderResponse.model_validate(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), response_data.model_dump(mode="json"))
+    return response_data
+
 @app.post("/work-orders/{work_order_id}/progress", response_model=schemas.ProgressEventResponse)
 def submit_progress_event(
     work_order_id: str,
