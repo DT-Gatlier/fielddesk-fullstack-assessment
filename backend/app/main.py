@@ -48,7 +48,11 @@ async def emit_work_order_update(org_id: str):
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this
+    # allow_origins=["*"], 
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -184,7 +188,7 @@ def get_work_orders(
     current: int = 1, pageSize: int = 10,
     status: Optional[str] = None,
     db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_dispatcher_user)
+    current_user: models.User = Depends(deps.get_current_user)
 ):
     skip = (current - 1) * pageSize
     query = db.query(models.WorkOrder)
@@ -200,7 +204,7 @@ def get_work_orders(
 def get_work_order(
     work_order_id: str,
     db: Session = Depends(deps.get_rls_db),
-    current_user: models.User = Depends(deps.get_dispatcher_user)
+    current_user: models.User = Depends(deps.get_current_user)
 ):
     db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
     if not db_work_order:
