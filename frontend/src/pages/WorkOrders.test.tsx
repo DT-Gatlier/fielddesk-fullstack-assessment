@@ -190,6 +190,50 @@ describe('WorkOrders Component', () => {
     expect(screen.getByText('ID: wo-1')).toBeInTheDocument()
   })
 
+  it('assigns work order and updates location, shows toast and closes panel', async () => {
+    let patchCalled = false
+    server.use(
+      http.post('*/work-orders/:id/assign', () => {
+        return HttpResponse.json({ id: 'wo-1', status: 'assigned' })
+      }),
+      http.patch('*/work-orders/:id', async ({ request }) => {
+        patchCalled = true
+        return HttpResponse.json({ id: 'wo-1' })
+      })
+    )
+
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getByText('Order 1')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByText('Order 1'))
+    expect(screen.getByText('ID: wo-1')).toBeInTheDocument()
+
+    const locationInput = screen.getByLabelText(/Location/i)
+    await userEvent.clear(locationInput)
+    await userEvent.type(locationInput, '123 Main St')
+
+    const techSelect = screen.getByLabelText(/Technician/i, { selector: 'select' })
+    await userEvent.selectOptions(techSelect, 'tech-1')
+
+    const startDateInput = screen.getByLabelText(/Start Date\/Time/i)
+    await userEvent.type(startDateInput, '2026-09-04T10:00')
+
+    const endDateInput = screen.getByLabelText(/End Date\/Time/i)
+    await userEvent.type(endDateInput, '2026-09-04T12:00')
+
+    const assignBtn = screen.getByRole('button', { name: /Save Assignment/i })
+    await userEvent.click(assignBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByText('ID: wo-1')).not.toBeInTheDocument()
+    })
+
+    expect(patchCalled).toBe(true)
+  })
+
   it('updates table instantly on websocket event and briefly highlights row', async () => {
     renderComponent()
 

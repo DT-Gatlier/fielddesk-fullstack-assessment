@@ -17,6 +17,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Modal } from '../components/ui/modal';
 import { cn } from '../lib/utils';
+import { message } from 'antd';
 
 // ... (rest of the file as before, I'll paste the full component)
 
@@ -50,10 +51,12 @@ const WorkOrders = () => {
   const [endDate, setEndDate] = useState('');
   const [progressStatus, setProgressStatus] = useState('');
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [location, setLocation] = useState('');
 
   useEffect(() => {
     if (selectedOrder) {
       setTechId(selectedOrder.technician_id || '');
+      setLocation(selectedOrder.location || '');
       if (selectedOrder.scheduled_range) {
         const formatLocal = (d: Date) => {
           const pad = (n: number) => n.toString().padStart(2, '0');
@@ -165,17 +168,25 @@ const WorkOrders = () => {
     if (!selectedOrder) return;
     setAssignError(null);
     try {
+      if (location !== selectedOrder.location) {
+        await api.patch(`/work-orders/${selectedOrder.id}`, { location });
+      }
+      
       await api.post(`/work-orders/${selectedOrder.id}/assign`, {
         technician_id: techId,
         scheduled_start: new Date(startDate).toISOString(),
         scheduled_end: new Date(endDate).toISOString(),
       });
+      
+      message.success('Assignment updated successfully!');
+      setSelectedOrder(null);
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
     } catch (err: any) {
       if (err.response?.status === 409) {
         setAssignError(err.response.data.error || 'Technician is already booked for this time slot.');
       } else {
         console.error(err);
+        message.error('Failed to update assignment.');
       }
     }
   };
@@ -462,6 +473,17 @@ const WorkOrders = () => {
                     Assignment Details
                   </h3>
                   <form onSubmit={handleAssignSubmit} className="space-y-3 text-sm">
+                    <div className="space-y-1">
+                      <label className="text-zinc-500 block">Location</label>
+                      <input 
+                        type="text" 
+                        aria-label="Location"
+                        value={location} 
+                        onChange={e => setLocation(e.target.value)} 
+                        placeholder="e.g. 123 Main St"
+                        className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                      />
+                    </div>
                     <div className="space-y-1">
                       <label className="text-zinc-500 block">Technician</label>
                       <select 
