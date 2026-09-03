@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Calendar, MapPin, AlertCircle } from 'lucide-react';
-
-
+import { TechnicianExecutionView } from '../components/TechnicianExecutionView';
 export interface WorkOrder {
   id: string;
   title: string;
@@ -29,6 +28,8 @@ const getStatusColor = (status: string) => {
 };
 
 const TechnicianFeed: React.FC = () => {
+  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: ['technician-work-orders'],
     queryFn: async () => {
@@ -59,7 +60,11 @@ const TechnicianFeed: React.FC = () => {
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
       >
         {workOrders.map((order) => (
-          <Card key={order.id} className="transition-shadow">
+          <Card 
+            key={order.id} 
+            className="transition-shadow cursor-pointer hover:shadow-md"
+            onClick={() => setSelectedOrder(order)}
+          >
             <CardHeader className="pb-3 flex flex-row items-start justify-between">
               <div>
                 <CardTitle className="text-lg font-semibold text-zinc-900 line-clamp-1">
@@ -94,6 +99,12 @@ const TechnicianFeed: React.FC = () => {
           </Card>
         ))}
       </div>
+      
+      <TechnicianExecutionView 
+        workOrder={workOrders.find(wo => wo.id === selectedOrder?.id) || null} 
+        isOpen={selectedOrder !== null} 
+        onClose={() => setSelectedOrder(null)} 
+      />
     </div>
   );
 };

@@ -93,7 +93,7 @@ const WorkOrders = () => {
   const workOrders = workOrdersData?.data || [];
 
   const [highlightedRowIds, setHighlightedRowIds] = useState<Set<string>>(new Set());
-  const highlightTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const highlightTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     return () => {
