@@ -42,13 +42,15 @@ async def shutdown_event():
     logger.info("application_shutdown")
     database.engine.dispose()
 
-async def emit_work_order_update(org_id: str):
-    await sio.emit('work_order_updated', room=f"org_{org_id}")
+async def emit_work_order_update(org_id: str, work_order_data: dict = None):
+    if work_order_data:
+        await sio.emit('work_order_updated', work_order_data, room=f"org_{org_id}")
+    else:
+        await sio.emit('work_order_updated', room=f"org_{org_id}")
 
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["*"], 
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173"
@@ -232,8 +234,9 @@ def create_work_order(
     db.add(audit_log)
     db.commit()
     db.refresh(db_work_order)
-    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
-    return schemas.WorkOrderResponse.model_validate(db_work_order)
+    response_data = schemas.WorkOrderResponse.model_validate(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), response_data.model_dump(mode="json"))
+    return response_data
 
 @app.patch("/work-orders/{work_order_id}", response_model=schemas.WorkOrderResponse)
 def update_work_order(
@@ -278,8 +281,9 @@ def update_work_order(
         
     db.commit()
     db.refresh(db_work_order)
-    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
-    return schemas.WorkOrderResponse.model_validate(db_work_order)
+    response_data = schemas.WorkOrderResponse.model_validate(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), response_data.model_dump(mode="json"))
+    return response_data
 
 @app.delete("/work-orders/{work_order_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_work_order(
@@ -294,7 +298,9 @@ def delete_work_order(
     
     db.delete(db_work_order)
     db.commit()
-    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
+    # Frontend currently does not handle work_order_deleted, but emitting it instead of updated
+    # prevents the frontend from crashing on undefined payload.
+    background_tasks.add_task(sio.emit, 'work_order_deleted', {'id': work_order_id}, room=f"org_{current_user.organisation_id}")
     return None
 
 @app.get("/technicians", response_model=List[schemas.UserResponse])
@@ -386,7 +392,11 @@ def assign_work_order(
             try:
                 db.commit()
                 db.refresh(notification)
-                send_assignment_notification.delay(str(notification.id))
+                try:
+                    send_assignment_notification.delay(str(notification.id))
+                except Exception as celery_err:
+                    import logging
+                    logging.getLogger(__name__).error(f"Failed to queue notification: {celery_err}")
             except IntegrityError as e:
                 db.rollback()
                 if 'uq_notification_work_order_tech' not in str(e):
@@ -399,8 +409,9 @@ def assign_work_order(
             raise HTTPException(status_code=409, detail="Technician is already assigned to another work order during this scheduled range")
         raise e
 
-    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
-    return schemas.WorkOrderResponse.model_validate(db_work_order)
+    response_data = schemas.WorkOrderResponse.model_validate(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), response_data.model_dump(mode="json"))
+    return response_data
 @app.post("/work-orders/{work_order_id}/progress", response_model=schemas.ProgressEventResponse)
 def submit_progress_event(
     work_order_id: str,
@@ -463,7 +474,9 @@ def submit_progress_event(
                 return schemas.ProgressEventResponse.model_validate(existing_event)
         raise e
         
-    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id))
+    db.refresh(db_work_order)
+    wo_response = schemas.WorkOrderResponse.model_validate(db_work_order)
+    background_tasks.add_task(emit_work_order_update, str(current_user.organisation_id), wo_response.model_dump(mode="json"))
     return schemas.ProgressEventResponse.model_validate(new_event)
 
 from fastapi import UploadFile, File, Form
