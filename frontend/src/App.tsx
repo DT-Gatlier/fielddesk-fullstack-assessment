@@ -61,7 +61,18 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         
         <div className="flex-1 overflow-y-auto px-3 py-6 flex flex-col gap-1">
           <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Main Menu</div>
-          <SidebarItem to="/" icon={LayoutDashboard} label="Work Orders" />
+          {user?.role === 'owner' && (
+            <>
+              <SidebarItem to="/owner" icon={LayoutDashboard} label="Dashboard" />
+              <SidebarItem to="/dispatcher" icon={MapPin} label="Work Orders" />
+            </>
+          )}
+          {user?.role === 'dispatcher' && (
+            <SidebarItem to="/dispatcher" icon={MapPin} label="Work Orders" />
+          )}
+          {user?.role === 'technician' && (
+            <SidebarItem to="/technician" icon={MapPin} label="My Jobs" />
+          )}
         </div>
         
         <div className="border-t border-zinc-100 p-4">
