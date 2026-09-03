@@ -610,5 +610,64 @@ def delete_attachment(
 
     return None
 
+@app.get("/organisation/quota", response_model=schemas.QuotaResponse)
+def get_quota(db: Session = Depends(deps.get_rls_db), current_user: models.User = Depends(deps.get_owner_user)):
+    org = db.query(models.Organisation).filter(models.Organisation.id == current_user.organisation_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organisation not found")
+    return schemas.QuotaResponse(storage_used_bytes=org.storage_used_bytes, storage_quota_bytes=org.storage_quota_bytes)
+
+
+@app.get("/users", response_model=List[schemas.UserWithRoleResponse])
+def get_users(db: Session = Depends(deps.get_rls_db), current_user: models.User = Depends(deps.get_owner_user)):
+    users = db.query(models.User).filter(models.User.organisation_id == current_user.organisation_id).all()
+    result = []
+    for user in users:
+        role_name = user.role.name if user.role else "unknown"
+        result.append(schemas.UserWithRoleResponse(id=user.id, email=user.email, role=role_name))
+    return result
+
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@app.post("/users")
+def invite_user(invite: schemas.UserInvite, db: Session = Depends(deps.get_rls_db), current_user: models.User = Depends(deps.get_owner_user)):
+    # Find role
+    role = db.query(models.Role).filter(models.Role.organisation_id == current_user.organisation_id, models.Role.name == invite.role).first()
+    if not role:
+        raise HTTPException(status_code=400, detail="Role not found")
+    
+    existing = db.query(models.User).filter(models.User.email == invite.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    hashed_pw = pwd_context.hash("password123")
+    new_user = models.User(
+        id=uuid.uuid4(),
+        organisation_id=current_user.organisation_id,
+        email=invite.email,
+        hashed_password=hashed_pw,
+        role_id=role.id,
+        created_at=datetime.utcnow()
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"status": "ok", "id": str(new_user.id)}
+
+@app.patch("/users/{user_id}")
+def update_user_role(user_id: str, update_data: schemas.UserRoleUpdate, db: Session = Depends(deps.get_rls_db), current_user: models.User = Depends(deps.get_owner_user)):
+    user = db.query(models.User).filter(models.User.id == user_id, models.User.organisation_id == current_user.organisation_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    role = db.query(models.Role).filter(models.Role.organisation_id == current_user.organisation_id, models.Role.name == update_data.role).first()
+    if not role:
+        raise HTTPException(status_code=400, detail="Role not found")
+        
+    user.role_id = role.id
+    db.commit()
+    return {"status": "ok"}
+
 app.mount('/socket.io', socketio.ASGIApp(sio, socketio_path=''))
 
