@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 const mockWorkOrders = {
   data: [
@@ -40,7 +40,7 @@ test.describe('Technician Feed', () => {
     // We assume the route to the technician feed is /technician
     // We might also need to set a mock token if there's a route guard
     await page.addInitScript(() => {
-      window.localStorage.setItem('token', 'mock-token');
+      window.localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJlbWFpbCI6InRlY2hAdGVzdC5jb20iLCJyb2xlIjoidGVjaG5pY2lhbiIsIm9yZ19pZCI6IjQ1NiJ9.signature');
     });
 
     await page.goto('/technician');

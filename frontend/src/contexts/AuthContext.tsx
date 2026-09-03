@@ -19,7 +19,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const t = localStorage.getItem('token');
+    if (t) {
+      try {
+        const decoded = jwtDecode<any>(t);
+        return {
+          id: decoded.sub,
+          email: decoded.email || '',
+          role: decoded.role,
+          org_id: decoded.org_id,
+        };
+      } catch (err) {
+        console.error('Failed to decode token on init', err);
+        return null;
+      }
+    }
+    return null;
+  });
 
   useEffect(() => {
     if (token) {

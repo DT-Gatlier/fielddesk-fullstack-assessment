@@ -3,17 +3,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  useReactTable, 
-  getCoreRowModel, 
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
-  flexRender,
-  ColumnDef,
-  SortingState,
-  ColumnFiltersState,
+  useReactTable,
 } from '@tanstack/react-table';
+import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { Plus, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, User as UserIcon, Calendar, Paperclip, MapPin, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
