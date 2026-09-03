@@ -61,6 +61,7 @@ class WorkOrder(Base):
     organisation_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     status = Column(String, nullable=False, default="open")  # open, assigned, in_progress, on_hold, completed, cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

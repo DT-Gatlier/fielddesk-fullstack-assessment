@@ -24,6 +24,7 @@ WorkOrderStatus = Literal["open", "assigned", "in_progress", "on_hold", "complet
 class WorkOrderBase(BaseModel):
     title: str
     description: str | None = None
+    location: str | None = None
     status: WorkOrderStatus = "open"
 
 class WorkOrderCreate(WorkOrderBase):
@@ -32,6 +33,7 @@ class WorkOrderCreate(WorkOrderBase):
 class WorkOrderUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    location: str | None = None
     status: WorkOrderStatus | None = None
 
 from datetime import datetime

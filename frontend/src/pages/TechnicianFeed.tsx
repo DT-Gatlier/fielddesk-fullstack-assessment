@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -13,6 +13,7 @@ export interface WorkOrder {
   status: string;
   created_at: string;
   priority?: string;
+  location?: string;
 }
 
 const getStatusColor = (status: string) => {
@@ -58,7 +59,7 @@ const TechnicianFeed: React.FC = () => {
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
       >
         {workOrders.map((order) => (
-          <Card key={order.id} className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]">
+          <Card key={order.id} className="transition-shadow">
             <CardHeader className="pb-3 flex flex-row items-start justify-between">
               <div>
                 <CardTitle className="text-lg font-semibold text-zinc-900 line-clamp-1">
@@ -66,7 +67,7 @@ const TechnicianFeed: React.FC = () => {
                 </CardTitle>
                 <div className="flex items-center gap-1 text-sm text-zinc-500 mt-1">
                   <MapPin className="h-4 w-4" />
-                  <span className="truncate">{order.title}</span>
+                  <span className="truncate">{order.location || 'Location not specified'}</span>
                 </div>
               </div>
               <Badge variant={getStatusColor(order.status) as any} className="capitalize flex-shrink-0">
@@ -78,7 +79,7 @@ const TechnicianFeed: React.FC = () => {
                 <div className="flex flex-row gap-4 text-sm text-zinc-600">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4 text-zinc-400" />
-                    <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(order.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <AlertCircle className="h-4 w-4 text-zinc-400" />

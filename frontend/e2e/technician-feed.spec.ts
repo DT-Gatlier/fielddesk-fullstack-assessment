@@ -6,6 +6,7 @@ const mockWorkOrders = {
       id: '1',
       title: 'Fix AC Unit',
       description: 'The AC unit is blowing warm air.',
+      location: 'Building A',
       status: 'assigned',
       created_at: '2023-10-01T10:00:00Z',
       priority: 'high'
@@ -14,6 +15,7 @@ const mockWorkOrders = {
       id: '2',
       title: 'Repair Plumbing',
       description: 'Leak in the kitchen sink.',
+      location: 'Building B',
       status: 'in_progress',
       created_at: '2023-10-02T11:00:00Z',
       priority: 'medium'
@@ -22,6 +24,7 @@ const mockWorkOrders = {
       id: '3',
       title: 'Electrical Inspection',
       description: 'Annual inspection.',
+      location: 'Building C',
       status: 'completed',
       created_at: '2023-10-03T12:00:00Z',
       priority: 'low'
@@ -37,8 +40,7 @@ test.describe('Technician Feed', () => {
       await route.fulfill({ json });
     });
     
-    // We assume the route to the technician feed is /technician
-    // We might also need to set a mock token if there's a route guard
+    // Set authentication token for the protected route
     await page.addInitScript(() => {
       window.localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJlbWFpbCI6InRlY2hAdGVzdC5jb20iLCJyb2xlIjoidGVjaG5pY2lhbiIsIm9yZ19pZCI6IjQ1NiJ9.signature');
     });
@@ -54,6 +56,10 @@ test.describe('Technician Feed', () => {
     // Priority and Status
     await expect(page.getByText('high').first()).toBeVisible();
     await expect(page.getByText('assigned').first()).toBeVisible();
+    
+    // Location
+    await expect(page.getByText('Building A')).toBeVisible();
+    await expect(page.getByText('Building B')).toBeVisible();
   });
 
   test('layout transitions from single column on mobile to multi-column on desktop', async ({ page, isMobile }) => {

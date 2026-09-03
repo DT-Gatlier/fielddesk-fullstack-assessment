@@ -36,23 +36,11 @@ export const handlers = [
 
 const server = setupServer(...handlers)
 
-const socketMocks = vi.hoisted(() => {
-  const callbacks: Record<string, Function> = {}
-  return {
-    callbacks,
-    emit: (event: string, data: any) => {
-      if (callbacks[event]) callbacks[event](data)
-    }
-  }
-})
-
-export const __mockSocketEmit = socketMocks.emit
+export const mockSocketOn = vi.fn()
 
 vi.mock('socket.io-client', () => ({
   io: () => ({
-    on: (event: string, callback: Function) => {
-      socketMocks.callbacks[event] = callback;
-    },
+    on: mockSocketOn,
     disconnect: vi.fn(),
   })
 }))
@@ -221,7 +209,11 @@ describe('WorkOrders Component', () => {
     }
 
     act(() => {
-      __mockSocketEmit('work_order_updated', updatedOrder)
+      // Find the callback registered for 'work_order_updated'
+      const call = mockSocketOn.mock.calls.find(call => call[0] === 'work_order_updated')
+      if (call) {
+        call[1](updatedOrder)
+      }
     })
 
     await waitFor(() => {

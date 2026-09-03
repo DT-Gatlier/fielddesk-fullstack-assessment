@@ -12,6 +12,7 @@ const mockWorkOrders = {
       id: '1',
       title: 'Fix AC Unit',
       description: 'The AC unit is blowing warm air.',
+      location: 'Building A',
       status: 'assigned',
       created_at: '2023-10-01T10:00:00Z',
       priority: 'high'
@@ -20,6 +21,7 @@ const mockWorkOrders = {
       id: '2',
       title: 'Repair Plumbing',
       description: 'Leak in the kitchen sink.',
+      location: 'Building B',
       status: 'in_progress',
       created_at: '2023-10-02T11:00:00Z',
       priority: 'medium'
@@ -71,6 +73,10 @@ describe('TechnicianFeed', () => {
       expect(screen.getByText('Fix AC Unit')).toBeInTheDocument();
       expect(screen.getByText('Repair Plumbing')).toBeInTheDocument();
     });
+
+    // Check locations
+    expect(screen.getByText('Building A')).toBeInTheDocument();
+    expect(screen.getByText('Building B')).toBeInTheDocument();
 
     // Check status badges
     expect(screen.getByText(/assigned/i)).toBeInTheDocument();

@@ -92,7 +92,14 @@ const WorkOrders = () => {
 
   const workOrders = workOrdersData?.data || [];
 
-  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
+  const [highlightedRowIds, setHighlightedRowIds] = useState<Set<string>>(new Set());
+  const highlightTimeouts = React.useRef<Record<string, NodeJS.Timeout>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(highlightTimeouts.current).forEach(clearTimeout);
+    };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -116,9 +123,23 @@ const WorkOrders = () => {
       // If the currently selected order was updated, update local selection
       setSelectedOrder((prev: any) => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
       
-      setHighlightedRowId(updatedOrder.id);
-      setTimeout(() => {
-        setHighlightedRowId((prev) => prev === updatedOrder.id ? null : prev);
+      setHighlightedRowIds((prev) => {
+        const next = new Set(prev);
+        next.add(updatedOrder.id);
+        return next;
+      });
+
+      if (highlightTimeouts.current[updatedOrder.id]) {
+        clearTimeout(highlightTimeouts.current[updatedOrder.id]);
+      }
+      
+      highlightTimeouts.current[updatedOrder.id] = setTimeout(() => {
+        setHighlightedRowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(updatedOrder.id);
+          return next;
+        });
+        delete highlightTimeouts.current[updatedOrder.id];
       }, 2000);
     });
 
@@ -341,7 +362,7 @@ const WorkOrders = () => {
                       className={cn(
                         "hover:bg-zinc-50 transition-colors cursor-pointer",
                         selectedOrder?.id === row.original.id && "bg-zinc-50",
-                        highlightedRowId === row.original.id && "bg-yellow-100/50"
+                        highlightedRowIds.has(row.original.id) && "bg-yellow-100/50"
                       )}
                       data-testid={`row-${row.original.id}`}
                     >
