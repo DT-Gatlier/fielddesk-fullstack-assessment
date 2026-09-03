@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import api from '../api';
@@ -93,7 +93,7 @@ const WorkOrders = () => {
   const workOrders = workOrdersData?.data || [];
 
   const [highlightedRowIds, setHighlightedRowIds] = useState<Set<string>>(new Set());
-  const highlightTimeouts = React.useRef<Record<string, NodeJS.Timeout>>({});
+  const highlightTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     return () => {
@@ -111,7 +111,11 @@ const WorkOrders = () => {
     });
 
     socket.on('work_order_updated', (updatedOrder) => {
+      // ASSUMPTION: The inbound payload perfectly matches the schema.
+      // TRADEOFF: We use setQueryData for instant updates instead of invalidateQueries to avoid 
+      // network roundtrips, assuming the update doesn't violate current sorting or filtering constraints.
       queryClient.setQueryData(['workOrders'], (oldData: any) => {
+        console.log("setQueryData called, oldData:", oldData);
         if (!oldData || !oldData.data) return oldData;
         return {
           ...oldData,
@@ -120,8 +124,6 @@ const WorkOrders = () => {
           ),
         };
       });
-      // If the currently selected order was updated, update local selection
-      setSelectedOrder((prev: any) => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
       
       setHighlightedRowIds((prev) => {
         const next = new Set(prev);
@@ -360,9 +362,9 @@ const WorkOrders = () => {
                       key={row.id} 
                       onClick={() => setSelectedOrder(row.original)}
                       className={cn(
-                        "hover:bg-zinc-50 transition-colors cursor-pointer",
+                        "hover:bg-zinc-50 transition-colors duration-500 cursor-pointer",
                         selectedOrder?.id === row.original.id && "bg-zinc-50",
-                        highlightedRowIds.has(row.original.id) && "bg-yellow-100/50"
+                        highlightedRowIds.has(row.original.id) && "bg-yellow-100/50 animate-pulse"
                       )}
                       data-testid={`row-${row.original.id}`}
                     >

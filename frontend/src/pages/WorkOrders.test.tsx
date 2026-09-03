@@ -36,6 +36,8 @@ export const handlers = [
 
 const server = setupServer(...handlers)
 
+// TRADEOFF: We mock socket.io-client via Vitest instead of using MSW's experimental `ws` API 
+// because socket.io has custom transport mechanisms that are hard to intercept with MSW currently.
 export const mockSocketOn = vi.fn()
 
 vi.mock('socket.io-client', () => ({
@@ -195,7 +197,7 @@ describe('WorkOrders Component', () => {
       expect(screen.getByText('Order 1')).toBeInTheDocument()
     })
 
-    // Check initial state
+    // Check initial status
     const row = screen.getByTestId('row-wo-1')
     expect(row).not.toHaveClass('bg-yellow-100/50')
     
@@ -209,8 +211,9 @@ describe('WorkOrders Component', () => {
     }
 
     act(() => {
-      // Find the callback registered for 'work_order_updated'
-      const call = mockSocketOn.mock.calls.find(call => call[0] === 'work_order_updated')
+      // Find the LATEST callback registered for 'work_order_updated'
+      const call = [...mockSocketOn.mock.calls].reverse().find(call => call[0] === 'work_order_updated')
+      console.log('Found socket callback?', !!call, mockSocketOn.mock.calls.length)
       if (call) {
         call[1](updatedOrder)
       }
@@ -223,7 +226,10 @@ describe('WorkOrders Component', () => {
     // Check it flashes yellow
     expect(screen.getByTestId('row-wo-1')).toHaveClass('bg-yellow-100/50')
 
-    // Fast forward 2 seconds (using real sleep because fake timers hang testing-library)
+    // TRADEOFF: We are using a real 2.1-second sleep instead of vi.useFakeTimers().
+    // Fake timers cause React Testing Library's waitFor() to hang indefinitely because it relies 
+    // on setTimeout for its internal polling loops. While this slows down the test suite by ~2s, 
+    // it ensures reliable test execution without complex timer mocking workarounds.
     await new Promise(resolve => setTimeout(resolve, 2100))
 
     await waitFor(() => {
