@@ -92,6 +92,8 @@ const WorkOrders = () => {
 
   const workOrders = workOrdersData?.data || [];
 
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -102,9 +104,22 @@ const WorkOrders = () => {
     });
 
     socket.on('work_order_updated', (updatedOrder) => {
-      queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+      queryClient.setQueryData(['workOrders'], (oldData: any) => {
+        if (!oldData || !oldData.data) return oldData;
+        return {
+          ...oldData,
+          data: oldData.data.map((order: any) =>
+            order.id === updatedOrder.id ? updatedOrder : order
+          ),
+        };
+      });
       // If the currently selected order was updated, update local selection
       setSelectedOrder((prev: any) => prev && prev.id === updatedOrder.id ? updatedOrder : prev);
+      
+      setHighlightedRowId(updatedOrder.id);
+      setTimeout(() => {
+        setHighlightedRowId((prev) => prev === updatedOrder.id ? null : prev);
+      }, 2000);
     });
 
     return () => { socket.disconnect(); };
@@ -323,7 +338,12 @@ const WorkOrders = () => {
                     <tr 
                       key={row.id} 
                       onClick={() => setSelectedOrder(row.original)}
-                      className={cn("hover:bg-zinc-50 transition-colors cursor-pointer", selectedOrder?.id === row.original.id && "bg-zinc-50")}
+                      className={cn(
+                        "hover:bg-zinc-50 transition-colors cursor-pointer",
+                        selectedOrder?.id === row.original.id && "bg-zinc-50",
+                        highlightedRowId === row.original.id && "bg-yellow-100/50"
+                      )}
+                      data-testid={`row-${row.original.id}`}
                     >
                       {row.getVisibleCells().map(cell => (
                         <td key={cell.id} className="px-4 py-3">

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterAll, afterEach, beforeAll } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -36,9 +36,23 @@ export const handlers = [
 
 const server = setupServer(...handlers)
 
+const socketMocks = vi.hoisted(() => {
+  const callbacks: Record<string, Function> = {}
+  return {
+    callbacks,
+    emit: (event: string, data: any) => {
+      if (callbacks[event]) callbacks[event](data)
+    }
+  }
+})
+
+export const __mockSocketEmit = socketMocks.emit
+
 vi.mock('socket.io-client', () => ({
   io: () => ({
-    on: vi.fn(),
+    on: (event: string, callback: Function) => {
+      socketMocks.callbacks[event] = callback;
+    },
     disconnect: vi.fn(),
   })
 }))
@@ -184,5 +198,44 @@ describe('WorkOrders Component', () => {
 
     // The side panel should still be open
     expect(screen.getByText('ID: wo-1')).toBeInTheDocument()
+  })
+
+  it('updates table instantly on websocket event and briefly highlights row', async () => {
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getByText('Order 1')).toBeInTheDocument()
+    })
+
+    // Check initial state
+    const row = screen.getByTestId('row-wo-1')
+    expect(row).not.toHaveClass('bg-yellow-100/50')
+    
+    // Check initial status badge
+    // Order 1 is open
+    expect(row.textContent).toContain('open')
+
+    const updatedOrder = {
+      ...mockWorkOrders[0], // wo-1
+      status: 'assigned',
+    }
+
+    act(() => {
+      __mockSocketEmit('work_order_updated', updatedOrder)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('row-wo-1').textContent).toContain('assigned')
+    })
+    
+    // Check it flashes yellow
+    expect(screen.getByTestId('row-wo-1')).toHaveClass('bg-yellow-100/50')
+
+    // Fast forward 2 seconds (using real sleep because fake timers hang testing-library)
+    await new Promise(resolve => setTimeout(resolve, 2100))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('row-wo-1')).not.toHaveClass('bg-yellow-100/50')
+    })
   })
 })
