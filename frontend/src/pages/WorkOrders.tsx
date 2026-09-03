@@ -53,6 +53,11 @@ const WorkOrders = () => {
   const [assignError, setAssignError] = useState<string | null>(null);
   const [location, setLocation] = useState('');
 
+  const [createLocation, setCreateLocation] = useState('');
+  const [createTechId, setCreateTechId] = useState('');
+  const [createStartDate, setCreateStartDate] = useState('');
+  const [createEndDate, setCreateEndDate] = useState('');
+
   useEffect(() => {
     if (selectedOrder) {
       setTechId(selectedOrder.technician_id || '');
@@ -154,12 +159,32 @@ const WorkOrders = () => {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/work-orders', { title, description, status });
+      const res = await api.post('/work-orders', { title, description, location: createLocation, status });
+      
+      if (createTechId && createStartDate && createEndDate) {
+        await api.post(`/work-orders/${res.data.id}/assign`, {
+          technician_id: createTechId,
+          scheduled_start: new Date(createStartDate).toISOString(),
+          scheduled_end: new Date(createEndDate).toISOString(),
+        });
+      }
+      
+      message.success('Work order created successfully!');
       setCreateModalOpen(false);
       setTitle(''); setDescription(''); setStatus('open');
+      setCreateLocation(''); setCreateTechId(''); setCreateStartDate(''); setCreateEndDate('');
       queryClient.invalidateQueries({ queryKey: ['workOrders'] });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      if (err.response?.status === 409) {
+          message.error('Order created, but technician is already booked for this time slot.');
+          setCreateModalOpen(false);
+          setTitle(''); setDescription(''); setStatus('open');
+          setCreateLocation(''); setCreateTechId(''); setCreateStartDate(''); setCreateEndDate('');
+          queryClient.invalidateQueries({ queryKey: ['workOrders'] });
+      } else {
+          message.error('Failed to create work order.');
+      }
     }
   };
 
@@ -544,16 +569,61 @@ const WorkOrders = () => {
 
       {/* Create Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Work Order">
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
+        <form onSubmit={handleCreateSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto px-1">
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">Title</label>
+            <label htmlFor="title" className="text-sm font-medium">Title *</label>
             <input id="title" required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" />
           </div>
           <div className="space-y-2">
             <label htmlFor="description" className="text-sm font-medium">Description</label>
-            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" rows={4} />
+            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" rows={2} />
           </div>
-          <Button type="submit" className="w-full rounded-full">Create Order</Button>
+          <div className="space-y-2">
+            <label htmlFor="createLocation" className="text-sm font-medium">Location</label>
+            <input id="createLocation" type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)} className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm" placeholder="e.g. 123 Main St" />
+          </div>
+
+          <div className="pt-4 border-t border-zinc-100">
+            <h4 className="text-sm font-medium text-zinc-900 mb-3">Assign Technician (Optional)</h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-zinc-500 text-xs font-medium block">Technician</label>
+                <select 
+                  value={createTechId} 
+                  onChange={e => setCreateTechId(e.target.value)} 
+                  className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm"
+                >
+                  <option value="">Do not assign yet</option>
+                  {technicians.map((t: any) => <option key={t.id} value={t.id}>{t.email}</option>)}
+                </select>
+              </div>
+              {createTechId && (
+                <div className="flex gap-3">
+                  <div className="space-y-2 w-1/2">
+                    <label className="text-zinc-500 text-xs font-medium block">Start Date/Time *</label>
+                    <input 
+                      required={!!createTechId}
+                      type="datetime-local" 
+                      value={createStartDate} 
+                      onChange={e => setCreateStartDate(e.target.value)} 
+                      className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2 w-1/2">
+                    <label className="text-zinc-500 text-xs font-medium block">End Date/Time *</label>
+                    <input 
+                      required={!!createTechId}
+                      type="datetime-local" 
+                      value={createEndDate} 
+                      onChange={e => setCreateEndDate(e.target.value)} 
+                      className="w-full rounded-xl border-zinc-200 px-3 py-2 border text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <Button type="submit" className="w-full rounded-full mt-2">Create Order</Button>
         </form>
       </Modal>
 
