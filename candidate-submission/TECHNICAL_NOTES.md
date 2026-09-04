@@ -9,7 +9,7 @@ Complete this document as part of the submission.
 - Name: Arjun M S
 - GitHub username: arjun-ms
 - Final commit SHA: b6b194af158129a06c68fa5274ba01559c207750
-- Screen-recording link: (To be provided after recording)
+- Screen-recording link: https://youtu.be/RoaZkzVZKoc
 
 ## Local setup
 
