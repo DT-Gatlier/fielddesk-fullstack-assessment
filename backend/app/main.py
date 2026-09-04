@@ -197,7 +197,6 @@ def export_work_orders(
     return StreamingResponse(iter_csv(), headers=headers)
 
 @app.get("/work-orders", response_model=schemas.PaginatedWorkOrders)
-
 def get_work_orders(
     current: int = 1, pageSize: int = 10,
     status: Optional[str] = None,
@@ -206,6 +205,13 @@ def get_work_orders(
 ):
     skip = (current - 1) * pageSize
     query = db.query(models.WorkOrder)
+    
+    if current_user.role.name == "technician":
+        query = query.filter(
+            (models.WorkOrder.technician_id == current_user.id) | 
+            (models.WorkOrder.technician_id.is_(None))
+        )
+        
     if status:
         query = query.filter(models.WorkOrder.status == status)
     
@@ -220,7 +226,15 @@ def get_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    query = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id)
+    
+    if current_user.role.name == "technician":
+        query = query.filter(
+            (models.WorkOrder.technician_id == current_user.id) | 
+            (models.WorkOrder.technician_id.is_(None))
+        )
+        
+    db_work_order = query.first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
     return schemas.WorkOrderResponse.model_validate(db_work_order)
@@ -349,12 +363,18 @@ def assign_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).with_for_update().first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
         
     if db_work_order.status in ["completed", "cancelled"]:
         raise HTTPException(status_code=400, detail="Cannot modify a terminal work order")
+        
+    if db_work_order.status == "assigned" and db_work_order.technician_id == assignment.technician_id:
+        # Check if schedule matches to be idempotent, or simply reject
+        if db_work_order.scheduled_range and db_work_order.scheduled_range.lower == assignment.scheduled_start.replace(tzinfo=None) and db_work_order.scheduled_range.upper == assignment.scheduled_end.replace(tzinfo=None):
+            return schemas.WorkOrderResponse.model_validate(db_work_order)
+        raise HTTPException(status_code=409, detail="Work order is already assigned to this technician with a different schedule")
 
     # verify technician exists and is in same org
     tech = db.query(models.User).filter(
