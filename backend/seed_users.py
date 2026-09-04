@@ -42,9 +42,13 @@ def seed():
         # Create users for org
         users_to_create = [
             {"email": f"owner@{org_info['prefix']}", "role_id": roles["owner"].id},
-            {"email": f"admin@{org_info['prefix']}", "role_id": roles["admin"].id},
-            {"email": f"dispatcher@{org_info['prefix']}", "role_id": roles["dispatcher"].id},
-            {"email": f"technician@{org_info['prefix']}", "role_id": roles["technician"].id},
+            {"email": f"admin-1@{org_info['prefix']}", "role_id": roles["admin"].id},
+            {"email": f"admin-2@{org_info['prefix']}", "role_id": roles["admin"].id},
+            {"email": f"dispatcher-1@{org_info['prefix']}", "role_id": roles["dispatcher"].id},
+            {"email": f"dispatcher-2@{org_info['prefix']}", "role_id": roles["dispatcher"].id},
+            {"email": f"tech-1@{org_info['prefix']}", "role_id": roles["technician"].id},
+            {"email": f"tech-2@{org_info['prefix']}", "role_id": roles["technician"].id},
+            {"email": f"tech-3@{org_info['prefix']}", "role_id": roles["technician"].id},
         ]
 
         for u_data in users_to_create:

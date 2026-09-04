@@ -8,7 +8,7 @@ Complete this document as part of the submission.
 
 - Name: Arjun M S
 - GitHub username: arjun-ms
-- Final commit SHA: 6eb2db6fcdb1199b90d518dd6474cda59e565f08
+- Final commit SHA: b6b194af158129a06c68fa5274ba01559c207750
 - Screen-recording link: (To be provided after recording)
 
 ## Local setup
@@ -21,9 +21,9 @@ Run the setup script which creates `.env`, starts Docker containers, and runs mi
 
 The seed script creates a "Demo Org" with the following accounts (password is `password123` for all):
 - Owner: `owner@demo.com`
-- Admin: `admin@demo.com`
-- Dispatcher: `dispatcher@demo.com`
-- Technician: `technician@demo.com`
+- Admin: `admin-1@demo.com`, `admin-2@demo.com`
+- Dispatcher: `dispatcher-1@demo.com`, `dispatcher-2@demo.com`
+- Technician: `tech-1@demo.com`, `tech-2@demo.com`, `tech-3@demo.com`
 
 ## Verification results
 
