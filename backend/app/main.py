@@ -64,6 +64,17 @@ app.add_middleware(
 def health_check():
     return {"status": "ok"}
 
+@app.get("/ready")
+def ready_check():
+    try:
+        with database.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception as e:
+        logger.error("readiness_check_failed", error=str(e))
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"status": "unavailable", "detail": "Database connection failed"})
+
 
 @app.post("/login", response_model=schemas.Token)
 @limiter.limit("5/minute")
@@ -456,7 +467,9 @@ def unassign_work_order(
     return response_data
 
 @app.post("/work-orders/{work_order_id}/progress", response_model=schemas.ProgressEventResponse)
+@limiter.limit("10/minute", key_func=get_user_id)
 def submit_progress_event(
+    request: Request,
     work_order_id: str,
     event: schemas.ProgressEventCreate,
     background_tasks: BackgroundTasks,
@@ -593,6 +606,18 @@ async def upload_attachment(
         content_type=file.content_type or "application/octet-stream"
     )
     db.add(db_attachment)
+    
+    audit_entry = models.AuditEntry(
+        id=uuid.uuid4(),
+        organisation_id=current_user.organisation_id,
+        entity_type="attachment",
+        entity_id=db_attachment.id,
+        action="upload_attachment",
+        user_id=current_user.id,
+        details={"work_order_id": str(work_order_id), "file_name": file.filename}
+    )
+    db.add(audit_entry)
+    
     try:
         db.commit()
         db.refresh(db_attachment)
@@ -654,6 +679,18 @@ def delete_attachment(
     disk_path = os.path.join(UPLOAD_DIR, attachment.file_path)
 
     db.delete(attachment)
+    
+    audit_entry = models.AuditEntry(
+        id=uuid.uuid4(),
+        organisation_id=current_user.organisation_id,
+        entity_type="attachment",
+        entity_id=attachment_id,
+        action="delete_attachment",
+        user_id=current_user.id,
+        details={"file_name": attachment.file_name}
+    )
+    db.add(audit_entry)
+    
     try:
         # Decrement quota atomically
         stmt = (
@@ -728,6 +765,18 @@ def update_user_role(user_id: str, update_data: schemas.UserRoleUpdate, db: Sess
         raise HTTPException(status_code=400, detail="Role not found")
         
     user.role_id = role.id
+    
+    audit_entry = models.AuditEntry(
+        id=uuid.uuid4(),
+        organisation_id=current_user.organisation_id,
+        entity_type="user",
+        entity_id=user.id,
+        action="update_user_role",
+        user_id=current_user.id,
+        details={"new_role": update_data.role}
+    )
+    db.add(audit_entry)
+    
     db.commit()
     return {"status": "ok"}
 

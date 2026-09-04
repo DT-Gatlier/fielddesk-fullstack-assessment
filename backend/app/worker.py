@@ -55,6 +55,19 @@ def send_assignment_notification(self, notification_id: str):
             mock_send_notification(notification_id, notification.attempts)
             
             notification.status = "sent"
+            
+            from .models import AuditEntry
+            import uuid
+            audit = AuditEntry(
+                id=uuid.uuid4(),
+                organisation_id=notification.work_order.organisation_id,
+                entity_type="notification",
+                entity_id=notification.id,
+                action="notification_outcome",
+                user_id=None,
+                details={"status": "sent", "attempts": notification.attempts}
+            )
+            db.add(audit)
             db.commit()
             logger.info(f"Notification {notification_id} sent successfully")
             
@@ -67,6 +80,19 @@ def send_assignment_notification(self, notification_id: str):
         except ProviderPermanentError as e:
             logger.error(f"Permanent error sending notification {notification_id}: {str(e)}")
             notification.status = "failed"
+            
+            from .models import AuditEntry
+            import uuid
+            audit = AuditEntry(
+                id=uuid.uuid4(),
+                organisation_id=notification.work_order.organisation_id,
+                entity_type="notification",
+                entity_id=notification.id,
+                action="notification_outcome",
+                user_id=None,
+                details={"status": "failed", "error": str(e), "attempts": notification.attempts}
+            )
+            db.add(audit)
             db.commit()
 
     except Exception as e:
@@ -75,6 +101,19 @@ def send_assignment_notification(self, notification_id: str):
         logger.exception(f"Unexpected error processing notification {notification_id}")
         if notification:
             notification.status = "failed"
+            
+            from .models import AuditEntry
+            import uuid
+            audit = AuditEntry(
+                id=uuid.uuid4(),
+                organisation_id=notification.work_order.organisation_id,
+                entity_type="notification",
+                entity_id=notification.id,
+                action="notification_outcome",
+                user_id=None,
+                details={"status": "failed", "error": "Unexpected error", "attempts": notification.attempts}
+            )
+            db.add(audit)
             db.commit()
     finally:
         db.close()

@@ -59,8 +59,9 @@ async def test_dashboard_events_emitted(setup_db):
             
             # Since AsyncClient runs the ASGI app, BackgroundTasks might run concurrently.
             # We add a small sleep to allow the background task to execute.
+            from unittest.mock import ANY
             await asyncio.sleep(0.1)
-            mock_emit.assert_called_with('work_order_updated', room=f"org_{org_id}")
+            mock_emit.assert_called_with('work_order_updated', ANY, room=f"org_{org_id}")
             
             mock_emit.reset_mock()
             
@@ -72,4 +73,4 @@ async def test_dashboard_events_emitted(setup_db):
             assert resp_update.status_code == 200
             
             await asyncio.sleep(0.1)
-            mock_emit.assert_called_with('work_order_updated', room=f"org_{org_id}")
+            mock_emit.assert_called_with('work_order_updated', ANY, room=f"org_{org_id}")

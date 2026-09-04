@@ -20,20 +20,20 @@ def setup_db():
     org_id = uuid.uuid4()
     db.execute(text("SET LOCAL row_security = OFF"))
     
-    org = Organisation(id=org_id, name="Test Org Limiter")
-    role_dispatch = Role(organisation_id=org_id, name="dispatcher")
+    org = Organisation(id=org_id, name="Test Org RL")
+    role_owner = Role(organisation_id=org_id, name="owner")
     
-    dispatcher = User(email=f"dispatch_{uuid.uuid4()}@test.com", hashed_password=get_password_hash("pw"), role=role_dispatch, organisation_id=org_id)
+    owner = User(email=f"owner_{uuid.uuid4()}@test.com", hashed_password=get_password_hash("pw"), role=role_owner, organisation_id=org_id)
     
-    db.add_all([org, role_dispatch, dispatcher])
+    db.add_all([org, role_owner, owner])
     db.commit()
-    db.refresh(dispatcher)
+    db.refresh(owner)
     
-    token = create_access_token({"sub": str(dispatcher.id), "org_id": str(org_id), "role_id": str(role_dispatch.id)})
+    token = create_access_token({"sub": str(owner.id), "org_id": str(org_id), "role_id": str(role_owner.id)})
     
     yield {
         "token": token,
-        "dispatcher_id": dispatcher.id,
+        "owner_id": owner.id,
         "org_id": str(org_id)
     }
     db.close()

@@ -111,18 +111,3 @@ class UserInvite(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str
 
-class QuotaResponse(BaseModel):
-    storage_used_bytes: int
-    storage_quota_bytes: int
-
-class UserWithRoleResponse(BaseModel):
-    id: UUID
-    email: str
-    role: str
-
-class UserInvite(BaseModel):
-    email: str
-    role: str
-
-class UserRoleUpdate(BaseModel):
-    role: str
