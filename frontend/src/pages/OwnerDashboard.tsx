@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Briefcase, CheckCircle, HardDrive, Download, Users, Plus } from 'lucide-react';
+import { Briefcase, CheckCircle, HardDrive, Download, Users, Plus, Clock, UserCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Modal } from '../components/ui/modal';
 
 const fetchSummaryCounts = async () => {
-  const [openRes, completedRes] = await Promise.all([
+  const [openRes, assignedRes, inProgressRes, completedRes] = await Promise.all([
     api.get('/work-orders?status=open&pageSize=1'),
+    api.get('/work-orders?status=assigned&pageSize=1'),
+    api.get('/work-orders?status=in_progress&pageSize=1'),
     api.get('/work-orders?status=completed&pageSize=1')
   ]);
   return {
     open: openRes.data.total,
+    assigned: assignedRes.data.total,
+    inProgress: inProgressRes.data.total,
     completed: completedRes.data.total
   };
 };
@@ -105,19 +109,51 @@ const OwnerDashboard: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">Total Open</CardTitle>
+            <CardTitle className="text-sm font-medium text-zinc-500">Open</CardTitle>
             <Briefcase className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent>
             {isCountsLoading ? (
               <div className="text-2xl font-bold text-zinc-300 animate-pulse">--</div>
             ) : countsError ? (
-              <div className="text-red-500 text-sm">Error loading counts</div>
+              <div className="text-red-500 text-sm">Error</div>
             ) : (
               <div className="text-2xl font-bold" data-testid="count-open">{counts?.open}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-zinc-500">Assigned</CardTitle>
+            <UserCheck className="h-4 w-4 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            {isCountsLoading ? (
+              <div className="text-2xl font-bold text-zinc-300 animate-pulse">--</div>
+            ) : countsError ? (
+              <div className="text-red-500 text-sm">Error</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="count-assigned">{counts?.assigned}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-zinc-500">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            {isCountsLoading ? (
+              <div className="text-2xl font-bold text-zinc-300 animate-pulse">--</div>
+            ) : countsError ? (
+              <div className="text-red-500 text-sm">Error</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="count-in-progress">{counts?.inProgress}</div>
             )}
           </CardContent>
         </Card>
@@ -131,7 +167,7 @@ const OwnerDashboard: React.FC = () => {
             {isCountsLoading ? (
               <div className="text-2xl font-bold text-zinc-300 animate-pulse">--</div>
             ) : countsError ? (
-              <div className="text-red-500 text-sm">Error loading counts</div>
+              <div className="text-red-500 text-sm">Error</div>
             ) : (
               <div className="text-2xl font-bold" data-testid="count-completed">{counts?.completed}</div>
             )}

@@ -14,6 +14,12 @@ const handlers = [
     if (status === 'open') {
       return HttpResponse.json({ total: 10, data: [] });
     }
+    if (status === 'assigned') {
+      return HttpResponse.json({ total: 5, data: [] });
+    }
+    if (status === 'in_progress') {
+      return HttpResponse.json({ total: 2, data: [] });
+    }
     if (status === 'completed') {
       return HttpResponse.json({ total: 25, data: [] });
     }
@@ -36,7 +42,7 @@ const handlers = [
     return HttpResponse.json({ id: '3', email: data.email, role: data.role }, { status: 201 });
   }),
   http.get('*/work-orders/export', () => {
-    return new HttpResponse('id,title\n1,Test', {
+    return HttpResponse.text('id,title\n1,Test', {
       headers: {
         'Content-Type': 'text/csv'
       }
@@ -71,6 +77,8 @@ describe('OwnerDashboard', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('count-open')).toHaveTextContent('10');
+      expect(screen.getByTestId('count-assigned')).toHaveTextContent('5');
+      expect(screen.getByTestId('count-in-progress')).toHaveTextContent('2');
       expect(screen.getByTestId('count-completed')).toHaveTextContent('25');
     });
   });

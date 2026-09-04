@@ -56,13 +56,20 @@ const queryClient = new QueryClient({
 })
 
 describe('WorkOrders Component', () => {
-  beforeAll(() => server.listen())
+  beforeAll(() => {
+    server.listen()
+    localStorage.setItem('token', 'fake-token')
+  })
   afterEach(() => {
     server.resetHandlers()
     vi.clearAllMocks()
     queryClient.clear()
+    mockSocketOn.mockClear()
   })
-  afterAll(() => server.close())
+  afterAll(() => {
+    server.close()
+    localStorage.removeItem('token')
+  })
 
   beforeEach(() => {
     // Mock user auth
