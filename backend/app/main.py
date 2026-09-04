@@ -173,7 +173,7 @@ def export_work_orders(
         output.seek(0)
         output.truncate(0)
 
-        query = db.query(models.WorkOrder).execution_options(stream_results=True).yield_per(100)
+        query = db.query(models.WorkOrder).filter(models.WorkOrder.organisation_id == current_user.organisation_id).execution_options(stream_results=True).yield_per(100)
         for wo in query:
             writer.writerow([
                 sanitize_csv_field(wo.id),
@@ -204,7 +204,7 @@ def get_work_orders(
     current_user: models.User = Depends(deps.get_current_user)
 ):
     skip = (current - 1) * pageSize
-    query = db.query(models.WorkOrder)
+    query = db.query(models.WorkOrder).filter(models.WorkOrder.organisation_id == current_user.organisation_id)
     
     if current_user.role.name == "technician":
         query = query.filter(
@@ -226,7 +226,7 @@ def get_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    query = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id)
+    query = db.query(models.WorkOrder).filter(models.WorkOrder.organisation_id == current_user.organisation_id).filter(models.WorkOrder.id == work_order_id)
     
     if current_user.role.name == "technician":
         query = query.filter(
@@ -272,7 +272,7 @@ def update_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id, models.WorkOrder.organisation_id == current_user.organisation_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
     
@@ -318,7 +318,7 @@ def delete_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id, models.WorkOrder.organisation_id == current_user.organisation_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
     
@@ -363,7 +363,7 @@ def assign_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).with_for_update().first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id, models.WorkOrder.organisation_id == current_user.organisation_id).with_for_update().first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
         
@@ -451,7 +451,7 @@ def unassign_work_order(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_dispatcher_user)
 ):
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id, models.WorkOrder.organisation_id == current_user.organisation_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
         
@@ -501,7 +501,7 @@ def submit_progress_event(
     if existing_event:
         return schemas.ProgressEventResponse.model_validate(existing_event)
         
-    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id).first()
+    db_work_order = db.query(models.WorkOrder).filter(models.WorkOrder.id == work_order_id, models.WorkOrder.organisation_id == current_user.organisation_id).first()
     if not db_work_order:
         raise HTTPException(status_code=404, detail="Work order not found")
         
@@ -671,7 +671,7 @@ def download_attachment(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id, models.Attachment.organisation_id == current_user.organisation_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
         
@@ -691,7 +691,7 @@ def delete_attachment(
     db: Session = Depends(deps.get_rls_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id).first()
+    attachment = db.query(models.Attachment).filter(models.Attachment.id == attachment_id, models.Attachment.organisation_id == current_user.organisation_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
