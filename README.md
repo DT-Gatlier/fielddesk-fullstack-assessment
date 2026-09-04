@@ -28,6 +28,13 @@ Libraries and architectural patterns are the candidate's choice. Significant dec
 - Database migrations and seed data
 - Automated tests
 - Docker-based local setup
+
+### Run Frontend Tests
+```bash
+cd frontend
+npm install
+npm run test
+```
 - Clear technical documentation
 - Completed submission templates
 - A pull request from the candidate's fork

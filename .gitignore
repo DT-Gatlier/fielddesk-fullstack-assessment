@@ -5,6 +5,10 @@
 
 # Dependencies
 node_modules/
+backend/venv/
+backend/__pycache__/
+venv/
+__pycache__/
 
 # Build and test output
 dist/
@@ -21,3 +25,11 @@ uploads/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# docs
+CONTEXT.md
+docs/STUDY_NOTES.md
+learnings/
+learning-records/
+lessons/
+reference/
