@@ -27,7 +27,7 @@ def seed():
 
         # Create roles for org
         roles = {}
-        for role_name in ["owner", "admin", "dispatcher", "technician"]:
+        for role_name in ["owner", "dispatcher", "technician"]:
             role = db.query(models.Role).filter(
                 models.Role.organisation_id == org.id,
                 models.Role.name == role_name
@@ -42,8 +42,6 @@ def seed():
         # Create users for org
         users_to_create = [
             {"email": f"owner@{org_info['prefix']}", "role_id": roles["owner"].id},
-            {"email": f"admin-1@{org_info['prefix']}", "role_id": roles["admin"].id},
-            {"email": f"admin-2@{org_info['prefix']}", "role_id": roles["admin"].id},
             {"email": f"dispatcher-1@{org_info['prefix']}", "role_id": roles["dispatcher"].id},
             {"email": f"dispatcher-2@{org_info['prefix']}", "role_id": roles["dispatcher"].id},
             {"email": f"tech-1@{org_info['prefix']}", "role_id": roles["technician"].id},

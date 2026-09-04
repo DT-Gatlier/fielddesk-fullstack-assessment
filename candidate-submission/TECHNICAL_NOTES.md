@@ -21,7 +21,6 @@ Run the setup script which creates `.env`, starts Docker containers, and runs mi
 
 The seed script creates a "Demo Org" with the following accounts (password is `password123` for all):
 - Owner: `owner@demo.com`
-- Admin: `admin-1@demo.com`, `admin-2@demo.com`
 - Dispatcher: `dispatcher-1@demo.com`, `dispatcher-2@demo.com`
 - Technician: `tech-1@demo.com`, `tech-2@demo.com`, `tech-3@demo.com`
 
