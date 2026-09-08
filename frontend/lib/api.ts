@@ -7,6 +7,16 @@ type ApiError = {
   };
 };
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -60,7 +70,10 @@ async function apiFetch<T>(
 
   if (!response.ok) {
     const error = await response.json() as ApiError;
-    throw new Error(error.error?.message ?? "Request failed");
+    throw new ApiRequestError(
+      error.error?.message ?? "Request failed",
+      error.error?.code ?? "UNKNOWN",
+    );
   }
 
   return response.json() as Promise<T>;

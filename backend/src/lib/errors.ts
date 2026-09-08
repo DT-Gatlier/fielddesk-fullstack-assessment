@@ -6,6 +6,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "RATE_LIMITED"
+  | "SCHEDULING_CONFLICT"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {

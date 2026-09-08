@@ -86,12 +86,13 @@ async function seedWorkOrders(
     },
   ] as const;
 
-  for (const sample of samples) {
+  for (const [index, sample] of samples.entries()) {
+    const offsetHours = 24 + index * 4;
     const scheduledStart = sample.assign
-      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      ? new Date(Date.now() + offsetHours * 60 * 60 * 1000).toISOString()
       : null;
     const scheduledEnd = sample.assign
-      ? new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString()
+      ? new Date(Date.now() + (offsetHours + 2) * 60 * 60 * 1000).toISOString()
       : null;
 
     await client.query(

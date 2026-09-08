@@ -123,6 +123,32 @@ export async function findWorkOrderByIdInOrg(
   return mapWorkOrder(result.rows[0]);
 }
 
+export async function findWorkOrderByIdInOrgWithClient(
+  client: pg.PoolClient,
+  workOrderId: string,
+  organisationId: string,
+): Promise<WorkOrder | null> {
+  const result = await client.query<WorkOrderRow>(
+    `SELECT * FROM work_orders
+     WHERE id = $1 AND organisation_id = $2
+     FOR UPDATE`,
+    [workOrderId, organisationId],
+  );
+
+  if (!result.rowCount) {
+    return null;
+  }
+
+  return mapWorkOrder(result.rows[0]);
+}
+
+export class SchedulingOverlapError extends Error {
+  constructor() {
+    super("Technician already has an overlapping assignment during this window");
+    this.name = "SchedulingOverlapError";
+  }
+}
+
 export async function updateWorkOrder(
   pool: pg.Pool,
   workOrderId: string,
@@ -172,6 +198,67 @@ export async function updateWorkOrder(
   return mapWorkOrder(result.rows[0]);
 }
 
+export async function assignWorkOrderInTransaction(
+  client: pg.PoolClient,
+  workOrderId: string,
+  organisationId: string,
+  input: {
+    assignedTechnicianId: string;
+    scheduledStart: string;
+    scheduledEnd: string;
+  },
+): Promise<WorkOrder | null> {
+  const overlap = await client.query(
+    `SELECT id FROM work_orders
+     WHERE organisation_id = $1
+       AND assigned_technician_id = $2
+       AND id <> $3
+       AND status NOT IN ('cancelled')
+       AND scheduled_start IS NOT NULL
+       AND scheduled_end IS NOT NULL
+       AND tstzrange(scheduled_start, scheduled_end, '[)')
+           && tstzrange($4::timestamptz, $5::timestamptz, '[)')
+     FOR UPDATE`,
+    [
+      organisationId,
+      input.assignedTechnicianId,
+      workOrderId,
+      input.scheduledStart,
+      input.scheduledEnd,
+    ],
+  );
+
+  if (overlap.rowCount && overlap.rowCount > 0) {
+    throw new SchedulingOverlapError();
+  }
+
+  const result = await client.query<WorkOrderRow>(
+    `UPDATE work_orders
+     SET assigned_technician_id = $3,
+         scheduled_start = $4,
+         scheduled_end = $5,
+         status = 'scheduled',
+         assignment_version = assignment_version + 1,
+         updated_at = now()
+     WHERE id = $1 AND organisation_id = $2
+     RETURNING *`,
+    [
+      workOrderId,
+      organisationId,
+      input.assignedTechnicianId,
+      input.scheduledStart,
+      input.scheduledEnd,
+    ],
+  );
+
+  if (!result.rowCount) {
+    return null;
+  }
+
+  return mapWorkOrder(result.rows[0]);
+}
+
+/** @deprecated Use assignWorkOrderInTransaction within a transaction */
 export async function assignWorkOrder(
   pool: pg.Pool,
   workOrderId: string,

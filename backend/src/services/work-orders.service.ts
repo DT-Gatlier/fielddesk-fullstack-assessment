@@ -2,7 +2,6 @@ import type pg from "pg";
 import { AppError } from "../lib/errors.js";
 import { insertAuditLog } from "../repositories/audit.repository.js";
 import {
-  assignWorkOrder,
   createWorkOrder,
   findWorkOrderByIdInOrg,
   generateReferenceNumber,
@@ -12,6 +11,7 @@ import {
   updateWorkOrder,
   updateWorkOrderStatus,
 } from "../repositories/work-orders.repository.js";
+import { assignWorkOrderSafely } from "./scheduling.service.js";
 import type { AuthContext, UserRole } from "../types/auth.js";
 import type {
   WorkOrder,
@@ -149,15 +149,6 @@ export async function assignWorkOrderForOrg(
     throw new AppError("FORBIDDEN", "Insufficient permissions", 403);
   }
 
-  const existing = await findWorkOrderByIdInOrg(
-    pool,
-    workOrderId,
-    auth.organisationId,
-  );
-  if (!existing) {
-    throw new AppError("NOT_FOUND", "Work order not found", 404);
-  }
-
   const start = new Date(input.scheduledStart);
   const end = new Date(input.scheduledEnd);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
@@ -177,30 +168,13 @@ export async function assignWorkOrderForOrg(
     throw new AppError("VALIDATION_ERROR", "Invalid technician for this organisation", 400);
   }
 
-  const updated = await assignWorkOrder(pool, workOrderId, auth.organisationId, input);
-  if (!updated) {
-    throw new AppError("NOT_FOUND", "Work order not found", 404);
-  }
-
-  await insertAuditLog(pool, {
-    organisationId: auth.organisationId,
-    actorUserId: auth.userId,
-    action: "work_order.assigned",
-    entityType: "work_order",
-    entityId: updated.id,
-    metadata: {
-      before: {
-        assignedTechnicianId: existing.assignedTechnicianId,
-        scheduledStart: existing.scheduledStart,
-        scheduledEnd: existing.scheduledEnd,
-      },
-      after: {
-        assignedTechnicianId: updated.assignedTechnicianId,
-        scheduledStart: updated.scheduledStart,
-        scheduledEnd: updated.scheduledEnd,
-      },
-    },
-  });
+  const updated = await assignWorkOrderSafely(
+    pool,
+    workOrderId,
+    auth.organisationId,
+    auth.userId,
+    input,
+  );
 
   return updated;
 }

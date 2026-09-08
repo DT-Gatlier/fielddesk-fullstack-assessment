@@ -8,8 +8,8 @@ import {
   getMe,
   getWorkOrder,
   listOrgUsers,
-  updateWorkOrder,
   updateWorkOrderStatus,
+  ApiRequestError,
   type AuditEntry,
   type AuthUser,
   type WorkOrder,
@@ -70,7 +70,11 @@ export default function WorkOrderDetailPage() {
       const detail = await getWorkOrder(workOrder.id);
       setActivity(detail.activity);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Assignment failed");
+      if (err instanceof ApiRequestError && err.code === "SCHEDULING_CONFLICT") {
+        setError("Scheduling conflict: this technician is already assigned during that window.");
+      } else {
+        setError(err instanceof Error ? err.message : "Assignment failed");
+      }
     }
   }
 

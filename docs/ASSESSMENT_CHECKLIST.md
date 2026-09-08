@@ -18,8 +18,8 @@
 | 1. Infrastructure skeleton | ✅ Done | Docker compose verified locally |
 | 2. Auth & tenant isolation | ✅ Done | Login, JWT cookies, role guards, 8 integration tests |
 | 3. Work orders core | ✅ Done | CRUD, list/filter, dashboard, frontend, 7 tests |
-| 4. Scheduling & concurrency | ⬜ Not started | Next up |
-| 5. Progress events | ⬜ Not started | |
+| 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, 2 concurrency tests |
+| 5. Progress events | ⬜ Not started | Next up |
 | 6. Attachments & quotas | ⬜ Not started | |
 | 7. Background worker | ⬜ Not started | |
 | 8. Real-time updates | ⬜ Not started | |
@@ -101,13 +101,13 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 **Requirement weight: 18% (PostgreSQL / concurrency)**
 
-- [ ] Validate `scheduled_start` < `scheduled_end`
-- [ ] Overlap detection in transaction (`SELECT … FOR UPDATE` or equivalent)
-- [ ] PostgreSQL exclusion constraint as backstop (see ARCHITECTURE_DECISIONS §8)
-- [ ] Return `409 SCHEDULING_CONFLICT` with clear message
+- [x] Validate `scheduled_start` < `scheduled_end`
+- [x] Overlap detection in transaction (`SELECT … FOR UPDATE` or equivalent)
+- [x] PostgreSQL exclusion constraint as backstop (see ARCHITECTURE_DECISIONS §8)
+- [x] Return `409 SCHEDULING_CONFLICT` with clear message
 - [ ] Document why this is safe with multiple API instances
-- [ ] Frontend: show conflict error when assign fails
-- [ ] **Tests:** concurrent parallel assign requests → exactly one succeeds
+- [x] Frontend: show conflict error when assign fails
+- [x] **Tests:** concurrent parallel assign requests → exactly one succeeds
 
 ---
 
@@ -283,6 +283,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Phase 1 scaffold: docker-compose, backend/worker/frontend, migrations, seed | Verify docker compose; Phase 2 auth |
 | 2026-09-08 | Phase 2: auth API, JWT cookies, login/dashboard, integration tests | Phase 3 work orders |
 | 2026-09-08 | Phase 3: work orders CRUD, dashboard, frontend flows, 7 tests | Phase 4 scheduling concurrency |
+| 2026-09-08 | Phase 4: exclusion constraint, transactional assign, concurrency tests | Phase 5 progress events |
 | | | |
 
 ---
