@@ -17,7 +17,7 @@ export async function registerUserRoutes(
 
   app.get(
     "/api/v1/users",
-    { preHandler: [authenticate, requireRole("owner")] },
+    { preHandler: [authenticate, requireRole("owner", "dispatcher")] },
     async (request) => {
       const users = await listUsersInOrg(pool, request.auth.organisationId);
       return { users: users.map(toPublicUser) };

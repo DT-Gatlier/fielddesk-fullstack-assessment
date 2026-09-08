@@ -9,6 +9,7 @@ import { registerErrorHandler } from "./lib/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerUserRoutes } from "./routes/users.js";
+import { registerWorkOrderRoutes } from "./routes/work-orders.js";
 
 export async function buildApp(config: Env = loadConfig()) {
   const app = Fastify({
@@ -51,6 +52,7 @@ export async function buildApp(config: Env = loadConfig()) {
   await registerHealthRoutes(app, config);
   await registerAuthRoutes(app, config);
   await registerUserRoutes(app, config);
+  await registerWorkOrderRoutes(app, config);
 
   app.get("/", async () => ({
     name: "FieldDesk API",

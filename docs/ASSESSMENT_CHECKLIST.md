@@ -17,8 +17,8 @@
 | 0. Setup & planning | ✅ Done | Stack locked; ERD in DATABASE_SCHEMA.md |
 | 1. Infrastructure skeleton | ✅ Done | Docker compose verified locally |
 | 2. Auth & tenant isolation | ✅ Done | Login, JWT cookies, role guards, 8 integration tests |
-| 3. Work orders core | ⬜ Not started | Next up |
-| 4. Scheduling & concurrency | ⬜ Not started | |
+| 3. Work orders core | ✅ Done | CRUD, list/filter, dashboard, frontend, 7 tests |
+| 4. Scheduling & concurrency | ⬜ Not started | Next up |
 | 5. Progress events | ⬜ Not started | |
 | 6. Attachments & quotas | ⬜ Not started | |
 | 7. Background worker | ⬜ Not started | |
@@ -81,19 +81,19 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 3 — Work order management
 
-- [ ] Migration: `work_orders` table with all required fields
-- [ ] CRUD API with org scope and role checks
-- [ ] Assign technician endpoint
-- [ ] Update status endpoint
-- [ ] List API: search, filter, sort, pagination
-- [ ] Detail API with activity/history
-- [ ] Dashboard summary counts endpoint
-- [ ] Frontend: work order list (filters, pagination)
-- [ ] Frontend: create / edit forms
-- [ ] Frontend: detail page
-- [ ] Frontend: dashboard
-- [ ] Loading, empty, validation, and error states
-- [ ] **Tests:** work order validation, role restrictions on CRUD
+- [x] Migration: `work_orders` table with all required fields
+- [x] CRUD API with org scope and role checks
+- [x] Assign technician endpoint
+- [x] Update status endpoint
+- [x] List API: search, filter, sort, pagination
+- [x] Detail API with activity/history
+- [x] Dashboard summary counts endpoint
+- [x] Frontend: work order list (filters, pagination)
+- [x] Frontend: create / edit forms
+- [x] Frontend: detail page
+- [x] Frontend: dashboard
+- [x] Loading, empty, validation, and error states
+- [x] **Tests:** work order validation, role restrictions on CRUD
 
 ---
 
@@ -282,6 +282,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Phase 0 complete: stack locked, ERD/schema doc, checklist updated | Phase 1 skeleton |
 | 2026-09-08 | Phase 1 scaffold: docker-compose, backend/worker/frontend, migrations, seed | Verify docker compose; Phase 2 auth |
 | 2026-09-08 | Phase 2: auth API, JWT cookies, login/dashboard, integration tests | Phase 3 work orders |
+| 2026-09-08 | Phase 3: work orders CRUD, dashboard, frontend flows, 7 tests | Phase 4 scheduling concurrency |
 | | | |
 
 ---
