@@ -12,7 +12,7 @@
     "worker:dev": "npm run dev --prefix worker",
     "frontend:dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "test": "echo \"Tests will be added in Phase 12\" && exit 0",
+    "test": "npm run test --prefix backend",
     "lint": "echo \"Lint will be configured later\" && exit 0"
   },
   "engines": {

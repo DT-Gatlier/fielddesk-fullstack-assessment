@@ -1,37 +1,11 @@
-import Fastify from "fastify";
-import cors from "@fastify/cors";
-import cookie from "@fastify/cookie";
+import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { closePool } from "./db/pool.js";
 import { closeRedis } from "./db/redis.js";
-import { registerHealthRoutes } from "./routes/health.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
-
-  const app = Fastify({
-    logger: {
-      level: config.LOG_LEVEL,
-    },
-    requestIdHeader: "x-correlation-id",
-    genReqId: (req) =>
-      (req.headers["x-correlation-id"] as string | undefined) ??
-      crypto.randomUUID(),
-  });
-
-  await app.register(cors, {
-    origin: config.FRONTEND_URL,
-    credentials: true,
-  });
-
-  await app.register(cookie);
-
-  await registerHealthRoutes(app, config);
-
-  app.get("/", async () => ({
-    name: "FieldDesk API",
-    version: "0.1.0",
-  }));
+  const app = await buildApp(config);
 
   await app.listen({ port: config.API_PORT, host: config.API_HOST });
   app.log.info(`API listening on ${config.API_HOST}:${config.API_PORT}`);

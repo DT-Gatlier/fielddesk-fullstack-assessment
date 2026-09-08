@@ -16,8 +16,8 @@
 | --- | --- | --- |
 | 0. Setup & planning | ✅ Done | Stack locked; ERD in DATABASE_SCHEMA.md |
 | 1. Infrastructure skeleton | ✅ Done | Docker compose verified locally |
-| 2. Auth & tenant isolation | ⬜ Not started | |
-| 3. Work orders core | ⬜ Not started | |
+| 2. Auth & tenant isolation | ✅ Done | Login, JWT cookies, role guards, 8 integration tests |
+| 3. Work orders core | ⬜ Not started | Next up |
 | 4. Scheduling & concurrency | ⬜ Not started | |
 | 5. Progress events | ⬜ Not started | |
 | 6. Attachments & quotas | ⬜ Not started | |
@@ -66,16 +66,16 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 **Requirement weight: 20% — do this before most feature work**
 
-- [ ] Secure password hashing (argon2)
-- [ ] `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
-- [ ] JWT in httpOnly cookie; frontend uses `credentials: 'include'`
-- [ ] Auth middleware attaches `{ userId, organisationId, role }`
-- [ ] Role guard helpers (`requireRole`, etc.)
-- [ ] Every tenant query scoped by `organisation_id` from JWT — never from client body
-- [ ] Cross-org access returns 404/403 appropriately (no data leak)
-- [ ] Rate limit on login endpoint
-- [ ] Login page on frontend
-- [ ] **Tests:** auth success/failure, role denial, cross-org ID tampering
+- [x] Secure password hashing (argon2)
+- [x] `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
+- [x] JWT in httpOnly cookie; frontend uses `credentials: 'include'`
+- [x] Auth middleware attaches `{ userId, organisationId, role }`
+- [x] Role guard helpers (`requireRole`, etc.)
+- [x] Every tenant query scoped by `organisation_id` from JWT — never from client body
+- [x] Cross-org access returns 404/403 appropriately (no data leak)
+- [x] Rate limit on login endpoint
+- [x] Login page on frontend
+- [x] **Tests:** auth success/failure, role denial, cross-org ID tampering
 
 ---
 
@@ -281,6 +281,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Planning: architecture doc, checklist created | Phase 0 finish |
 | 2026-09-08 | Phase 0 complete: stack locked, ERD/schema doc, checklist updated | Phase 1 skeleton |
 | 2026-09-08 | Phase 1 scaffold: docker-compose, backend/worker/frontend, migrations, seed | Verify docker compose; Phase 2 auth |
+| 2026-09-08 | Phase 2: auth API, JWT cookies, login/dashboard, integration tests | Phase 3 work orders |
 | | | |
 
 ---

@@ -41,6 +41,9 @@ export default async function HomePage() {
         <p>
           Backend URL: <code>{apiUrl}</code>
         </p>
+        <p>
+          <a href="/login">Sign in</a> · <a href="/dashboard">Dashboard</a>
+        </p>
         {status.ok ? (
           <>
             <p className="status-ok">API is healthy and ready.</p>

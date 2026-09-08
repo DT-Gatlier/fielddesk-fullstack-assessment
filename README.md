@@ -67,6 +67,17 @@ npm run seed      # seed 2 orgs × 3 roles (idempotent)
 
 Sample credentials (assessment only): password `FieldDesk2026!` — see [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md).
 
+### Tests
+
+Requires Postgres (and seeded data) running:
+
+```bash
+docker compose up postgres redis -d
+npm run migrate
+npm run seed
+npm test
+```
+
 ### Project layout
 
 ```text
