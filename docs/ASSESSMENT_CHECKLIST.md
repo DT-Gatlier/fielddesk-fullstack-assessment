@@ -15,7 +15,7 @@
 | Phase | Status | Notes |
 | --- | --- | --- |
 | 0. Setup & planning | ✅ Done | Stack locked; ERD in DATABASE_SCHEMA.md |
-| 1. Infrastructure skeleton | ✅ Done | Pending: verify `docker compose up` when Docker is running |
+| 1. Infrastructure skeleton | ✅ Done | Docker compose verified locally |
 | 2. Auth & tenant isolation | ⬜ Not started | |
 | 3. Work orders core | ⬜ Not started | |
 | 4. Scheduling & concurrency | ⬜ Not started | |
@@ -58,7 +58,7 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 - [x] First migration: organisations, users (minimal)
 - [x] Seed script: 2 orgs × 3 roles with sample credentials
 - [x] `GET /health` and `GET /ready` on API
-- [ ] Verify: `docker compose up` starts all services cleanly *(requires Docker daemon)*
+- [x] Verify: `docker compose up` starts all services cleanly
 
 ---
 
