@@ -15,7 +15,7 @@
 | Phase | Status | Notes |
 | --- | --- | --- |
 | 0. Setup & planning | ✅ Done | Stack locked; ERD in DATABASE_SCHEMA.md |
-| 1. Infrastructure skeleton | ⬜ Not started | Next up |
+| 1. Infrastructure skeleton | ✅ Done | Pending: verify `docker compose up` when Docker is running |
 | 2. Auth & tenant isolation | ⬜ Not started | |
 | 3. Work orders core | ⬜ Not started | |
 | 4. Scheduling & concurrency | ⬜ Not started | |
@@ -48,17 +48,17 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 1 — Infrastructure skeleton
 
-- [ ] Create `frontend/` (Next.js + TypeScript)
-- [ ] Create `backend/` (Fastify + TypeScript)
-- [ ] Create `worker/` (BullMQ consumer)
-- [ ] Create `database/migrations/` directory
-- [ ] Add `docker-compose.yml` (Postgres, Redis, api, worker, frontend)
-- [ ] Add `.env.example` (no real secrets)
-- [ ] Wire startup commands in root or package README
-- [ ] First migration: organisations, users (minimal)
-- [ ] Seed script: 2 orgs × 3 roles with sample credentials
-- [ ] `GET /health` and `GET /ready` on API
-- [ ] Verify: `docker compose up` starts all services cleanly
+- [x] Create `frontend/` (Next.js + TypeScript)
+- [x] Create `backend/` (Fastify + TypeScript)
+- [x] Create `worker/` (BullMQ consumer)
+- [x] Create `database/migrations/` directory
+- [x] Add `docker-compose.yml` (Postgres, Redis, api, worker, frontend)
+- [x] Add `.env.example` (no real secrets)
+- [x] Wire startup commands in root or package README
+- [x] First migration: organisations, users (minimal)
+- [x] Seed script: 2 orgs × 3 roles with sample credentials
+- [x] `GET /health` and `GET /ready` on API
+- [ ] Verify: `docker compose up` starts all services cleanly *(requires Docker daemon)*
 
 ---
 
@@ -280,6 +280,7 @@ Record brief notes after each work session:
 | --- | --- | --- |
 | 2026-09-08 | Planning: architecture doc, checklist created | Phase 0 finish |
 | 2026-09-08 | Phase 0 complete: stack locked, ERD/schema doc, checklist updated | Phase 1 skeleton |
+| 2026-09-08 | Phase 1 scaffold: docker-compose, backend/worker/frontend, migrations, seed | Verify docker compose; Phase 2 auth |
 | | | |
 
 ---

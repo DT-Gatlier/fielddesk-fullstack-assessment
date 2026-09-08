@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fielddesk
+      POSTGRES_PASSWORD: fielddesk
+      POSTGRES_DB: fielddesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fielddesk -d fielddesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://fielddesk:fielddesk@postgres:5432/fielddesk
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-development}
+      API_PORT: 3001
+      API_HOST: 0.0.0.0
+      FRONTEND_URL: http://localhost:3000
+      LOG_LEVEL: info
+      MIGRATIONS_DIR: /database/migrations
+      SEED_PASSWORD: ${SEED_PASSWORD:-FieldDesk2026!}
+      ATTACHMENTS_DIR: /data/attachments
+    ports:
+      - "3001:3001"
+    volumes:
+      - attachment_data:/data/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+      NOTIFICATION_MOCK_MODE: success
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      API_INTERNAL_URL: http://api:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  attachment_data:
