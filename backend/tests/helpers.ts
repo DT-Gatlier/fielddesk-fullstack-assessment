@@ -13,3 +13,18 @@ export function getSetCookieHeader(response: InjectResponse): string {
 export function cookiePair(response: InjectResponse): string {
   return getSetCookieHeader(response).split(";")[0];
 }
+
+/** Far-future window unique per test run — avoids collisions with seed data or prior runs. */
+export function uniqueScheduleWindow(
+  salt: number,
+  durationMinutes = 120,
+): { scheduledStart: string; scheduledEnd: string } {
+  const start = new Date(
+    Date.UTC(2030, 0, 1, 0, 0, 0) + salt * 60_000,
+  );
+  const end = new Date(start.getTime() + durationMinutes * 60_000);
+  return {
+    scheduledStart: start.toISOString(),
+    scheduledEnd: end.toISOString(),
+  };
+}

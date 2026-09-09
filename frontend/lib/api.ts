@@ -183,6 +183,19 @@ export async function updateWorkOrderStatus(
   });
 }
 
+export async function submitProgressEvent(input: {
+  eventId: string;
+  workOrderId: string;
+  type: "status_changed" | "note_added";
+  occurredAt: string;
+  payload: Record<string, unknown>;
+}): Promise<{ event: Record<string, unknown>; workOrder: WorkOrder }> {
+  return apiFetch("/api/v1/progress-events", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function listOrgUsers(): Promise<{ users: AuthUser[] }> {
   return apiFetch("/api/v1/users");
 }

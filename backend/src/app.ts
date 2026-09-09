@@ -9,6 +9,7 @@ import { registerErrorHandler } from "./lib/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerUserRoutes } from "./routes/users.js";
+import { registerProgressEventRoutes } from "./routes/progress-events.js";
 import { registerWorkOrderRoutes } from "./routes/work-orders.js";
 
 export async function buildApp(config: Env = loadConfig()) {
@@ -53,6 +54,7 @@ export async function buildApp(config: Env = loadConfig()) {
   await registerAuthRoutes(app, config);
   await registerUserRoutes(app, config);
   await registerWorkOrderRoutes(app, config);
+  await registerProgressEventRoutes(app, config);
 
   app.get("/", async () => ({
     name: "FieldDesk API",

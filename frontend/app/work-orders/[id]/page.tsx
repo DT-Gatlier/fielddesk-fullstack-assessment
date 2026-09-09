@@ -8,7 +8,7 @@ import {
   getMe,
   getWorkOrder,
   listOrgUsers,
-  updateWorkOrderStatus,
+  submitProgressEvent,
   ApiRequestError,
   type AuditEntry,
   type AuthUser,
@@ -78,10 +78,19 @@ export default function WorkOrderDetailPage() {
     }
   }
 
-  async function handleStatusChange(status: string) {
+  async function handleStatusChange(status: "in_progress" | "completed") {
     if (!workOrder) return;
     try {
-      const result = await updateWorkOrderStatus(workOrder.id, status);
+      const result = await submitProgressEvent({
+        eventId: crypto.randomUUID(),
+        workOrderId: workOrder.id,
+        type: "status_changed",
+        occurredAt: new Date().toISOString(),
+        payload: {
+          status,
+          note: status === "in_progress" ? "Work started" : "Work completed",
+        },
+      });
       setWorkOrder(result.workOrder);
       const detail = await getWorkOrder(workOrder.id);
       setActivity(detail.activity);

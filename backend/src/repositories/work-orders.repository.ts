@@ -142,6 +142,49 @@ export async function findWorkOrderByIdInOrgWithClient(
   return mapWorkOrder(result.rows[0]);
 }
 
+export async function findAssignedWorkOrderForTechnicianWithClient(
+  client: pg.PoolClient,
+  workOrderId: string,
+  organisationId: string,
+  technicianId: string,
+): Promise<WorkOrder | null> {
+  const result = await client.query<WorkOrderRow>(
+    `SELECT * FROM work_orders
+     WHERE id = $1
+       AND organisation_id = $2
+       AND assigned_technician_id = $3
+     FOR UPDATE`,
+    [workOrderId, organisationId, technicianId],
+  );
+
+  if (!result.rowCount) {
+    return null;
+  }
+
+  return mapWorkOrder(result.rows[0]);
+}
+
+export async function updateWorkOrderStatusWithClient(
+  client: pg.PoolClient,
+  workOrderId: string,
+  organisationId: string,
+  status: WorkOrderStatus,
+): Promise<WorkOrder | null> {
+  const result = await client.query<WorkOrderRow>(
+    `UPDATE work_orders
+     SET status = $3, updated_at = now()
+     WHERE id = $1 AND organisation_id = $2
+     RETURNING *`,
+    [workOrderId, organisationId, status],
+  );
+
+  if (!result.rowCount) {
+    return null;
+  }
+
+  return mapWorkOrder(result.rows[0]);
+}
+
 export class SchedulingOverlapError extends Error {
   constructor() {
     super("Technician already has an overlapping assignment during this window");

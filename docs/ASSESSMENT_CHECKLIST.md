@@ -19,7 +19,7 @@
 | 2. Auth & tenant isolation | ✅ Done | Login, JWT cookies, role guards, 8 integration tests |
 | 3. Work orders core | ✅ Done | CRUD, list/filter, dashboard, frontend, 7 tests |
 | 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, tests, docs |
-| 5. Progress events | ⬜ Not started | Next up |
+| 5. Progress events | ✅ Done | Idempotent POST, tests, TECHNICAL_NOTES |
 | 6. Attachments & quotas | ⬜ Not started | |
 | 7. Background worker | ⬜ Not started | |
 | 8. Real-time updates | ⬜ Not started | |
@@ -113,16 +113,16 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 5 — Idempotent progress events
 
-- [ ] `POST /progress-events` endpoint
-- [ ] Zod validation: eventId, workOrderId, type, occurredAt, payload
-- [ ] Authorisation: technician, assigned to work order only
-- [ ] Immutable `progress_events` row stored on accept
-- [ ] Unique index on `event_id`; duplicate returns same success response
-- [ ] Atomic work order update in same transaction
-- [ ] Rollback on failure — no partial DB state
-- [ ] Rate limit on event submission
-- [ ] Document idempotency mechanism in TECHNICAL_NOTES
-- [ ] **Tests:** duplicate eventId, concurrent duplicate submissions
+- [x] `POST /progress-events` endpoint
+- [x] Zod validation: eventId, workOrderId, type, occurredAt, payload
+- [x] Authorisation: technician, assigned to work order only
+- [x] Immutable `progress_events` row stored on accept
+- [x] Unique index on `event_id`; duplicate returns same success response
+- [x] Atomic work order update in same transaction
+- [x] Rollback on failure — no partial DB state
+- [x] Rate limit on event submission
+- [x] Document idempotency mechanism in TECHNICAL_NOTES
+- [x] **Tests:** duplicate eventId, concurrent duplicate submissions
 
 ---
 
@@ -284,6 +284,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Phase 2: auth API, JWT cookies, login/dashboard, integration tests | Phase 3 work orders |
 | 2026-09-08 | Phase 3: work orders CRUD, dashboard, frontend flows, 7 tests | Phase 4 scheduling concurrency |
 | 2026-09-08 | Phase 4: exclusion constraint, transactional assign, concurrency tests | Phase 5 progress events |
+| 2026-09-09 | Phase 5: idempotent progress-events API, tests, TECHNICAL_NOTES | Phase 6 attachments |
 | | | |
 
 ---

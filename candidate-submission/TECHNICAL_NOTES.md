@@ -52,9 +52,22 @@ This is **safe with multiple API instances** because coordination lives entirely
 
 See [docs/SCHEDULING_CONCURRENCY.md](../docs/SCHEDULING_CONCURRENCY.md) for the full flow, error codes, and test commands.
 
-### Progress event idempotency (Phase 5 — pending)
+### Progress event idempotency (Phase 5 — implemented)
 
-_To be documented when progress-events API is implemented._
+`POST /api/v1/progress-events` accepts technician-submitted events with a client-supplied `eventId` idempotency key.
+
+**Transaction boundary** (`submitProgressEvent()`):
+
+1. `BEGIN`
+2. Lock the assigned work order (`SELECT … FOR UPDATE` where `assigned_technician_id = current user`)
+3. `INSERT INTO progress_events … ON CONFLICT (event_id) DO NOTHING RETURNING *`
+4. If insert succeeded → apply side effects (e.g. status update) and write `progress_event.accepted` audit log
+5. If insert skipped (duplicate) → load existing event and return the same success shape **without** re-applying side effects
+6. `COMMIT` (or full `ROLLBACK` on any error)
+
+**Idempotency mechanism:** global unique index on `progress_events.event_id`. Concurrent duplicate submissions race on insert; one wins, others read the stored row and return an identical `200` response. Audit and work-order mutations run only for the first accept.
+
+**Rate limiting:** 60 requests/minute per user on the progress-events route.
 
 ## Background jobs
 

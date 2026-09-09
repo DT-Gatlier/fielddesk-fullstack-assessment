@@ -3,7 +3,7 @@ import pg from "pg";
 import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { closePool, getPool } from "../src/db/pool.js";
-import { cookiePair } from "./helpers.js";
+import { cookiePair, uniqueScheduleWindow } from "./helpers.js";
 
 const config = loadConfig();
 const password = config.SEED_PASSWORD;
@@ -61,10 +61,10 @@ describe("Concurrent scheduling protection", () => {
     const workOrderA = await createOne("Concurrent A");
     const workOrderB = await createOne("Concurrent B");
 
+    const salt = Math.floor(Date.now() / 1000) % 400_000;
     const window = {
       assignedTechnicianId: technicianId,
-      scheduledStart: "2026-12-10T09:00:00.000Z",
-      scheduledEnd: "2026-12-10T11:00:00.000Z",
+      ...uniqueScheduleWindow(salt),
     };
 
     const assign = (workOrderId: string) =>
@@ -110,10 +110,10 @@ describe("Concurrent scheduling protection", () => {
     });
     const workOrderId = create.json().workOrder.id as string;
 
+    const salt = Math.floor(Date.now() / 1000) % 400_000 + 500_000;
     const payload = {
       assignedTechnicianId: technicianId,
-      scheduledStart: "2026-12-11T09:00:00.000Z",
-      scheduledEnd: "2026-12-11T11:00:00.000Z",
+      ...uniqueScheduleWindow(salt),
     };
 
     const first = await app.inject({
@@ -143,8 +143,7 @@ describe("Concurrent scheduling protection", () => {
       headers: { cookie },
       payload: {
         ...payload,
-        scheduledStart: "2026-12-11T10:00:00.000Z",
-        scheduledEnd: "2026-12-11T12:00:00.000Z",
+        ...uniqueScheduleWindow(salt + 60),
       },
     });
 
