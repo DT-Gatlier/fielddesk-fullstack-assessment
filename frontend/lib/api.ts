@@ -199,3 +199,73 @@ export async function submitProgressEvent(input: {
 export async function listOrgUsers(): Promise<{ users: AuthUser[] }> {
   return apiFetch("/api/v1/users");
 }
+
+export type WorkOrderAttachment = {
+  id: string;
+  workOrderId: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+};
+
+export async function listWorkOrderAttachments(
+  workOrderId: string,
+): Promise<{ attachments: WorkOrderAttachment[] }> {
+  return apiFetch(`/api/v1/work-orders/${workOrderId}/attachments`);
+}
+
+export async function uploadWorkOrderAttachment(
+  workOrderId: string,
+  file: File,
+): Promise<{ attachment: WorkOrderAttachment }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_URL}/api/v1/work-orders/${workOrderId}/attachments`,
+    {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json() as ApiError;
+    throw new ApiRequestError(
+      error.error?.message ?? "Upload failed",
+      error.error?.code ?? "UNKNOWN",
+    );
+  }
+
+  return response.json() as Promise<{ attachment: WorkOrderAttachment }>;
+}
+
+export async function downloadWorkOrderAttachment(
+  attachmentId: string,
+  filename: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/v1/attachments/${attachmentId}/download`,
+    {
+      credentials: "include",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json() as ApiError;
+    throw new ApiRequestError(
+      error.error?.message ?? "Download failed",
+      error.error?.code ?? "UNKNOWN",
+    );
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}

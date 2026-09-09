@@ -79,7 +79,21 @@ Explain connection authentication, organisation isolation, reconnection and degr
 
 ## File security and storage limits
 
-Explain validation, authorisation, quota enforcement and the production object-storage approach.
+### Local storage (Phase 6 — implemented)
+
+Attachments are stored on disk under `ATTACHMENTS_DIR` (default `./data/attachments`, Docker volume `/data/attachments`). Metadata lives in `work_order_attachments`; `organisations.storage_used_bytes` tracks quota usage.
+
+**Upload flow** (`POST /api/v1/work-orders/:id/attachments`):
+
+1. Owner/dispatcher only; work order must belong to the JWT organisation.
+2. Magic-byte validation for JPEG, PNG, and PDF (MIME allowlist + content sniffing).
+3. Max file size enforced via `MAX_ATTACHMENT_BYTES` (default 10 MB).
+4. Transaction: lock organisation row → check `storage_used_bytes + size <= storage_limit_bytes` → insert attachment row → increment usage → audit log → commit.
+5. Write binary to `{organisationId}/{uuid}.{ext}` — original filename is display metadata only.
+
+**Download** (`GET /api/v1/attachments/:id/download`): authenticated stream after org + work-order access check. Storage keys and filesystem paths are never returned by the API.
+
+**Production object-storage migration:** replace the local `writeFile` / `createReadStream` adapter with an S3-compatible backend. Keep the same DB metadata and quota logic; store the object key in `storage_key`. Upload via server-side PutObject or pre-signed PUT; download via pre-signed GET or authenticated proxy. Org quota remains derived from DB metadata (or periodic inventory sync).
 
 ## Security considerations
 

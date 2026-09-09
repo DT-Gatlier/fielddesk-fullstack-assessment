@@ -146,7 +146,7 @@ describe("Idempotent progress events", () => {
       headers: { cookie: dispatcherCookie },
       payload: {
         assignedTechnicianId: technicianId,
-        ...uniqueScheduleWindow(Math.floor(Date.now() / 1000) % 400_000 + 900_000),
+        ...uniqueScheduleWindow(),
       },
     });
     expect(assign.statusCode).toBe(200);

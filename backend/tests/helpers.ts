@@ -14,14 +14,17 @@ export function cookiePair(response: InjectResponse): string {
   return getSetCookieHeader(response).split(";")[0];
 }
 
+function randomScheduleSalt(): number {
+  return parseInt(crypto.randomUUID().replace(/-/g, "").slice(0, 12), 16) % 50_000_000;
+}
+
 /** Far-future window unique per test run — avoids collisions with seed data or prior runs. */
 export function uniqueScheduleWindow(
-  salt: number,
+  salt?: number,
   durationMinutes = 120,
 ): { scheduledStart: string; scheduledEnd: string } {
-  const start = new Date(
-    Date.UTC(2030, 0, 1, 0, 0, 0) + salt * 60_000,
-  );
+  const minutes = salt ?? randomScheduleSalt();
+  const start = new Date(Date.UTC(2090, 0, 1, 0, 0, 0) + minutes * 60_000);
   const end = new Date(start.getTime() + durationMinutes * 60_000);
   return {
     scheduledStart: start.toISOString(),

@@ -61,10 +61,9 @@ describe("Concurrent scheduling protection", () => {
     const workOrderA = await createOne("Concurrent A");
     const workOrderB = await createOne("Concurrent B");
 
-    const salt = Math.floor(Date.now() / 1000) % 400_000;
     const window = {
       assignedTechnicianId: technicianId,
-      ...uniqueScheduleWindow(salt),
+      ...uniqueScheduleWindow(),
     };
 
     const assign = (workOrderId: string) =>
@@ -110,10 +109,10 @@ describe("Concurrent scheduling protection", () => {
     });
     const workOrderId = create.json().workOrder.id as string;
 
-    const salt = Math.floor(Date.now() / 1000) % 400_000 + 500_000;
+    const baseWindow = uniqueScheduleWindow();
     const payload = {
       assignedTechnicianId: technicianId,
-      ...uniqueScheduleWindow(salt),
+      ...baseWindow,
     };
 
     const first = await app.inject({
@@ -142,8 +141,13 @@ describe("Concurrent scheduling protection", () => {
       url: `/api/v1/work-orders/${secondId}/assign`,
       headers: { cookie },
       payload: {
-        ...payload,
-        ...uniqueScheduleWindow(salt + 60),
+        assignedTechnicianId: technicianId,
+        scheduledStart: new Date(
+          new Date(baseWindow.scheduledStart).getTime() + 60 * 60_000,
+        ).toISOString(),
+        scheduledEnd: new Date(
+          new Date(baseWindow.scheduledStart).getTime() + 3 * 60 * 60_000,
+        ).toISOString(),
       },
     });
 

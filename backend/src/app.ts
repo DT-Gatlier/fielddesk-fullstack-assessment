@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import type { Env } from "./config.js";
 import { loadConfig } from "./config.js";
@@ -9,6 +10,7 @@ import { registerErrorHandler } from "./lib/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerUserRoutes } from "./routes/users.js";
+import { registerAttachmentRoutes } from "./routes/attachments.js";
 import { registerProgressEventRoutes } from "./routes/progress-events.js";
 import { registerWorkOrderRoutes } from "./routes/work-orders.js";
 
@@ -31,6 +33,13 @@ export async function buildApp(config: Env = loadConfig()) {
   });
 
   await app.register(cookie);
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: config.MAX_ATTACHMENT_BYTES,
+      files: 1,
+    },
+  });
 
   await app.register(jwt, {
     secret: config.JWT_SECRET,
@@ -55,6 +64,7 @@ export async function buildApp(config: Env = loadConfig()) {
   await registerUserRoutes(app, config);
   await registerWorkOrderRoutes(app, config);
   await registerProgressEventRoutes(app, config);
+  await registerAttachmentRoutes(app, config);
 
   app.get("/", async () => ({
     name: "FieldDesk API",

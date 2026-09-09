@@ -40,6 +40,7 @@ services:
       MIGRATIONS_DIR: /database/migrations
       SEED_PASSWORD: ${SEED_PASSWORD:-FieldDesk2026!}
       ATTACHMENTS_DIR: /data/attachments
+      MAX_ATTACHMENT_BYTES: 10485760
     ports:
       - "3001:3001"
     volumes:

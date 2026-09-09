@@ -9,10 +9,14 @@ import {
   getWorkOrder,
   listOrgUsers,
   submitProgressEvent,
+  listWorkOrderAttachments,
+  uploadWorkOrderAttachment,
+  downloadWorkOrderAttachment,
   ApiRequestError,
   type AuditEntry,
   type AuthUser,
   type WorkOrder,
+  type WorkOrderAttachment,
 } from "@/lib/api";
 
 export default function WorkOrderDetailPage() {
@@ -27,6 +31,8 @@ export default function WorkOrderDetailPage() {
   const [technicianId, setTechnicianId] = useState("");
   const [scheduledStart, setScheduledStart] = useState("");
   const [scheduledEnd, setScheduledEnd] = useState("");
+  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const canManage = user?.role === "owner" || user?.role === "dispatcher";
 
@@ -43,6 +49,9 @@ export default function WorkOrderDetailPage() {
         const detail = await getWorkOrder(params.id);
         setWorkOrder(detail.workOrder);
         setActivity(detail.activity);
+
+        const attachmentList = await listWorkOrderAttachments(params.id);
+        setAttachments(attachmentList.attachments);
 
         if (me.user.role === "owner" || me.user.role === "dispatcher") {
           const users = await listOrgUsers();
@@ -75,6 +84,40 @@ export default function WorkOrderDetailPage() {
       } else {
         setError(err instanceof Error ? err.message : "Assignment failed");
       }
+    }
+  }
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!workOrder) return;
+    const input = event.currentTarget.elements.namedItem("file") as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const result = await uploadWorkOrderAttachment(workOrder.id, file);
+      setAttachments((current) => [result.attachment, ...current]);
+      input.value = "";
+      const detail = await getWorkOrder(workOrder.id);
+      setActivity(detail.activity);
+    } catch (err) {
+      if (err instanceof ApiRequestError && err.code === "STORAGE_QUOTA_EXCEEDED") {
+        setError("Storage quota exceeded for your organisation.");
+      } else {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDownload(attachment: WorkOrderAttachment) {
+    try {
+      await downloadWorkOrderAttachment(attachment.id, attachment.originalFilename);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed");
     }
   }
 
@@ -165,6 +208,35 @@ export default function WorkOrderDetailPage() {
           ) : null}
         </div>
       ) : null}
+
+      <div className="card">
+        <h2>Attachments</h2>
+        {canManage ? (
+          <form className="form" onSubmit={(e) => void handleUpload(e)}>
+            <label>
+              Upload file (JPEG, PNG, or PDF)
+              <input type="file" name="file" accept="image/jpeg,image/png,application/pdf" required />
+            </label>
+            <button type="submit" disabled={uploading}>
+              {uploading ? "Uploading…" : "Upload attachment"}
+            </button>
+          </form>
+        ) : null}
+        {attachments.length === 0 ? (
+          <p>No attachments yet.</p>
+        ) : (
+          <ul className="activity-list">
+            {attachments.map((attachment) => (
+              <li key={attachment.id}>
+                <button type="button" onClick={() => void handleDownload(attachment)}>
+                  {attachment.originalFilename}
+                </button>
+                <span>{Math.round(attachment.sizeBytes / 1024)} KB</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="card">
         <h2>Activity history</h2>

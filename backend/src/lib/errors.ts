@@ -7,6 +7,7 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "RATE_LIMITED"
   | "SCHEDULING_CONFLICT"
+  | "STORAGE_QUOTA_EXCEEDED"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
@@ -69,6 +70,17 @@ export function registerErrorHandler(app: {
         "Request validation failed",
         400,
         error.validation,
+      );
+      return;
+    }
+
+    if (error.code === "FST_REQ_FILE_TOO_LARGE") {
+      void sendError(
+        reply,
+        request,
+        "VALIDATION_ERROR",
+        "Uploaded file exceeds the maximum allowed size",
+        400,
       );
       return;
     }

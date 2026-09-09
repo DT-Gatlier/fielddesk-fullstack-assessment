@@ -20,7 +20,7 @@
 | 3. Work orders core | ✅ Done | CRUD, list/filter, dashboard, frontend, 7 tests |
 | 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, tests, docs |
 | 5. Progress events | ✅ Done | Idempotent POST, tests, TECHNICAL_NOTES |
-| 6. Attachments & quotas | ⬜ Not started | |
+| 6. Attachments & quotas | ✅ Done | Upload/download, quota, tests, frontend |
 | 7. Background worker | ⬜ Not started | |
 | 8. Real-time updates | ⬜ Not started | |
 | 9. Audit & CSV export | ⬜ Not started | |
@@ -128,15 +128,15 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 6 — Attachments & storage quotas
 
-- [ ] Migration: attachments table + org storage tracking
-- [ ] Upload endpoint with multipart handling
-- [ ] Backend MIME + size validation (images + PDF)
-- [ ] UUID storage keys; original filename not used on disk
-- [ ] Configurable org storage limit enforced on upload
-- [ ] Authenticated download; no public filesystem paths in API
-- [ ] Frontend: upload UI on work order detail
-- [ ] Document production object-storage migration path
-- [ ] **Tests:** type rejection, size rejection, quota exceeded, unauthorised download
+- [x] Migration: attachments table + org storage tracking
+- [x] Upload endpoint with multipart handling
+- [x] Backend MIME + size validation (images + PDF)
+- [x] UUID storage keys; original filename not used on disk
+- [x] Configurable org storage limit enforced on upload
+- [x] Authenticated download; no public filesystem paths in API
+- [x] Frontend: upload UI on work order detail
+- [x] Document production object-storage migration path
+- [x] **Tests:** type rejection, size rejection, quota exceeded, unauthorised download
 
 ---
 
@@ -285,6 +285,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Phase 3: work orders CRUD, dashboard, frontend flows, 7 tests | Phase 4 scheduling concurrency |
 | 2026-09-08 | Phase 4: exclusion constraint, transactional assign, concurrency tests | Phase 5 progress events |
 | 2026-09-09 | Phase 5: idempotent progress-events API, tests, TECHNICAL_NOTES | Phase 6 attachments |
+| 2026-09-09 | Phase 6: attachments upload/download, quotas, tests, frontend | Phase 7 background worker |
 | | | |
 
 ---
