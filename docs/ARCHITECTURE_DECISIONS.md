@@ -270,7 +270,18 @@ ALTER TABLE work_orders
 
 ### 8.3 Multi-instance safety
 
-Locks and exclusion constraints live in **PostgreSQL**, not in application memory. Two API instances racing on the same assignment window will cause one transaction to fail with a constraint or serialisation error — mapped to `409`.
+> **Full write-up:** [SCHEDULING_CONCURRENCY.md](./SCHEDULING_CONCURRENCY.md)
+
+Locks and exclusion constraints live in **PostgreSQL**, not in application memory. API processes are stateless; scheduling coordination is never held in Redis or an in-process mutex.
+
+When two API instances race on the same assignment window:
+
+1. Each runs `assignWorkOrderSafely()` in its own DB transaction.
+2. Row-level locks (`FOR UPDATE`) and the overlap query resolve most conflicts in application code with `409 SCHEDULING_CONFLICT`.
+3. If both transactions pass the query before either commits, the **`work_orders_no_overlap` exclusion constraint** rejects one commit with `SQLSTATE 23P01`, which is also mapped to `409`.
+4. Exactly one assignment persists — covered by `backend/tests/scheduling.test.ts`.
+
+**Scaling implication:** horizontal API scaling is safe for scheduling as long as all instances use the same PostgreSQL database. No sticky sessions or distributed locks are required for this invariant.
 
 ### 8.4 Automated concurrency test
 

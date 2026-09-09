@@ -92,6 +92,7 @@ docs/               Architecture and checklist
 
 - [Architecture decisions](docs/ARCHITECTURE_DECISIONS.md)
 - [Database schema](docs/DATABASE_SCHEMA.md)
+- [Scheduling concurrency](docs/SCHEDULING_CONCURRENCY.md)
 - [Assessment checklist](docs/ASSESSMENT_CHECKLIST.md)
 
 ## Required stack

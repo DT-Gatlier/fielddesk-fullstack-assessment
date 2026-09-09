@@ -18,7 +18,7 @@
 | 1. Infrastructure skeleton | ✅ Done | Docker compose verified locally |
 | 2. Auth & tenant isolation | ✅ Done | Login, JWT cookies, role guards, 8 integration tests |
 | 3. Work orders core | ✅ Done | CRUD, list/filter, dashboard, frontend, 7 tests |
-| 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, 2 concurrency tests |
+| 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, tests, docs |
 | 5. Progress events | ⬜ Not started | Next up |
 | 6. Attachments & quotas | ⬜ Not started | |
 | 7. Background worker | ⬜ Not started | |
@@ -105,7 +105,7 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 - [x] Overlap detection in transaction (`SELECT … FOR UPDATE` or equivalent)
 - [x] PostgreSQL exclusion constraint as backstop (see ARCHITECTURE_DECISIONS §8)
 - [x] Return `409 SCHEDULING_CONFLICT` with clear message
-- [ ] Document why this is safe with multiple API instances
+- [x] Document why this is safe with multiple API instances — see [SCHEDULING_CONCURRENCY.md](./SCHEDULING_CONCURRENCY.md)
 - [x] Frontend: show conflict error when assign fails
 - [x] **Tests:** concurrent parallel assign requests → exactly one succeeds
 

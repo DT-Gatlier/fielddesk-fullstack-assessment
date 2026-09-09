@@ -41,7 +41,20 @@ Explain how authentication works and where organisation and role restrictions ar
 
 ## Transactions, idempotency and concurrency
 
-Explain the transaction boundaries, duplicate-event handling and concurrent scheduling protection.
+### Concurrent scheduling protection (Phase 4 — implemented)
+
+Overlapping technician assignments are prevented using **two layers**:
+
+1. **Transaction + overlap query** — `assignWorkOrderSafely()` locks the work order and conflicting rows with `FOR UPDATE`, checks `tstzrange` overlap, and returns `409 SCHEDULING_CONFLICT` before updating when a conflict is found.
+2. **PostgreSQL exclusion constraint** — `work_orders_no_overlap` (migration `004`) rejects any commit that would create overlapping non-cancelled assignments for the same technician.
+
+This is **safe with multiple API instances** because coordination lives entirely in PostgreSQL, not in application memory. Stateless API replicas share one database; concurrent assign requests serialise via row locks and the exclusion constraint. One request succeeds, the other receives `409`.
+
+See [docs/SCHEDULING_CONCURRENCY.md](../docs/SCHEDULING_CONCURRENCY.md) for the full flow, error codes, and test commands.
+
+### Progress event idempotency (Phase 5 — pending)
+
+_To be documented when progress-events API is implemented._
 
 ## Background jobs
 
