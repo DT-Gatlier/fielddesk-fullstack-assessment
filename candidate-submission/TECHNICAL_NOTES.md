@@ -4,7 +4,7 @@
 
 - Name: Suhail KC
 - GitHub username: suhailkc
-- Final commit SHA: `c8883bc197f04f6cf89e0ec99e902ea68fab8b35`
+- Final commit SHA: `f529666aac41706e53dc0c5f0a36765dab02aeb1`
 - Screen-recording link: _(add before PR submission)_
 
 ## Local setup
