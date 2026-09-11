@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getMe, listWorkOrders, type AuthUser, type WorkOrder } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
 export default function WorkOrdersPage() {
   const router = useRouter();
@@ -43,6 +44,13 @@ export default function WorkOrdersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    return connectRealtime(() => void load(), () => void load());
+  }, [user, load]);
 
   const canCreate = user?.role === "owner" || user?.role === "dispatcher";
 

@@ -95,7 +95,16 @@ The worker runs as a separate process (`worker/`) and reuses backend domain logi
 
 ## Real-time updates
 
-Explain connection authentication, organisation isolation, reconnection and degraded behaviour.
+### WebSocket feed (Phase 8 — implemented)
+
+- **Endpoint:** `GET /api/v1/realtime` (WebSocket upgrade)
+- **Auth:** JWT httpOnly cookie validated on handshake; clients join room `org:{organisationId}` only
+- **Events:** `work_order.created`, `work_order.updated`, `work_order.assigned`, `work_order.status_changed`, `work_order.attachment_added`
+- **Envelope:** `{ type, organisationId, payload, timestamp }`
+
+**Reconnection:** the frontend reconnects with exponential backoff (max 30s) and **refetches** dashboard/list snapshots on reconnect to heal missed events.
+
+**Degraded behaviour:** if WebSockets are unavailable, pages continue to work via normal REST polling on user actions; live updates are best-effort only.
 
 ## File security and storage limits
 

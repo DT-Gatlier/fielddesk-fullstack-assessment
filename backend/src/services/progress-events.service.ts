@@ -10,6 +10,7 @@ import {
   findAssignedWorkOrderForTechnicianWithClient,
   updateWorkOrderStatusWithClient,
 } from "../repositories/work-orders.repository.js";
+import { publishWorkOrderEvent } from "./realtime.service.js";
 import { toPublicWorkOrder } from "./work-orders.service.js";
 import type { AuthContext } from "../types/auth.js";
 import type {
@@ -150,10 +151,20 @@ export async function submitProgressEvent(
 
     await client.query("COMMIT");
 
-    return {
+    const result = {
       event: toPublicProgressEvent(acceptedEvent),
       workOrder: toPublicWorkOrder(updatedWorkOrder),
     };
+
+    if (input.type === "status_changed") {
+      publishWorkOrderEvent(
+        auth.organisationId,
+        "work_order.status_changed",
+        result.workOrder as unknown as Record<string, unknown>,
+      );
+    }
+
+    return result;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

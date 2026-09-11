@@ -22,7 +22,7 @@
 | 5. Progress events | ✅ Done | Idempotent POST, tests, TECHNICAL_NOTES |
 | 6. Attachments & quotas | ✅ Done | Upload/download, quota, tests, frontend |
 | 7. Background worker | ✅ Done | BullMQ enqueue, worker, dedupe, tests |
-| 8. Real-time updates | ⬜ Not started | |
+| 8. Real-time updates | ✅ Done | WebSocket org rooms, frontend reconnect, test |
 | 9. Audit & CSV export | ⬜ Not started | |
 | 10. Frontend workflows | ⬜ Not started | |
 | 11. Ops & API quality | ⬜ Not started | |
@@ -156,13 +156,13 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 8 — Real-time updates
 
-- [ ] WebSocket (or SSE) endpoint with authentication
-- [ ] Org-scoped rooms — no cross-org events
-- [ ] Publish events on work order create/update/assign
-- [ ] Frontend: connect on dashboard/list; update without full refresh
-- [ ] Client reconnect with backoff; refetch snapshot on reconnect
-- [ ] Document behaviour when real-time is temporarily unavailable
-- [ ] **Tests:** cross-org WebSocket isolation
+- [x] WebSocket (or SSE) endpoint with authentication
+- [x] Org-scoped rooms — no cross-org events
+- [x] Publish events on work order create/update/assign
+- [x] Frontend: connect on dashboard/list; update without full refresh
+- [x] Client reconnect with backoff; refetch snapshot on reconnect
+- [x] Document behaviour when real-time is temporarily unavailable
+- [x] **Tests:** cross-org WebSocket isolation
 
 ---
 
@@ -287,6 +287,7 @@ Record brief notes after each work session:
 | 2026-09-09 | Phase 5: idempotent progress-events API, tests, TECHNICAL_NOTES | Phase 6 attachments |
 | 2026-09-09 | Phase 6: attachments upload/download, quotas, tests, frontend | Phase 7 background worker |
 | 2026-09-11 | Phase 7: BullMQ notifications, worker, dedupe, tests | Phase 8 real-time |
+| 2026-09-11 | Phase 8: WebSocket org rooms, frontend reconnect, isolation test | Phase 9 CSV export |
 | | | |
 
 ---

@@ -19,7 +19,9 @@ import { findWorkOrderByIdInOrg } from "../repositories/work-orders.repository.j
 import {
   canManageWorkOrders,
   canViewWorkOrder,
+  toPublicWorkOrder,
 } from "./work-orders.service.js";
+import { publishWorkOrderEvent } from "./realtime.service.js";
 import type { AuthContext } from "../types/auth.js";
 import type { WorkOrderAttachment } from "../types/attachment.js";
 
@@ -147,6 +149,15 @@ export async function uploadAttachmentForWorkOrder(
 
   await mkdir(join(attachmentsRoot, auth.organisationId), { recursive: true });
   await writeFile(absolutePath, input.buffer);
+
+  const refreshed = await findWorkOrderByIdInOrg(pool, workOrderId, auth.organisationId);
+  if (refreshed) {
+    publishWorkOrderEvent(
+      auth.organisationId,
+      "work_order.attachment_added",
+      toPublicWorkOrder(refreshed) as unknown as Record<string, unknown>,
+    );
+  }
 
   return toPublicAttachment(attachment);
 }

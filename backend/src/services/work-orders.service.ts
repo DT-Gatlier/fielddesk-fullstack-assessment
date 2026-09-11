@@ -12,6 +12,7 @@ import {
   updateWorkOrderStatus,
 } from "../repositories/work-orders.repository.js";
 import { assignWorkOrderSafely } from "./scheduling.service.js";
+import { publishWorkOrderEvent } from "./realtime.service.js";
 import type { AuthContext, UserRole } from "../types/auth.js";
 import type {
   WorkOrder,
@@ -66,6 +67,12 @@ export async function createWorkOrderForOrg(
     entityId: workOrder.id,
     metadata: { referenceNumber: workOrder.referenceNumber, title: workOrder.title },
   });
+
+  publishWorkOrderEvent(
+    auth.organisationId,
+    "work_order.created",
+    toPublicWorkOrder(workOrder) as unknown as Record<string, unknown>,
+  );
 
   return workOrder;
 }
@@ -132,6 +139,12 @@ export async function updateWorkOrderForOrg(
     metadata: { before: existing, after: updated },
   });
 
+  publishWorkOrderEvent(
+    auth.organisationId,
+    "work_order.updated",
+    toPublicWorkOrder(updated) as unknown as Record<string, unknown>,
+  );
+
   return updated;
 }
 
@@ -174,6 +187,12 @@ export async function assignWorkOrderForOrg(
     auth.organisationId,
     auth.userId,
     input,
+  );
+
+  publishWorkOrderEvent(
+    auth.organisationId,
+    "work_order.assigned",
+    toPublicWorkOrder(updated) as unknown as Record<string, unknown>,
   );
 
   return updated;
@@ -224,6 +243,12 @@ export async function updateWorkOrderStatusForOrg(
     entityId: updated.id,
     metadata: { before: { status: existing.status }, after: { status: updated.status } },
   });
+
+  publishWorkOrderEvent(
+    auth.organisationId,
+    "work_order.status_changed",
+    toPublicWorkOrder(updated) as unknown as Record<string, unknown>,
+  );
 
   return updated;
 }

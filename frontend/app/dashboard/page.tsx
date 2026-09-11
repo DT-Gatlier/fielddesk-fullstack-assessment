@@ -10,6 +10,7 @@ import {
   type AuthUser,
   type DashboardSummary,
 } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -33,6 +34,22 @@ export default function DashboardPage() {
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const refreshSummary = () => {
+      void getDashboardSummary()
+        .then((result) => setSummary(result.summary))
+        .catch(() => {
+          // Real-time is best-effort; page still works without it.
+        });
+    };
+
+    return connectRealtime(() => refreshSummary(), refreshSummary);
+  }, [user]);
 
   async function handleLogout() {
     await logout();
