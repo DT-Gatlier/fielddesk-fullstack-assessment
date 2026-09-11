@@ -21,7 +21,7 @@
 | 4. Scheduling & concurrency | ✅ Done | Exclusion constraint, transactions, 409, tests, docs |
 | 5. Progress events | ✅ Done | Idempotent POST, tests, TECHNICAL_NOTES |
 | 6. Attachments & quotas | ✅ Done | Upload/download, quota, tests, frontend |
-| 7. Background worker | ⬜ Not started | |
+| 7. Background worker | ✅ Done | BullMQ enqueue, worker, dedupe, tests |
 | 8. Real-time updates | ⬜ Not started | |
 | 9. Audit & CSV export | ⬜ Not started | |
 | 10. Frontend workflows | ⬜ Not started | |
@@ -142,15 +142,15 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 7 — Background notification processing
 
-- [ ] Enqueue job on work order assignment (deterministic job ID)
-- [ ] Worker runs independently from API process
-- [ ] Mock notification provider (success / transient / permanent modes)
-- [ ] Retry transient failures with exponential backoff
-- [ ] Stop retrying permanent failures
-- [ ] Record attempts and final outcomes in DB
-- [ ] No duplicate notifications for same assignment
-- [ ] Structured worker logs
-- [ ] **Tests:** retry behaviour, permanent failure, duplicate delivery prevention
+- [x] Enqueue job on work order assignment (deterministic job ID)
+- [x] Worker runs independently from API process
+- [x] Mock notification provider (success / transient / permanent modes)
+- [x] Retry transient failures with exponential backoff
+- [x] Stop retrying permanent failures
+- [x] Record attempts and final outcomes in DB
+- [x] No duplicate notifications for same assignment
+- [x] Structured worker logs
+- [x] **Tests:** retry behaviour, permanent failure, duplicate delivery prevention
 
 ---
 
@@ -286,6 +286,7 @@ Record brief notes after each work session:
 | 2026-09-08 | Phase 4: exclusion constraint, transactional assign, concurrency tests | Phase 5 progress events |
 | 2026-09-09 | Phase 5: idempotent progress-events API, tests, TECHNICAL_NOTES | Phase 6 attachments |
 | 2026-09-09 | Phase 6: attachments upload/download, quotas, tests, frontend | Phase 7 background worker |
+| 2026-09-11 | Phase 7: BullMQ notifications, worker, dedupe, tests | Phase 8 real-time |
 | | | |
 
 ---

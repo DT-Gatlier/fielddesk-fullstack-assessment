@@ -56,9 +56,11 @@ services:
       context: .
       dockerfile: worker/Dockerfile
     environment:
+      DATABASE_URL: postgresql://fielddesk:fielddesk@postgres:5432/fielddesk
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: info
       NOTIFICATION_MOCK_MODE: success
+      MIGRATIONS_DIR: /database/migrations
     depends_on:
       redis:
         condition: service_healthy

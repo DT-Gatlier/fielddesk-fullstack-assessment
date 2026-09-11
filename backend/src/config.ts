@@ -20,6 +20,9 @@ const envSchema = z.object({
   SEED_PASSWORD: z.string().min(8).default("FieldDesk2026!"),
   ATTACHMENTS_DIR: z.string().default("./data/attachments"),
   MAX_ATTACHMENT_BYTES: z.coerce.number().int().positive().default(10_485_760),
+  NOTIFICATION_MOCK_MODE: z
+    .enum(["success", "transient", "permanent"])
+    .default("success"),
 });
 
 export type Env = z.infer<typeof envSchema>;

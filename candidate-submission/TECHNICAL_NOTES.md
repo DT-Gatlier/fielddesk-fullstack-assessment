@@ -71,7 +71,27 @@ See [docs/SCHEDULING_CONCURRENCY.md](../docs/SCHEDULING_CONCURRENCY.md) for the 
 
 ## Background jobs
 
-Explain delivery guarantees, retries, backoff, duplicate prevention and permanent failure handling.
+### Technician notifications (Phase 7 — implemented)
+
+When a work order is assigned, the API enqueues a BullMQ job after the DB transaction commits:
+
+- **Queue:** `notifications`
+- **Job name:** `notify-technician`
+- **Job ID:** `notify:{workOrderId}:{assignmentVersion}` (deterministic dedupe)
+- **Payload:** `{ workOrderId, technicianId, organisationId, assignmentVersion, correlationId }`
+
+The worker runs as a separate process (`worker/`) and reuses backend domain logic (`processNotificationJob`).
+
+**Delivery guarantees:**
+
+| Outcome | Behaviour |
+| --- | --- |
+| Success | `notification_deliveries.status = sent`, audit log `notification.sent` |
+| Transient failure | BullMQ retries with exponential backoff (4 attempts, 5s base delay); row tracks `failed_transient` + attempt count |
+| Permanent failure | `failed_permanent`, audit log, `UnrecoverableError` stops retries |
+| Duplicate job / re-delivery | Unique `(work_order_id, assignment_version)` + skip when status is already `sent` |
+
+**Mock provider:** `NOTIFICATION_MOCK_MODE` = `success` | `transient` | `permanent`.
 
 ## Real-time updates
 

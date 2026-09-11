@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Env } from "../config.js";
 import { getPool } from "../db/pool.js";
+import { enqueueTechnicianNotification } from "../queues/notifications.queue.js";
 import { authenticate } from "../middleware/auth.js";
 import { listAuditLogsForEntity } from "../repositories/audit.repository.js";
 import {
@@ -133,6 +134,24 @@ export async function registerWorkOrderRoutes(
         workOrderId,
         body,
       );
+
+      if (workOrder.assignedTechnicianId) {
+        try {
+          await enqueueTechnicianNotification(config, {
+            workOrderId: workOrder.id,
+            technicianId: workOrder.assignedTechnicianId,
+            organisationId: request.auth.organisationId,
+            assignmentVersion: workOrder.assignmentVersion,
+            correlationId: request.id,
+          });
+        } catch (error) {
+          request.log.error(
+            { err: error, workOrderId: workOrder.id },
+            "Failed to enqueue technician notification",
+          );
+        }
+      }
+
       return { workOrder: toPublicWorkOrder(workOrder) };
     },
   );
