@@ -1,190 +1,164 @@
 # Technical notes
 
-Complete this document as part of the submission.
-
 ## Candidate
 
-- Name:
-- GitHub username:
-- Final commit SHA:
-- Screen-recording link:
+- Name: Suhail KC
+- GitHub username: suhailkc
+- Final commit SHA: _(update before PR — run `git rev-parse HEAD` on submission branch)_
+- Screen-recording link: _(add before PR submission)_
 
 ## Local setup
 
-Document the exact commands required to configure and start the application.
+### Docker (recommended)
 
-## Sample accounts
+```bash
+cp .env.example .env
+npm run dev          # starts postgres, redis, api, worker, frontend
+npm run migrate      # in another terminal if needed on first run
+npm run seed
+```
 
-List the seeded organisations, roles and sample login credentials. Use assessment-only credentials.
+Stop: `npm run dev:down`
 
-## Verification results
+### Local processes (app only)
+
+```bash
+docker compose up postgres redis -d
+cp .env.example .env
+npm install --prefix backend && npm install --prefix worker && npm install --prefix frontend
+npm run migrate && npm run seed
+npm run backend:dev   # :3001
+npm run worker:dev    # BullMQ consumer
+npm run frontend:dev  # :3000
+```
+
+### Verification
+
+```bash
+npm test              # 36 backend integration tests (requires Postgres + seed)
+npm run typecheck     # backend + frontend TypeScript
+npm run build         # backend tsc + Next.js production build
+```
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend tests |  |  |
-| Frontend tests |  |  |
-| Integration tests |  |  |
-| Lint |  |  |
-| Build |  |  |
+| Backend tests | `npm test` | 36 passed (real PostgreSQL) |
+| Frontend tests | N/A | Workflow covered by `critical-workflow.test.ts` |
+| Integration tests | `npm test` | Same suite — all use real Postgres |
+| Lint / typecheck | `npm run typecheck` | Passes |
+| Build | `npm run build` | Passes |
+
+## Sample accounts
+
+Password for all seeded users: **`FieldDesk2026!`** (assessment only).
+
+| Organisation | Email | Role |
+| --- | --- | --- |
+| Acme Field Services | `owner@acme.test` | owner |
+| Acme Field Services | `dispatcher@acme.test` | dispatcher |
+| Acme Field Services | `tech@acme.test` | technician |
+| Beta Maintenance Co | `owner@beta.test` | owner |
+| Beta Maintenance Co | `dispatcher@beta.test` | dispatcher |
+| Beta Maintenance Co | `tech@beta.test` | technician |
 
 ## Architecture
 
-Describe the major components, their responsibilities and important dependencies.
+Three-process monorepo:
+
+| Process | Stack | Responsibility |
+| --- | --- | --- |
+| `frontend/` | Next.js 14, TypeScript | Login, dashboard, work orders, attachments, real-time UI |
+| `backend/` | Fastify 5, TypeScript | REST + WebSocket API, auth, business logic |
+| `worker/` | BullMQ, TypeScript | Async notification delivery |
+
+Shared infrastructure: **PostgreSQL** (source of truth), **Redis** (job queue only).
+
+See [docs/ARCHITECTURE_DECISIONS.md](../docs/ARCHITECTURE_DECISIONS.md) for full rationale.
 
 ## Database design
 
-Explain the principal tables, relationships, constraints, indexes and migration strategy.
+Seven SQL migrations in `database/migrations/`:
+
+1. Extensions and enums
+2. Organisations and users
+3. Work orders and audit logs
+4. Scheduling exclusion constraint (`tstzrange` overlap)
+5. Progress events (idempotency key on `event_id`)
+6. Attachments and org storage quotas
+7. Notification deliveries (dedupe on work order + assignment version)
+
+Principal relationships: organisations → users, work orders, audit logs, attachments. Work orders reference assigned technicians within the same org. See [docs/DATABASE_SCHEMA.md](../docs/DATABASE_SCHEMA.md).
 
 ## Authentication, roles and organisation isolation
 
-Explain how authentication works and where organisation and role restrictions are enforced.
+- Login: `POST /api/v1/auth/login` → argon2 verify → JWT in httpOnly `access_token` cookie.
+- Middleware attaches `{ userId, organisationId, role }` from verified JWT only.
+- **Never** trust client-supplied organisation IDs.
+- Roles: `owner`, `dispatcher` (manage work orders), `technician` (assigned orders only).
+- Cross-org resource access returns **404** (no enumeration).
 
 ## Transactions, idempotency and concurrency
 
-### Concurrent scheduling protection (Phase 4 — implemented)
+### Concurrent scheduling protection (Phase 4)
 
-Overlapping technician assignments are prevented using **two layers**:
+Overlapping technician assignments prevented by transaction + `FOR UPDATE` overlap query + PostgreSQL exclusion constraint. Safe with multiple API instances — coordination in Postgres only. See [docs/SCHEDULING_CONCURRENCY.md](../docs/SCHEDULING_CONCURRENCY.md).
 
-1. **Transaction + overlap query** — `assignWorkOrderSafely()` locks the work order and conflicting rows with `FOR UPDATE`, checks `tstzrange` overlap, and returns `409 SCHEDULING_CONFLICT` before updating when a conflict is found.
-2. **PostgreSQL exclusion constraint** — `work_orders_no_overlap` (migration `004`) rejects any commit that would create overlapping non-cancelled assignments for the same technician.
+### Progress event idempotency (Phase 5)
 
-This is **safe with multiple API instances** because coordination lives entirely in PostgreSQL, not in application memory. Stateless API replicas share one database; concurrent assign requests serialise via row locks and the exclusion constraint. One request succeeds, the other receives `409`.
-
-See [docs/SCHEDULING_CONCURRENCY.md](../docs/SCHEDULING_CONCURRENCY.md) for the full flow, error codes, and test commands.
-
-### Progress event idempotency (Phase 5 — implemented)
-
-`POST /api/v1/progress-events` accepts technician-submitted events with a client-supplied `eventId` idempotency key.
-
-**Transaction boundary** (`submitProgressEvent()`):
-
-1. `BEGIN`
-2. Lock the assigned work order (`SELECT … FOR UPDATE` where `assigned_technician_id = current user`)
-3. `INSERT INTO progress_events … ON CONFLICT (event_id) DO NOTHING RETURNING *`
-4. If insert succeeded → apply side effects (e.g. status update) and write `progress_event.accepted` audit log
-5. If insert skipped (duplicate) → load existing event and return the same success shape **without** re-applying side effects
-6. `COMMIT` (or full `ROLLBACK` on any error)
-
-**Idempotency mechanism:** global unique index on `progress_events.event_id`. Concurrent duplicate submissions race on insert; one wins, others read the stored row and return an identical `200` response. Audit and work-order mutations run only for the first accept.
-
-**Rate limiting:** 60 requests/minute per user on the progress-events route.
+`POST /api/v1/progress-events` with client `eventId`. Unique index + `ON CONFLICT DO NOTHING`; side effects and audit only on first accept. Full transaction rollback on failure.
 
 ## Background jobs
 
-### Technician notifications (Phase 7 — implemented)
-
-When a work order is assigned, the API enqueues a BullMQ job after the DB transaction commits:
-
-- **Queue:** `notifications`
-- **Job name:** `notify-technician`
-- **Job ID:** `notify:{workOrderId}:{assignmentVersion}` (deterministic dedupe)
-- **Payload:** `{ workOrderId, technicianId, organisationId, assignmentVersion, correlationId }`
-
-The worker runs as a separate process (`worker/`) and reuses backend domain logic (`processNotificationJob`).
-
-**Delivery guarantees:**
-
-| Outcome | Behaviour |
-| --- | --- |
-| Success | `notification_deliveries.status = sent`, audit log `notification.sent` |
-| Transient failure | BullMQ retries with exponential backoff (4 attempts, 5s base delay); row tracks `failed_transient` + attempt count |
-| Permanent failure | `failed_permanent`, audit log, `UnrecoverableError` stops retries |
-| Duplicate job / re-delivery | Unique `(work_order_id, assignment_version)` + skip when status is already `sent` |
-
-**Mock provider:** `NOTIFICATION_MOCK_MODE` = `success` | `transient` | `permanent`.
+BullMQ queue `notifications` enqueued on work order assignment. Deterministic job ID `notify:{workOrderId}:{assignmentVersion}`. Worker process separate from API. Mock provider modes: success / transient / permanent. Dedupe via DB unique constraint + skip-if-sent.
 
 ## Real-time updates
 
-### WebSocket feed (Phase 8 — implemented)
-
-- **Endpoint:** `GET /api/v1/realtime` (WebSocket upgrade)
-- **Auth:** JWT httpOnly cookie validated on handshake; clients join room `org:{organisationId}` only
-- **Events:** `work_order.created`, `work_order.updated`, `work_order.assigned`, `work_order.status_changed`, `work_order.attachment_added`
-- **Envelope:** `{ type, organisationId, payload, timestamp }`
-
-**Reconnection:** the frontend reconnects with exponential backoff (max 30s) and **refetches** dashboard/list snapshots on reconnect to heal missed events.
-
-**Degraded behaviour:** if WebSockets are unavailable, pages continue to work via normal REST polling on user actions; live updates are best-effort only.
+WebSocket `/api/v1/realtime` with JWT cookie auth. Org-scoped in-memory rooms. Frontend reconnect with exponential backoff and snapshot refetch.
 
 ## Audit history and CSV export
 
-### Audit trail (Phase 9 — implemented)
+Append-only `audit_logs` — create, assign, status, attachment, progress, notification outcomes. No edit/delete API.
 
-Append-only `audit_logs` rows are written in the service layer (no UPDATE/DELETE API). Each entry records organisation, actor, action, entity target, timestamp, and before/after metadata where relevant.
-
-| Action | Trigger |
-| --- | --- |
-| `work_order.created` | Create work order |
-| `work_order.updated` | Patch work order fields |
-| `work_order.assigned` | Assign technician (same transaction as scheduling) |
-| `work_order.status_changed` | Status patch or accepted progress event |
-| `work_order.attachment_added` | Attachment upload |
-| `progress_event.accepted` | Idempotent progress event insert |
-| `notification.sent` / `notification.failed_*` | Worker delivery outcome |
-
-User-role changes are not audited because the assessment API does not expose role mutation endpoints.
-
-### CSV export (Phase 9 — implemented)
-
-- **Endpoint:** `GET /api/v1/exports/work-orders.csv`
-- **Auth:** same rules as the work-order list (owners/dispatchers see all org orders; technicians see assigned orders only)
-- **Filters:** `search`, `status`, `priority`, `sortBy`, `sortOrder` (mirrors list API)
-- **Streaming:** PostgreSQL server-side cursor fetches 100 rows at a time — the full result set is never loaded into memory
-- **CSV injection:** cell values starting with `=`, `+`, `-`, `@`, tab, or carriage return are prefixed with `'`
-- **Frontend:** work-order list exposes an Export CSV action using the same active filters
-
-## Frontend workflows (Phase 10)
-
-The Next.js app covers login, dashboard, filtered/paginated work-order list, create/edit forms, detail with assignment/scheduling, attachment upload/download, activity history, and role-aware navigation (technicians see assigned work only; create/assign controls hidden).
-
-**Responsive layout:** mobile breakpoints collapse filters, list rows, and page headers (`globals.css` `@media max-width: 640px`).
-
-**Critical workflow test:** `backend/tests/critical-workflow.test.ts` exercises login → create work order → assign technician → technician status update → verify detail and audit trail.
+Streaming CSV export at `/api/v1/exports/work-orders.csv` with list-equivalent auth and filters.
 
 ## File security and storage limits
 
-### Local storage (Phase 6 — implemented)
+Local disk storage under `ATTACHMENTS_DIR`. Magic-byte validation (JPEG, PNG, PDF). UUID filenames on disk. Org quota enforced in transaction. Authenticated download only.
 
-Attachments are stored on disk under `ATTACHMENTS_DIR` (default `./data/attachments`, Docker volume `/data/attachments`). Metadata lives in `work_order_attachments`; `organisations.storage_used_bytes` tracks quota usage.
+Production migration path: S3-compatible object storage adapter keeping DB metadata and quota logic.
 
-**Upload flow** (`POST /api/v1/work-orders/:id/attachments`):
+## API and operational quality
 
-1. Owner/dispatcher only; work order must belong to the JWT organisation.
-2. Magic-byte validation for JPEG, PNG, and PDF (MIME allowlist + content sniffing).
-3. Max file size enforced via `MAX_ATTACHMENT_BYTES` (default 10 MB).
-4. Transaction: lock organisation row → check `storage_used_bytes + size <= storage_limit_bytes` → insert attachment row → increment usage → audit log → commit.
-5. Write binary to `{organisationId}/{uuid}.{ext}` — original filename is display metadata only.
-
-**Download** (`GET /api/v1/attachments/:id/download`): authenticated stream after org + work-order access check. Storage keys and filesystem paths are never returned by the API.
-
-**Production object-storage migration:** replace the local `writeFile` / `createReadStream` adapter with an S3-compatible backend. Keep the same DB metadata and quota logic; store the object key in `storage_key`. Upload via server-side PutObject or pre-signed PUT; download via pre-signed GET or authenticated proxy. Org quota remains derived from DB metadata (or periodic inventory sync).
-
-## API and operational quality (Phase 11)
-
-- **Validation:** Zod schemas on all JSON bodies and UUID path parameters (`backend/src/lib/schemas.ts`).
-- **Errors:** consistent envelope `{ error: { code, message, details, correlationId } }` via central error handler.
-- **Correlation IDs:** accepted from `x-correlation-id` request header or generated per request; echoed on every response header and in error bodies.
-- **Logging:** Fastify/pino structured JSON logs with request IDs.
-- **Shutdown:** API and worker handle `SIGTERM`/`SIGINT` — close HTTP server, BullMQ worker/queue, Postgres pool, Redis.
-- **Configuration:** Zod-validated environment (`backend/src/config.js`); secrets only via `.env` (never committed).
-- **Indexes:** see migrations — org/status/schedule, assigned schedule partial index, audit org+created, progress event idempotency key, notification dedupe.
+- Zod validation on bodies and UUID path params
+- Error envelope with correlation IDs (`x-correlation-id` header)
+- Pino structured logging
+- Graceful SIGTERM/SIGINT shutdown (API + worker)
+- Zod-validated environment config
 
 ## Security considerations
 
-- **Tenant isolation:** every query scoped by JWT `organisationId`; cross-org IDs return 404.
-- **Auth:** argon2 password hashing; httpOnly JWT cookie; rate-limited login.
-- **Attachments:** MIME + magic-byte validation; UUID disk keys; quota enforced in transaction; no path leakage.
-- **CSV export:** formula-injection prefixing on cell values.
-- **Real-time:** org-scoped WebSocket rooms only.
+Tenant isolation, httpOnly cookies, rate-limited login, attachment validation, CSV formula injection prefixing, org-scoped WebSocket rooms, no secrets in source control.
 
 ## Production deployment and operations
 
-Explain how you would deploy, scale, monitor, back up and recover the application.
+- **Deploy:** containerise api, worker, frontend; managed Postgres + Redis; object storage for attachments.
+- **Scale:** stateless API replicas behind load balancer; single logical Postgres; Redis for queue; WebSocket sticky sessions or Redis pub/sub adapter (not implemented — in-memory rooms are single-instance only).
+- **Monitor:** health/readiness endpoints, structured logs, queue depth, notification failure rate.
+- **Backup:** Postgres PITR; attachment bucket versioning; tested restore runbooks.
 
 ## Assumptions and trade-offs
 
-List significant assumptions and explain important trade-offs.
+- Real-time uses in-memory rooms (simple for assessment; would need Redis adapter for multi-instance).
+- Attachments on local disk (acceptable locally; S3 for production).
+- No role-change API (seeded roles only).
+- Frontend tests deferred in favour of backend integration tests covering critical workflow.
+- Notification provider is mocked.
 
 ## Known limitations or incomplete requirements
 
-List anything incomplete or not working. If none, state that explicitly.
+- **WebSocket scaling:** org rooms are process-local; horizontal API scaling would require a shared pub/sub layer.
+- **User role changes:** no API to change roles (not required by brief).
+- **Screen recording and PR:** candidate must complete before final submission.
+- **Frontend E2E browser test:** critical workflow verified via API integration test instead of Playwright.
+
+Everything else in the assessment brief is implemented and tested.

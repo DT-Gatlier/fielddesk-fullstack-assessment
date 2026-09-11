@@ -75,17 +75,20 @@ Requires Postgres (and seeded data) running:
 docker compose up postgres redis -d
 npm run migrate
 npm run seed
-npm test
+npm test              # 36 backend integration tests
+npm run typecheck     # backend + frontend TypeScript
+npm run build         # production build
 ```
 
 ### Project layout
 
 ```text
 frontend/           Next.js UI
-backend/            Fastify API
-worker/             BullMQ worker (stub until Phase 7)
+backend/            Fastify API + WebSocket
+worker/             BullMQ notification worker
 database/migrations SQL migrations
-docs/               Architecture and checklist
+docs/               Architecture, checklist, test coverage
+candidate-submission/ TECHNICAL_NOTES.md, AI_USAGE.md
 ```
 
 ### Documentation
@@ -93,7 +96,9 @@ docs/               Architecture and checklist
 - [Architecture decisions](docs/ARCHITECTURE_DECISIONS.md)
 - [Database schema](docs/DATABASE_SCHEMA.md)
 - [Scheduling concurrency](docs/SCHEDULING_CONCURRENCY.md)
+- [Test coverage map](docs/TEST_COVERAGE.md)
 - [Assessment checklist](docs/ASSESSMENT_CHECKLIST.md)
+- [Technical notes (submission)](candidate-submission/TECHNICAL_NOTES.md)
 
 ## Required stack
 

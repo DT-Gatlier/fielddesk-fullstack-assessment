@@ -27,7 +27,7 @@
 | 10. Frontend workflows | ✅ Done | Critical workflow test, CSV export UI |
 | 11. Ops & API quality | ✅ Done | Correlation IDs, typecheck, graceful shutdown |
 | 12. Testing | ✅ Done | 36 tests, TEST_COVERAGE.md |
-| 13. Documentation & submission | ⬜ Not started | |
+| 13. Documentation & submission | 🟡 In progress | Docs complete; PR + recording pending |
 
 Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
@@ -236,12 +236,12 @@ Cross-check against `docs/ASSESSMENT.md` §12:
 
 ### Technical documentation
 
-- [ ] Update root `README.md` with startup, test, lint, build commands
-- [ ] Complete `candidate-submission/TECHNICAL_NOTES.md`
-- [ ] Complete `candidate-submission/AI_USAGE.md`
-- [ ] Sample login credentials documented
-- [ ] Architecture, DB model, auth, concurrency, queue behaviour explained
-- [ ] Assumptions, limitations, and incomplete areas stated honestly
+- [x] Update root `README.md` with startup, test, lint, build commands
+- [x] Complete `candidate-submission/TECHNICAL_NOTES.md`
+- [x] Complete `candidate-submission/AI_USAGE.md`
+- [x] Sample login credentials documented
+- [x] Architecture, DB model, auth, concurrency, queue behaviour explained
+- [x] Assumptions, limitations, and incomplete areas stated honestly
 
 ### Git & PR
 
@@ -266,9 +266,9 @@ Cross-check against `docs/ASSESSMENT.md` §12:
 
 ### Final confirmation
 
-- [ ] No `.env` or credentials committed
-- [ ] App starts from documented commands on a clean machine (Docker)
-- [ ] You can explain and modify every part of the submission
+- [x] No `.env` or credentials committed
+- [x] App starts from documented commands on a clean machine (Docker)
+- [x] You can explain and modify every part of the submission
 
 ---
 
