@@ -23,7 +23,7 @@
 | 6. Attachments & quotas | ✅ Done | Upload/download, quota, tests, frontend |
 | 7. Background worker | ✅ Done | BullMQ enqueue, worker, dedupe, tests |
 | 8. Real-time updates | ✅ Done | WebSocket org rooms, frontend reconnect, test |
-| 9. Audit & CSV export | ⬜ Not started | |
+| 9. Audit & CSV export | ✅ Done | Streaming CSV export, audit verified |
 | 10. Frontend workflows | ⬜ Not started | |
 | 11. Ops & API quality | ⬜ Not started | |
 | 12. Testing | ⬜ Not started | |
@@ -170,18 +170,18 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ### Audit
 
-- [ ] Append-only `audit_logs` table
-- [ ] Log: create, assign, status change, attachment, role change, notification outcome
-- [ ] Each entry: org, actor, action, target, timestamp, before/after metadata
-- [ ] No edit/delete audit endpoints
+- [x] Append-only `audit_logs` table
+- [x] Log: create, assign, status change, attachment, role change, notification outcome
+- [x] Each entry: org, actor, action, target, timestamp, before/after metadata
+- [x] No edit/delete audit endpoints
 
 ### CSV export
 
-- [ ] `GET /exports/work-orders.csv` with same auth as list API
-- [ ] Org-scoped; respects filters
-- [ ] Streaming/chunked query — not all rows in memory
-- [ ] CSV formula-injection prevention
-- [ ] **Tests:** Org A export excludes Org B records
+- [x] `GET /exports/work-orders.csv` with same auth as list API
+- [x] Org-scoped; respects filters
+- [x] Streaming/chunked query — not all rows in memory
+- [x] CSV formula-injection prevention
+- [x] **Tests:** Org A export excludes Org B records
 
 ---
 

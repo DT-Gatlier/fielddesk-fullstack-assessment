@@ -53,6 +53,58 @@ const SORT_COLUMNS: Record<WorkOrderListQuery["sortBy"], string> = {
   status: "wo.status",
 };
 
+type WorkOrderFilterQuery = Pick<
+  WorkOrderListQuery,
+  | "organisationId"
+  | "assignedTechnicianId"
+  | "search"
+  | "status"
+  | "priority"
+  | "sortBy"
+  | "sortOrder"
+>;
+
+function buildWorkOrderFilter(query: WorkOrderFilterQuery): {
+  whereClause: string;
+  values: unknown[];
+  sortColumn: string;
+  sortOrder: "ASC" | "DESC";
+} {
+  const conditions = ["wo.organisation_id = $1"];
+  const values: unknown[] = [query.organisationId];
+  let index = 2;
+
+  if (query.assignedTechnicianId) {
+    conditions.push(`wo.assigned_technician_id = $${index++}`);
+    values.push(query.assignedTechnicianId);
+  }
+
+  if (query.status) {
+    conditions.push(`wo.status = $${index++}`);
+    values.push(query.status);
+  }
+
+  if (query.priority) {
+    conditions.push(`wo.priority = $${index++}`);
+    values.push(query.priority);
+  }
+
+  if (query.search) {
+    conditions.push(
+      `(wo.title ILIKE $${index} OR wo.reference_number ILIKE $${index} OR wo.site_name ILIKE $${index})`,
+    );
+    values.push(`%${query.search}%`);
+    index++;
+  }
+
+  return {
+    whereClause: conditions.join(" AND "),
+    values,
+    sortColumn: SORT_COLUMNS[query.sortBy],
+    sortOrder: query.sortOrder === "asc" ? "ASC" : "DESC",
+  };
+}
+
 export async function generateReferenceNumber(
   pool: pg.Pool,
   organisationId: string,
@@ -363,36 +415,9 @@ export async function listWorkOrders(
   pool: pg.Pool,
   query: WorkOrderListQuery,
 ): Promise<WorkOrderListResult> {
-  const conditions = ["wo.organisation_id = $1"];
-  const values: unknown[] = [query.organisationId];
-  let index = 2;
-
-  if (query.assignedTechnicianId) {
-    conditions.push(`wo.assigned_technician_id = $${index++}`);
-    values.push(query.assignedTechnicianId);
-  }
-
-  if (query.status) {
-    conditions.push(`wo.status = $${index++}`);
-    values.push(query.status);
-  }
-
-  if (query.priority) {
-    conditions.push(`wo.priority = $${index++}`);
-    values.push(query.priority);
-  }
-
-  if (query.search) {
-    conditions.push(
-      `(wo.title ILIKE $${index} OR wo.reference_number ILIKE $${index} OR wo.site_name ILIKE $${index})`,
-    );
-    values.push(`%${query.search}%`);
-    index++;
-  }
-
-  const whereClause = conditions.join(" AND ");
-  const sortColumn = SORT_COLUMNS[query.sortBy];
-  const sortOrder = query.sortOrder === "asc" ? "ASC" : "DESC";
+  const { whereClause, values, sortColumn, sortOrder } =
+    buildWorkOrderFilter(query);
+  let index = values.length + 1;
   const offset = (query.page - 1) * query.pageSize;
 
   const countResult = await pool.query<{ count: string }>(
@@ -417,6 +442,48 @@ export async function listWorkOrders(
     page: query.page,
     pageSize: query.pageSize,
   };
+}
+
+export async function* iterateWorkOrdersForExport(
+  pool: pg.Pool,
+  query: WorkOrderFilterQuery,
+): AsyncGenerator<WorkOrder> {
+  const { whereClause, values, sortColumn, sortOrder } =
+    buildWorkOrderFilter(query);
+  const client = await pool.connect();
+  const cursorName = `wo_export_${crypto.randomUUID().replace(/-/g, "")}`;
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `DECLARE ${cursorName} CURSOR FOR
+       SELECT wo.*
+       FROM work_orders wo
+       WHERE ${whereClause}
+       ORDER BY ${sortColumn} ${sortOrder} NULLS LAST`,
+      values,
+    );
+
+    while (true) {
+      const batch = await client.query<WorkOrderRow>(
+        `FETCH 100 FROM ${cursorName}`,
+      );
+      if (batch.rows.length === 0) {
+        break;
+      }
+      for (const row of batch.rows) {
+        yield mapWorkOrder(row);
+      }
+    }
+
+    await client.query(`CLOSE ${cursorName}`);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getDashboardSummary(

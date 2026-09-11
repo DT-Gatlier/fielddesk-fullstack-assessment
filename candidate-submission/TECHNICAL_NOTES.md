@@ -106,6 +106,32 @@ The worker runs as a separate process (`worker/`) and reuses backend domain logi
 
 **Degraded behaviour:** if WebSockets are unavailable, pages continue to work via normal REST polling on user actions; live updates are best-effort only.
 
+## Audit history and CSV export
+
+### Audit trail (Phase 9 — implemented)
+
+Append-only `audit_logs` rows are written in the service layer (no UPDATE/DELETE API). Each entry records organisation, actor, action, entity target, timestamp, and before/after metadata where relevant.
+
+| Action | Trigger |
+| --- | --- |
+| `work_order.created` | Create work order |
+| `work_order.updated` | Patch work order fields |
+| `work_order.assigned` | Assign technician (same transaction as scheduling) |
+| `work_order.status_changed` | Status patch or accepted progress event |
+| `work_order.attachment_added` | Attachment upload |
+| `progress_event.accepted` | Idempotent progress event insert |
+| `notification.sent` / `notification.failed_*` | Worker delivery outcome |
+
+User-role changes are not audited because the assessment API does not expose role mutation endpoints.
+
+### CSV export (Phase 9 — implemented)
+
+- **Endpoint:** `GET /api/v1/exports/work-orders.csv`
+- **Auth:** same rules as the work-order list (owners/dispatchers see all org orders; technicians see assigned orders only)
+- **Filters:** `search`, `status`, `priority`, `sortBy`, `sortOrder` (mirrors list API)
+- **Streaming:** PostgreSQL server-side cursor fetches 100 rows at a time — the full result set is never loaded into memory
+- **CSV injection:** cell values starting with `=`, `+`, `-`, `@`, tab, or carriage return are prefixed with `'`
+
 ## File security and storage limits
 
 ### Local storage (Phase 6 — implemented)
