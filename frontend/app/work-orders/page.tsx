@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { getMe, listWorkOrders, type AuthUser, type WorkOrder } from "@/lib/api";
+import {
+  downloadWorkOrdersCsv,
+  getMe,
+  listWorkOrders,
+  type AuthUser,
+  type WorkOrder,
+} from "@/lib/api";
 import { connectRealtime } from "@/lib/realtime";
 
 export default function WorkOrdersPage() {
@@ -53,6 +59,18 @@ export default function WorkOrdersPage() {
   }, [user, load]);
 
   const canCreate = user?.role === "owner" || user?.role === "dispatcher";
+  const canExport = canCreate || user?.role === "technician";
+
+  async function handleExport() {
+    try {
+      const params: Record<string, string> = {};
+      if (search) params.search = search;
+      if (status) params.status = status;
+      await downloadWorkOrdersCsv(params);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed");
+    }
+  }
 
   return (
     <main>
@@ -82,6 +100,11 @@ export default function WorkOrdersPage() {
           <option value="cancelled">Cancelled</option>
         </select>
         <button type="button" onClick={() => void load()}>Apply</button>
+        {canExport ? (
+          <button type="button" onClick={() => void handleExport()}>
+            Export CSV
+          </button>
+        ) : null}
       </div>
 
       {loading ? <p>Loading…</p> : null}

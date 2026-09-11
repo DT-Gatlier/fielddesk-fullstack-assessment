@@ -131,6 +131,15 @@ User-role changes are not audited because the assessment API does not expose rol
 - **Filters:** `search`, `status`, `priority`, `sortBy`, `sortOrder` (mirrors list API)
 - **Streaming:** PostgreSQL server-side cursor fetches 100 rows at a time — the full result set is never loaded into memory
 - **CSV injection:** cell values starting with `=`, `+`, `-`, `@`, tab, or carriage return are prefixed with `'`
+- **Frontend:** work-order list exposes an Export CSV action using the same active filters
+
+## Frontend workflows (Phase 10)
+
+The Next.js app covers login, dashboard, filtered/paginated work-order list, create/edit forms, detail with assignment/scheduling, attachment upload/download, activity history, and role-aware navigation (technicians see assigned work only; create/assign controls hidden).
+
+**Responsive layout:** mobile breakpoints collapse filters, list rows, and page headers (`globals.css` `@media max-width: 640px`).
+
+**Critical workflow test:** `backend/tests/critical-workflow.test.ts` exercises login → create work order → assign technician → technician status update → verify detail and audit trail.
 
 ## File security and storage limits
 

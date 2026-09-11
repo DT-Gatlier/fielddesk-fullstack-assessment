@@ -24,7 +24,7 @@
 | 7. Background worker | ✅ Done | BullMQ enqueue, worker, dedupe, tests |
 | 8. Real-time updates | ✅ Done | WebSocket org rooms, frontend reconnect, test |
 | 9. Audit & CSV export | ✅ Done | Streaming CSV export, audit verified |
-| 10. Frontend workflows | ⬜ Not started | |
+| 10. Frontend workflows | ✅ Done | Critical workflow test, CSV export UI |
 | 11. Ops & API quality | ⬜ Not started | |
 | 12. Testing | ⬜ Not started | |
 | 13. Documentation & submission | ⬜ Not started | |
@@ -187,13 +187,13 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 10 — Frontend completeness
 
-- [ ] Responsive layout (desktop + mobile)
-- [ ] Role-based UI (UX only; backend still enforces)
-- [ ] Technician view: assigned work only
-- [ ] Conflict state UI for scheduling errors
-- [ ] Attachment upload and download flows
-- [ ] Real-time dashboard/list updates visible in UI
-- [ ] **E2E test:** one critical workflow (login → create → assign → update)
+- [x] Responsive layout (desktop + mobile)
+- [x] Role-based UI (UX only; backend still enforces)
+- [x] Technician view: assigned work only
+- [x] Conflict state UI for scheduling errors
+- [x] Attachment upload and download flows
+- [x] Real-time dashboard/list updates visible in UI
+- [x] **E2E test:** one critical workflow (login → create → assign → update)
 
 ---
 

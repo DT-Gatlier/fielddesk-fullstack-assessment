@@ -125,6 +125,32 @@ export async function listWorkOrders(params: Record<string, string> = {}): Promi
   return apiFetch(`/api/v1/work-orders${query ? `?${query}` : ""}`);
 }
 
+export async function downloadWorkOrdersCsv(
+  params: Record<string, string> = {},
+): Promise<void> {
+  const query = new URLSearchParams(params).toString();
+  const response = await fetch(
+    `${API_URL}/api/v1/exports/work-orders.csv${query ? `?${query}` : ""}`,
+    { credentials: "include" },
+  );
+
+  if (!response.ok) {
+    const error = await response.json() as ApiError;
+    throw new ApiRequestError(
+      error.error?.message ?? "Export failed",
+      error.error?.code ?? "UNKNOWN",
+    );
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "work-orders.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function getWorkOrder(id: string): Promise<{
   workOrder: WorkOrder;
   activity: AuditEntry[];
