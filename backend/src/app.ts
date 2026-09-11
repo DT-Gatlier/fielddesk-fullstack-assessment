@@ -29,6 +29,11 @@ export async function buildApp(config: Env = loadConfig()) {
 
   registerErrorHandler(app);
 
+  app.addHook("onSend", async (request, reply, payload) => {
+    reply.header("x-correlation-id", request.id);
+    return payload;
+  });
+
   await app.register(cors, {
     origin: config.FRONTEND_URL,
     credentials: true,
@@ -52,11 +57,12 @@ export async function buildApp(config: Env = loadConfig()) {
 
   await app.register(rateLimit, {
     global: false,
-    errorResponseBuilder: (_request, context) => ({
+    errorResponseBuilder: (request, context) => ({
       error: {
         code: "RATE_LIMITED",
         message: `Too many requests. Retry after ${context.after}`,
         details: [],
+        correlationId: request.id,
       },
     }),
   });

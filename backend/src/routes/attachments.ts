@@ -4,6 +4,7 @@ import type { FastifyInstance } from "fastify";
 import type { Env } from "../config.js";
 import { getPool } from "../db/pool.js";
 import { AppError } from "../lib/errors.js";
+import { parseUuidParam } from "../lib/schemas.js";
 import { authenticate } from "../middleware/auth.js";
 import {
   getAttachmentDownload,
@@ -21,7 +22,10 @@ export async function registerAttachmentRoutes(
     "/api/v1/work-orders/:workOrderId/attachments",
     { preHandler: [authenticate] },
     async (request) => {
-      const { workOrderId } = request.params as { workOrderId: string };
+      const workOrderId = parseUuidParam(
+        request.params as Record<string, string>,
+        "workOrderId",
+      );
       const attachments = await listAttachmentsForWorkOrderInOrg(
         pool,
         request.auth,
@@ -35,7 +39,10 @@ export async function registerAttachmentRoutes(
     "/api/v1/work-orders/:workOrderId/attachments",
     { preHandler: [authenticate] },
     async (request) => {
-      const { workOrderId } = request.params as { workOrderId: string };
+      const workOrderId = parseUuidParam(
+        request.params as Record<string, string>,
+        "workOrderId",
+      );
       const file = await request.file();
 
       if (!file) {
@@ -63,7 +70,10 @@ export async function registerAttachmentRoutes(
     "/api/v1/attachments/:attachmentId/download",
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const { attachmentId } = request.params as { attachmentId: string };
+      const attachmentId = parseUuidParam(
+        request.params as Record<string, string>,
+        "attachmentId",
+      );
       const { attachment, absolutePath } = await getAttachmentDownload(
         pool,
         request.auth,

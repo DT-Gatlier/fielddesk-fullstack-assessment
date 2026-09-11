@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { ZodError } from "zod";
 
 export type ErrorCode =
   | "VALIDATION_ERROR"
@@ -58,6 +59,18 @@ export function registerErrorHandler(app: {
         error.message,
         error.statusCode,
         error.details,
+      );
+      return;
+    }
+
+    if (error instanceof ZodError) {
+      void sendError(
+        reply,
+        request,
+        "VALIDATION_ERROR",
+        "Request validation failed",
+        400,
+        error.issues,
       );
       return;
     }

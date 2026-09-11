@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { Env } from "../config.js";
 import { getPool } from "../db/pool.js";
 import { AppError } from "../lib/errors.js";
+import { parseUuidParam } from "../lib/schemas.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
 import { toPublicUser } from "../services/auth.service.js";
 import {
@@ -28,7 +29,10 @@ export async function registerUserRoutes(
     "/api/v1/users/:userId",
     { preHandler: [authenticate] },
     async (request) => {
-      const { userId } = request.params as { userId: string };
+      const userId = parseUuidParam(
+        request.params as Record<string, string>,
+        "userId",
+      );
 
       const user = await findUserByIdInOrg(
         pool,

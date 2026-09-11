@@ -2,6 +2,7 @@ import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { closePool } from "./db/pool.js";
 import { closeRedis } from "./db/redis.js";
+import { closeNotificationQueue } from "./queues/notifications.queue.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -13,6 +14,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, "Shutting down gracefully");
     await app.close();
+    await closeNotificationQueue();
     await closePool();
     await closeRedis();
     process.exit(0);

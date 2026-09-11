@@ -13,7 +13,8 @@
     "frontend:dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "test": "npm run test --prefix backend",
-    "lint": "echo \"Lint will be configured later\" && exit 0"
+    "typecheck": "npm run typecheck --prefix backend && npm run typecheck --prefix frontend",
+    "lint": "npm run typecheck"
   },
   "engines": {
     "node": ">=20"

@@ -25,7 +25,7 @@
 | 8. Real-time updates | ✅ Done | WebSocket org rooms, frontend reconnect, test |
 | 9. Audit & CSV export | ✅ Done | Streaming CSV export, audit verified |
 | 10. Frontend workflows | ✅ Done | Critical workflow test, CSV export UI |
-| 11. Ops & API quality | ⬜ Not started | |
+| 11. Ops & API quality | ✅ Done | Correlation IDs, typecheck, graceful shutdown |
 | 12. Testing | ⬜ Not started | |
 | 13. Documentation & submission | ⬜ Not started | |
 
@@ -199,15 +199,15 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 ## Phase 11 — API & operational quality
 
-- [ ] Centralised Zod validation on all inputs
-- [ ] Consistent error response envelope + correlation IDs
-- [ ] Structured logging (pino)
-- [ ] Request correlation ID middleware
-- [ ] Graceful shutdown (SIGTERM)
-- [ ] Environment-based configuration
-- [ ] Appropriate DB indexes (see ARCHITECTURE_DECISIONS §5.4)
-- [ ] No secrets in source control
-- [ ] `.gitignore` covers `.env`, `node_modules`, uploads, build output
+- [x] Centralised Zod validation on all inputs
+- [x] Consistent error response envelope + correlation IDs
+- [x] Structured logging (pino)
+- [x] Request correlation ID middleware
+- [x] Graceful shutdown (SIGTERM)
+- [x] Environment-based configuration
+- [x] Appropriate DB indexes (see ARCHITECTURE_DECISIONS §5.4)
+- [x] No secrets in source control
+- [x] `.gitignore` covers `.env`, `node_modules`, uploads, build output
 
 ---
 

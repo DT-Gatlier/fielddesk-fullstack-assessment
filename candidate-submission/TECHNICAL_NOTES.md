@@ -159,9 +159,23 @@ Attachments are stored on disk under `ATTACHMENTS_DIR` (default `./data/attachme
 
 **Production object-storage migration:** replace the local `writeFile` / `createReadStream` adapter with an S3-compatible backend. Keep the same DB metadata and quota logic; store the object key in `storage_key`. Upload via server-side PutObject or pre-signed PUT; download via pre-signed GET or authenticated proxy. Org quota remains derived from DB metadata (or periodic inventory sync).
 
+## API and operational quality (Phase 11)
+
+- **Validation:** Zod schemas on all JSON bodies and UUID path parameters (`backend/src/lib/schemas.ts`).
+- **Errors:** consistent envelope `{ error: { code, message, details, correlationId } }` via central error handler.
+- **Correlation IDs:** accepted from `x-correlation-id` request header or generated per request; echoed on every response header and in error bodies.
+- **Logging:** Fastify/pino structured JSON logs with request IDs.
+- **Shutdown:** API and worker handle `SIGTERM`/`SIGINT` — close HTTP server, BullMQ worker/queue, Postgres pool, Redis.
+- **Configuration:** Zod-validated environment (`backend/src/config.js`); secrets only via `.env` (never committed).
+- **Indexes:** see migrations — org/status/schedule, assigned schedule partial index, audit org+created, progress event idempotency key, notification dedupe.
+
 ## Security considerations
 
-Describe relevant threats considered and the protections implemented.
+- **Tenant isolation:** every query scoped by JWT `organisationId`; cross-org IDs return 404.
+- **Auth:** argon2 password hashing; httpOnly JWT cookie; rate-limited login.
+- **Attachments:** MIME + magic-byte validation; UUID disk keys; quota enforced in transaction; no path leakage.
+- **CSV export:** formula-injection prefixing on cell values.
+- **Real-time:** org-scoped WebSocket rooms only.
 
 ## Production deployment and operations
 
