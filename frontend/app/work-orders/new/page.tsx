@@ -65,8 +65,12 @@ export default function NewWorkOrderPage() {
   return (
     <AppShell user={user}>
       <PageHeader
+        breadcrumbs={[
+          { label: "Work orders", href: "/work-orders" },
+          { label: "New" },
+        ]}
         title="New work order"
-        description="Create a draft work order for your organisation."
+        description="Create a draft work order. Assign a technician and schedule after creation."
         actions={
           <Link href="/work-orders" className="btn btn--secondary">
             Cancel
@@ -74,33 +78,50 @@ export default function NewWorkOrderPage() {
         }
       />
 
-      <form className="card form" onSubmit={(e) => void handleSubmit(e)}>
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. HVAC maintenance" />
-        </label>
-        <label>
-          Description
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            placeholder="Describe the work required…"
-          />
-        </label>
-        <label>
-          Priority
-          <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </label>
-        <label>
-          Site name
-          <input value={siteName} onChange={(e) => setSiteName(e.target.value)} required placeholder="e.g. Downtown Office" />
-        </label>
+      <form className="form" onSubmit={(e) => void handleSubmit(e)} style={{ maxWidth: "640px" }}>
+        <div className="form-section">
+          <div className="form-section__title">Job details</div>
+          <label>
+            Title
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="e.g. HVAC maintenance — Building A"
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder="Describe the work required, access notes, and any equipment details…"
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <div className="form-section__title">Location & priority</div>
+          <label>
+            Site name
+            <input
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+              required
+              placeholder="e.g. Downtown Office — Floor 3"
+            />
+          </label>
+          <label>
+            Priority
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <option value="low">Low — routine maintenance</option>
+              <option value="medium">Medium — standard service</option>
+              <option value="high">High — needs prompt attention</option>
+              <option value="urgent">Urgent — critical / SLA breach</option>
+            </select>
+          </label>
+        </div>
 
         {error ? <Alert variant="error">{error}</Alert> : null}
 
@@ -108,6 +129,9 @@ export default function NewWorkOrderPage() {
           <button type="submit" className="btn btn--primary" disabled={saving}>
             {saving ? "Creating…" : "Create work order"}
           </button>
+          <Link href="/work-orders" className="btn btn--secondary">
+            Cancel
+          </Link>
         </div>
       </form>
     </AppShell>

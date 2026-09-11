@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IconWorkOrders } from "@/components/Icons";
 
 const apiUrl =
   process.env.API_INTERNAL_URL ??
@@ -35,13 +36,13 @@ export default async function HomePage() {
 
   return (
     <div className="landing-page">
-      <div className="landing-page__inner">
-        <section className="landing-hero">
-          <span className="landing-hero__eyebrow">Gatlier Assessment</span>
+      <section className="landing-page__hero">
+        <div className="landing-page__hero-inner">
+          <span className="landing-hero__eyebrow">Field operations platform</span>
           <h1>FieldDesk</h1>
           <p>
-            Coordinate field technicians, schedule work orders, track progress, and
-            keep every organisation&apos;s data securely isolated.
+            Schedule, assign, and track field-service work across your organisation.
+            Built for dispatchers, technicians, and operations teams.
           </p>
           <div className="landing-links">
             <Link href="/login" className="btn btn--primary">
@@ -51,36 +52,65 @@ export default async function HomePage() {
               Open dashboard
             </Link>
           </div>
-        </section>
-
-        <div className="card status-panel">
-          <h2>API status</h2>
-          <p style={{ color: "var(--color-text-muted)", fontSize: "0.92rem" }}>
-            Backend URL: <code>{apiUrl}</code>
-          </p>
-
-          {status.ok ? (
-            <>
-              <p className="status-panel__indicator status-ok">
-                <span className="status-panel__dot" />
-                API is healthy and ready
-              </p>
-              <pre>{JSON.stringify({ health: status.health, ready: status.ready }, null, 2)}</pre>
-            </>
-          ) : (
-            <>
-              <p className="status-panel__indicator status-error">
-                <span className="status-panel__dot status-panel__dot--error" />
-                API unreachable or not ready
-                {status.error ? `: ${status.error}` : ""}
-              </p>
-              <p style={{ color: "var(--color-text-muted)" }}>
-                Start the stack with <code>npm run dev</code> from the repo root.
-              </p>
-            </>
-          )}
+          <ul className="landing-features">
+            <li>
+              <span className="landing-features__dot" aria-hidden />
+              Work order lifecycle from draft to completion
+            </li>
+            <li>
+              <span className="landing-features__dot" aria-hidden />
+              Technician scheduling with conflict detection
+            </li>
+            <li>
+              <span className="landing-features__dot" aria-hidden />
+              Multi-tenant isolation and role-based access
+            </li>
+          </ul>
         </div>
-      </div>
+      </section>
+
+      <section className="landing-page__content">
+        <div className="landing-page__content-inner">
+          <div className="landing-hero landing-hero--light" style={{ marginBottom: "1.25rem" }}>
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>System status</h2>
+            <p>Backend connectivity for local development.</p>
+          </div>
+
+          <div className="panel panel__body status-panel">
+            <p style={{ color: "var(--color-text-muted)", fontSize: "0.8125rem" }}>
+              API endpoint: <code>{apiUrl}</code>
+            </p>
+
+            {status.ok ? (
+              <>
+                <p className="status-panel__indicator status-ok">
+                  <span className="status-panel__dot" />
+                  API is healthy and ready
+                </p>
+                <pre>{JSON.stringify({ health: status.health, ready: status.ready }, null, 2)}</pre>
+              </>
+            ) : (
+              <>
+                <p className="status-panel__indicator status-error">
+                  <span className="status-panel__dot status-panel__dot--error" />
+                  API unreachable or not ready
+                  {status.error ? `: ${status.error}` : ""}
+                </p>
+                <p style={{ color: "var(--color-text-muted)", fontSize: "0.875rem" }}>
+                  Start the stack with <code>npm run dev</code> from the repo root.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="panel panel__body" style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <IconWorkOrders size={20} />
+            <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)" }}>
+              Gatlier full-stack engineering assessment
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

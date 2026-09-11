@@ -13,6 +13,7 @@ export default function EditWorkOrderPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -35,6 +36,7 @@ export default function EditWorkOrderPage() {
         setUser(me.user);
 
         const detail = await getWorkOrder(params.id);
+        setReferenceNumber(detail.workOrder.referenceNumber);
         setTitle(detail.workOrder.title);
         setDescription(detail.workOrder.description);
         setPriority(detail.workOrder.priority);
@@ -82,6 +84,11 @@ export default function EditWorkOrderPage() {
   return (
     <AppShell user={user}>
       <PageHeader
+        breadcrumbs={[
+          { label: "Work orders", href: "/work-orders" },
+          { label: referenceNumber, href: `/work-orders/${params.id}` },
+          { label: "Edit" },
+        ]}
         title="Edit work order"
         description="Update the core details for this work order."
         actions={
@@ -91,28 +98,35 @@ export default function EditWorkOrderPage() {
         }
       />
 
-      <form className="card form" onSubmit={(e) => void handleSubmit(e)}>
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
-        <label>
-          Description
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
-        </label>
-        <label>
-          Priority
-          <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </label>
-        <label>
-          Site name
-          <input value={siteName} onChange={(e) => setSiteName(e.target.value)} required />
-        </label>
+      <form className="form" onSubmit={(e) => void handleSubmit(e)} style={{ maxWidth: "640px" }}>
+        <div className="form-section">
+          <div className="form-section__title">Job details</div>
+          <label>
+            Title
+            <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </label>
+          <label>
+            Description
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <div className="form-section__title">Location & priority</div>
+          <label>
+            Site name
+            <input value={siteName} onChange={(e) => setSiteName(e.target.value)} required />
+          </label>
+          <label>
+            Priority
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <option value="low">Low — routine maintenance</option>
+              <option value="medium">Medium — standard service</option>
+              <option value="high">High — needs prompt attention</option>
+              <option value="urgent">Urgent — critical / SLA breach</option>
+            </select>
+          </label>
+        </div>
 
         {error ? <Alert variant="error">{error}</Alert> : null}
 
@@ -120,6 +134,9 @@ export default function EditWorkOrderPage() {
           <button type="submit" className="btn btn--primary" disabled={saving}>
             {saving ? "Saving…" : "Save changes"}
           </button>
+          <Link href={`/work-orders/${params.id}`} className="btn btn--secondary">
+            Cancel
+          </Link>
         </div>
       </form>
     </AppShell>

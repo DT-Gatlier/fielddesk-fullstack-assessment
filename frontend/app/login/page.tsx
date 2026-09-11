@@ -32,20 +32,20 @@ export default function LoginPage() {
   return (
     <div className="public-page">
       <div className="public-page__inner">
-        <div className="landing-hero" style={{ marginBottom: "1.25rem" }}>
-          <span className="landing-hero__eyebrow">Welcome back</span>
-          <h1>Sign in to FieldDesk</h1>
-          <p>Use a seeded assessment account to explore the platform.</p>
+        <div className="landing-hero landing-hero--light" style={{ marginBottom: "1.5rem" }}>
+          <span className="landing-hero__eyebrow">Sign in</span>
+          <h1>FieldDesk</h1>
+          <p>Access your organisation&apos;s field operations workspace.</p>
         </div>
 
-        <form className="card auth-card form" onSubmit={handleSubmit}>
+        <form className="panel panel__body auth-card form" onSubmit={handleSubmit}>
           <div className="auth-card__header">
             <h2>Account credentials</h2>
             <p>Assessment password is pre-filled for convenience.</p>
           </div>
 
           <label>
-            Email
+            Email address
             <input
               type="email"
               value={email}
@@ -79,8 +79,9 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-hint">
-          Try <code>dispatcher@acme.test</code> or <code>tech@beta.test</code> with password{" "}
-          <code>FieldDesk2026!</code>
+          <strong>Demo accounts:</strong>{" "}
+          <code>owner@acme.test</code>, <code>dispatcher@acme.test</code>, or{" "}
+          <code>tech@beta.test</code> — password <code>FieldDesk2026!</code>
         </div>
       </div>
     </div>
