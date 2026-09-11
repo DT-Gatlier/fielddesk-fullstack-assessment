@@ -169,6 +169,28 @@ describe("Authentication and organisation isolation", () => {
     expect(response.json().error.code).toBe("NOT_FOUND");
   });
 
+  it("accepts logout without a JSON body", async () => {
+    const app = await appPromise;
+    const login = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/login",
+      payload: {
+        email: "owner@acme.test",
+        password,
+      },
+    });
+
+    const logout = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/logout",
+      headers: {
+        cookie: cookiePair(login),
+      },
+    });
+
+    expect(logout.statusCode).toBe(200);
+  });
+
   it("clears session cookie on logout", async () => {
     const app = await appPromise;
     const login = await app.inject({

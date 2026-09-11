@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { Alert } from "@/components/Alert";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import {
   getDashboardSummary,
   getMe,
-  logout,
   type AuthUser,
   type DashboardSummary,
 } from "@/lib/api";
+import { formatStatus } from "@/lib/format";
 import { connectRealtime } from "@/lib/realtime";
 
 export default function DashboardPage() {
@@ -48,55 +52,76 @@ export default function DashboardPage() {
         });
     };
 
-    return connectRealtime(() => refreshSummary(), refreshSummary);
+    return connectRealtime(refreshSummary, refreshSummary);
   }, [user]);
 
-  async function handleLogout() {
-    await logout();
-    router.replace("/login");
-    router.refresh();
-  }
-
   if (loading) {
-    return <main><p>Loading dashboard…</p></main>;
+    return (
+      <div className="app-main">
+        <LoadingScreen message="Loading dashboard…" />
+      </div>
+    );
   }
 
   if (error || !user) {
     return (
-      <main>
-        <p className="status-error">{error ?? "Not signed in"}</p>
-        <Link href="/login">Back to login</Link>
-      </main>
+      <div className="public-page">
+        <div className="public-page__inner">
+          <Alert variant="error">{error ?? "Not signed in"}</Alert>
+          <Link href="/login" className="btn btn--primary">
+            Back to login
+          </Link>
+        </div>
+      </div>
     );
   }
 
   return (
-    <main>
-      <header className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Signed in as {user.email} ({user.role})</p>
-        </div>
-        <nav className="nav-links">
-          <Link href="/work-orders">Work orders</Link>
-          <button type="button" onClick={() => void handleLogout()}>Sign out</button>
-        </nav>
-      </header>
+    <AppShell user={user}>
+      <PageHeader
+        title="Dashboard"
+        description={
+          user.role === "technician"
+            ? "Overview of work orders assigned to you."
+            : "Live summary of work orders in your organisation."
+        }
+        actions={
+          <Link href="/work-orders" className="btn btn--secondary">
+            View all orders
+          </Link>
+        }
+      />
 
       {summary ? (
         <div className="card-grid">
-          <div className="card stat-card">
+          <div className="card stat-card stat-card--total">
             <h2>Total</h2>
             <p className="stat-value">{summary.total}</p>
           </div>
           {Object.entries(summary.byStatus).map(([status, count]) => (
             <div className="card stat-card" key={status}>
-              <h2>{status.replace("_", " ")}</h2>
+              <h2>{formatStatus(status)}</h2>
               <p className="stat-value">{count}</p>
             </div>
           ))}
         </div>
       ) : null}
-    </main>
+
+      <div className="card card--section">
+        <div className="card__title">
+          <h2>Quick actions</h2>
+        </div>
+        <div className="action-row">
+          <Link href="/work-orders" className="btn btn--primary">
+            Browse work orders
+          </Link>
+          {user.role === "owner" || user.role === "dispatcher" ? (
+            <Link href="/work-orders/new" className="btn btn--secondary">
+              Create work order
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    </AppShell>
   );
 }

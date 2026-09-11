@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { getMe, getWorkOrder, updateWorkOrder } from "@/lib/api";
+import { AppShell } from "@/components/AppShell";
+import { Alert } from "@/components/Alert";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
+import { getMe, getWorkOrder, updateWorkOrder, type AuthUser } from "@/lib/api";
 
 export default function EditWorkOrderPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -27,6 +32,8 @@ export default function EditWorkOrderPage() {
           router.replace(`/work-orders/${params.id}`);
           return;
         }
+        setUser(me.user);
+
         const detail = await getWorkOrder(params.id);
         setTitle(detail.workOrder.title);
         setDescription(detail.workOrder.description);
@@ -51,14 +58,38 @@ export default function EditWorkOrderPage() {
     }
   }
 
-  if (loading) return <main><p>Loading…</p></main>;
+  if (loading) {
+    return (
+      <div className="app-main">
+        <LoadingScreen message="Loading work order…" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="public-page">
+        <div className="public-page__inner">
+          <Alert variant="error">{error ?? "Unable to edit this work order"}</Alert>
+          <Link href="/work-orders" className="btn btn--secondary">
+            Back to list
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main>
-      <header className="page-header">
-        <h1>Edit work order</h1>
-        <Link href={`/work-orders/${params.id}`}>Cancel</Link>
-      </header>
+    <AppShell user={user}>
+      <PageHeader
+        title="Edit work order"
+        description="Update the core details for this work order."
+        actions={
+          <Link href={`/work-orders/${params.id}`} className="btn btn--secondary">
+            Cancel
+          </Link>
+        }
+      />
 
       <form className="card form" onSubmit={(e) => void handleSubmit(e)}>
         <label>
@@ -82,11 +113,15 @@ export default function EditWorkOrderPage() {
           Site name
           <input value={siteName} onChange={(e) => setSiteName(e.target.value)} required />
         </label>
-        {error ? <p className="status-error">{error}</p> : null}
-        <button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+
+        {error ? <Alert variant="error">{error}</Alert> : null}
+
+        <div className="form__actions">
+          <button type="submit" className="btn btn--primary" disabled={saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
       </form>
-    </main>
+    </AppShell>
   );
 }

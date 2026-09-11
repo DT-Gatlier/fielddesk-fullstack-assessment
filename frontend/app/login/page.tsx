@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Alert } from "@/components/Alert";
 import { login } from "@/lib/api";
 
 export default function LoginPage() {
@@ -28,39 +30,59 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>Sign in</h1>
-      <p>Use a seeded assessment account to access FieldDesk.</p>
+    <div className="public-page">
+      <div className="public-page__inner">
+        <div className="landing-hero" style={{ marginBottom: "1.25rem" }}>
+          <span className="landing-hero__eyebrow">Welcome back</span>
+          <h1>Sign in to FieldDesk</h1>
+          <p>Use a seeded assessment account to explore the platform.</p>
+        </div>
 
-      <form className="card form" onSubmit={handleSubmit}>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="username"
-            required
-          />
-        </label>
+        <form className="card auth-card form" onSubmit={handleSubmit}>
+          <div className="auth-card__header">
+            <h2>Account credentials</h2>
+            <p>Assessment password is pre-filled for convenience.</p>
+          </div>
 
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="username"
+              required
+            />
+          </label>
 
-        {error ? <p className="status-error">{error}</p> : null}
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
+          {error ? <Alert variant="error">{error}</Alert> : null}
+
+          <div className="form__actions">
+            <button type="submit" className="btn btn--primary" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+            <Link href="/" className="btn btn--secondary">
+              Back to home
+            </Link>
+          </div>
+        </form>
+
+        <div className="auth-hint">
+          Try <code>dispatcher@acme.test</code> or <code>tech@beta.test</code> with password{" "}
+          <code>FieldDesk2026!</code>
+        </div>
+      </div>
+    </div>
   );
 }

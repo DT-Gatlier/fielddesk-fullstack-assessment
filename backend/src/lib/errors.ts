@@ -98,6 +98,17 @@ export function registerErrorHandler(app: {
       return;
     }
 
+    if (error.code === "FST_ERR_CTP_EMPTY_JSON_BODY") {
+      void sendError(
+        reply,
+        request,
+        "VALIDATION_ERROR",
+        "Request body cannot be empty when Content-Type is application/json",
+        400,
+      );
+      return;
+    }
+
     request.log.error({ err: error }, "Unhandled error");
     void sendError(
       reply,

@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { Alert } from "@/components/Alert";
+import { Badge } from "@/components/Badge";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { PageHeader } from "@/components/PageHeader";
 import {
   downloadWorkOrdersCsv,
   getMe,
@@ -21,6 +26,7 @@ export default function WorkOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,10 +64,11 @@ export default function WorkOrdersPage() {
     return connectRealtime(() => void load(), () => void load());
   }, [user, load]);
 
-  const canCreate = user?.role === "owner" || user?.role === "dispatcher";
-  const canExport = canCreate || user?.role === "technician";
+  const canExport = user?.role === "owner" || user?.role === "dispatcher" || user?.role === "technician";
 
   async function handleExport() {
+    setExporting(true);
+    setError(null);
     try {
       const params: Record<string, string> = {};
       if (search) params.search = search;
@@ -69,72 +76,113 @@ export default function WorkOrdersPage() {
       await downloadWorkOrdersCsv(params);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
     }
   }
 
+  if (!user && loading) {
+    return (
+      <div className="app-main">
+        <LoadingScreen message="Loading work orders…" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <main>
-      <header className="page-header">
-        <div>
-          <h1>Work orders</h1>
-          <p>{total} total</p>
-        </div>
-        <nav className="nav-links">
-          <Link href="/dashboard">Dashboard</Link>
-          {canCreate ? <Link href="/work-orders/new">New work order</Link> : null}
-        </nav>
-      </header>
+    <AppShell user={user}>
+      <PageHeader
+        title="Work orders"
+        description={`${total} total · ${user.role === "technician" ? "showing your assignments" : "organisation-wide view"}`}
+      />
 
       <div className="card filters">
-        <input
-          placeholder="Search title, reference, site…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="in_progress">In progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <button type="button" onClick={() => void load()}>Apply</button>
-        {canExport ? (
-          <button type="button" onClick={() => void handleExport()}>
-            Export CSV
+        <label className="field-label">
+          Search
+          <input
+            placeholder="Title, reference, site…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <label className="field-label">
+          Status
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+        <div className="filters__actions">
+          <button type="button" className="btn btn--primary" onClick={() => void load()}>
+            Apply filters
           </button>
-        ) : null}
+          {canExport ? (
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => void handleExport()}
+              disabled={exporting}
+            >
+              {exporting ? "Exporting…" : "Export CSV"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {loading ? <p>Loading…</p> : null}
-      {error ? <p className="status-error">{error}</p> : null}
+      {error ? (
+        <Alert variant="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      ) : null}
+
+      {loading ? <LoadingScreen message="Refreshing list…" /> : null}
 
       {!loading && items.length === 0 ? (
         <div className="card empty-state">
-          <p>No work orders found.</p>
-          {canCreate ? <Link href="/work-orders/new">Create the first work order</Link> : null}
+          <div className="empty-state__icon" aria-hidden>
+            📋
+          </div>
+          <p>No work orders match your filters.</p>
+          {user.role === "owner" || user.role === "dispatcher" ? (
+            <Link href="/work-orders/new" className="btn btn--primary">
+              Create work order
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
-      <ul className="work-order-list">
-        {items.map((item) => (
-          <li key={item.id} className="card">
-            <div className="list-row">
-              <div>
-                <Link href={`/work-orders/${item.id}`}>
-                  <strong>{item.referenceNumber}</strong> — {item.title}
-                </Link>
-                <p>{item.siteName}</p>
+      {!loading && items.length > 0 ? (
+        <ul className="work-order-list">
+          {items.map((item) => (
+            <li key={item.id} className="card work-order-card">
+              <div className="list-row">
+                <div>
+                  <Link href={`/work-orders/${item.id}`} className="work-order-card__link">
+                    <div className="work-order-card__title">
+                      <span className="work-order-card__ref">{item.referenceNumber}</span>
+                      {" · "}
+                      {item.title}
+                    </div>
+                    <p className="work-order-card__meta">{item.siteName}</p>
+                  </Link>
+                </div>
+                <div className="badges">
+                  <Badge value={item.status} variant="status" />
+                  <Badge value={item.priority} variant="priority" />
+                </div>
               </div>
-              <div className="badges">
-                <span className="badge">{item.status}</span>
-                <span className="badge">{item.priority}</span>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </main>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </AppShell>
   );
 }
