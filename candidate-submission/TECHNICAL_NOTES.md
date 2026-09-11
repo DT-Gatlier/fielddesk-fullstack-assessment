@@ -4,7 +4,7 @@
 
 - Name: Suhail KC
 - GitHub username: suhailkc
-- Final commit SHA: _(update before PR — run `git rev-parse HEAD` on submission branch)_
+- Final commit SHA: `223678f6a1b5fdc82cb8fea6d8f67d266f78cbcc`
 - Screen-recording link: _(add before PR submission)_
 
 ## Local setup
