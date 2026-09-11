@@ -11,9 +11,11 @@ dist/
 build/
 coverage/
 .next/
+*.tsbuildinfo
 
 # Runtime data
 uploads/
+data/
 *.log
 
 # Editors and operating systems

@@ -12,6 +12,94 @@ FieldDesk is a fictional field-service application created solely for this asses
 4. Complete the [technical notes](candidate-submission/TECHNICAL_NOTES.md) and [AI usage disclosure](candidate-submission/AI_USAGE.md).
 5. Raise questions or blockers through a GitHub Issue in this repository.
 
+## Local development
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js 20+ (for running services outside Docker)
+
+### Quick start (Docker)
+
+```bash
+cp .env.example .env
+npm run dev
+```
+
+Services:
+
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| API | http://localhost:3001 |
+| API health | http://localhost:3001/health |
+| API readiness | http://localhost:3001/ready |
+
+Stop the stack:
+
+```bash
+npm run dev:down
+```
+
+### Local development (without Docker for app processes)
+
+Start infrastructure only:
+
+```bash
+docker compose up postgres redis -d
+cp .env.example .env
+npm install --prefix backend
+npm install --prefix worker
+npm install --prefix frontend
+npm run migrate
+npm run seed
+npm run backend:dev   # terminal 1
+npm run worker:dev    # terminal 2
+npm run frontend:dev  # terminal 3
+```
+
+### Database
+
+```bash
+npm run migrate   # apply SQL migrations
+npm run seed      # seed 2 orgs × 3 roles (idempotent)
+```
+
+Sample credentials (assessment only): password `FieldDesk2026!` — see [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md).
+
+### Tests
+
+Requires Postgres (and seeded data) running:
+
+```bash
+docker compose up postgres redis -d
+npm run migrate
+npm run seed
+npm test              # 36 backend integration tests
+npm run typecheck     # backend + frontend TypeScript
+npm run build         # production build
+```
+
+### Project layout
+
+```text
+frontend/           Next.js UI
+backend/            Fastify API + WebSocket
+worker/             BullMQ notification worker
+database/migrations SQL migrations
+docs/               Architecture, checklist, test coverage
+candidate-submission/ TECHNICAL_NOTES.md, AI_USAGE.md
+```
+
+### Documentation
+
+- [Architecture decisions](docs/ARCHITECTURE_DECISIONS.md)
+- [Database schema](docs/DATABASE_SCHEMA.md)
+- [Scheduling concurrency](docs/SCHEDULING_CONCURRENCY.md)
+- [Test coverage map](docs/TEST_COVERAGE.md)
+- [Assessment checklist](docs/ASSESSMENT_CHECKLIST.md)
+- [Technical notes (submission)](candidate-submission/TECHNICAL_NOTES.md)
+
 ## Required stack
 
 - React or Next.js with TypeScript
