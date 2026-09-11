@@ -26,7 +26,7 @@
 | 9. Audit & CSV export | ✅ Done | Streaming CSV export, audit verified |
 | 10. Frontend workflows | ✅ Done | Critical workflow test, CSV export UI |
 | 11. Ops & API quality | ✅ Done | Correlation IDs, typecheck, graceful shutdown |
-| 12. Testing | ⬜ Not started | |
+| 12. Testing | ✅ Done | 36 tests, TEST_COVERAGE.md |
 | 13. Documentation & submission | ⬜ Not started | |
 
 Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
@@ -215,20 +215,20 @@ Update the status column: ⬜ Not started → 🟡 In progress → ✅ Done
 
 Cross-check against `docs/ASSESSMENT.md` §12:
 
-- [ ] Successful and failed authentication
-- [ ] Role restrictions
-- [ ] Cross-organisation access attempts
-- [ ] Cross-organisation real-time isolation
-- [ ] Work-order validation
-- [ ] Concurrent scheduling conflicts
-- [ ] Duplicate and concurrent event submission
-- [ ] Transaction rollback
-- [ ] Attachment type, size, quota and access control
-- [ ] Worker retries and duplicate delivery
-- [ ] Organisation-scoped CSV export
-- [ ] One important frontend workflow
-- [ ] Integration tests use real PostgreSQL where DB behaviour matters
-- [ ] All test/lint/build commands documented and passing
+- [x] Successful and failed authentication
+- [x] Role restrictions
+- [x] Cross-organisation access attempts
+- [x] Cross-organisation real-time isolation
+- [x] Work-order validation
+- [x] Concurrent scheduling conflicts
+- [x] Duplicate and concurrent event submission
+- [x] Transaction rollback
+- [x] Attachment type, size, quota and access control
+- [x] Worker retries and duplicate delivery
+- [x] Organisation-scoped CSV export
+- [x] One important frontend workflow
+- [x] Integration tests use real PostgreSQL where DB behaviour matters
+- [x] All test/lint/build commands documented and passing
 
 ---
 
@@ -288,6 +288,7 @@ Record brief notes after each work session:
 | 2026-09-09 | Phase 6: attachments upload/download, quotas, tests, frontend | Phase 7 background worker |
 | 2026-09-11 | Phase 7: BullMQ notifications, worker, dedupe, tests | Phase 8 real-time |
 | 2026-09-11 | Phase 8: WebSocket org rooms, frontend reconnect, isolation test | Phase 9 CSV export |
+| 2026-09-11 | Phases 9–11: CSV export, critical workflow, ops quality, test sign-off | Phase 13 submission docs |
 | | | |
 
 ---
