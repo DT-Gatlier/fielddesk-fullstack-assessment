@@ -1,0 +1,30 @@
+{
+  "name": "@fielddesk/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.js",
+    "./next": "./next.js",
+    "./nest": "./nest.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint-config-next": "16.3.8",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.0.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript": "~5.9.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "typescript": "~5.9.3"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  }
+}

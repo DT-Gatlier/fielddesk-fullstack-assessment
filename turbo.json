@@ -1,0 +1,67 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".prettierrc.json", ".prettierignore"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["NEXT_PUBLIC_*"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT", "NEXT_PUBLIC_*"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT", "NEXT_PUBLIC_*"]
+    },
+    "@fielddesk/api#dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "PORT",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "NODE_ENV",
+        "ALLOWED_ORIGINS",
+        "SESSION_TTL_SECONDS",
+        "COOKIE_SECURE",
+        "REDIS_KEY_PREFIX"
+      ]
+    },
+    "@fielddesk/api#start": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "PORT",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "NODE_ENV",
+        "ALLOWED_ORIGINS",
+        "SESSION_TTL_SECONDS",
+        "COOKIE_SECURE",
+        "REDIS_KEY_PREFIX"
+      ]
+    },
+    "lint": { "dependsOn": ["^lint"] },
+    "lint:fix": { "cache": false },
+    "typecheck": { "dependsOn": ["^build"] },
+    "@fielddesk/web#typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["NEXT_PUBLIC_*"]
+    },
+    "test": { "dependsOn": ["^build"], "outputs": [] },
+    "generate": { "cache": false },
+    "@fielddesk/database#lint": { "dependsOn": ["build"] },
+    "@fielddesk/database#typecheck": { "dependsOn": ["build"] },
+    "@fielddesk/database#build": {
+      "cache": false,
+      "outputs": ["dist/**", "src/generated/**"]
+    }
+  }
+}

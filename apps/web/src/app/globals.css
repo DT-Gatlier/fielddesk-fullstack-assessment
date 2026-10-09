@@ -1,0 +1,108 @@
+﻿@import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #172033;
+  --card: #ffffff;
+  --muted: #eef2f8;
+  --muted-foreground: #526078;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --border: #d8dfeb;
+  --input: #7c889d;
+  --ring: #2563eb;
+  --destructive: #b42332;
+}
+.dark {
+  color-scheme: dark;
+  --background: #0d1423;
+  --foreground: #edf2fc;
+  --card: #151f32;
+  --muted: #243149;
+  --muted-foreground: #afbed4;
+  --primary: #8ab4ff;
+  --primary-foreground: #101c36;
+  --border: #354761;
+  --input: #71839e;
+  --ring: #8ab4ff;
+  --destructive: #ff9fa9;
+}
+@custom-variant dark (&:is(.dark *));
+@theme inline {
+  --font-sans: 'Inter Variable', Inter, system-ui, sans-serif;
+  --font-mono: Consolas, 'Courier New', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.login-layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: var(--viewport-scroll-space, 0px);
+}
+.login-panel {
+  padding-top: env(safe-area-inset-top);
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+.login-brand {
+  background: linear-gradient(145deg, #1e40af, #1d4ed8);
+}
+.dark .login-brand {
+  background: linear-gradient(145deg, #122456, #1e40af);
+}
+[data-sonner-toast].auth-toast {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--input);
+  overflow-wrap: anywhere;
+  padding-right: 64px;
+  min-height: 64px;
+}
+[data-sonner-toaster] [data-sonner-toast].auth-toast [data-close-button] {
+  min-width: 44px;
+  min-height: 44px;
+  top: 4px;
+  right: 4px;
+  left: auto;
+  transform: none;
+}
+@media (min-width: 1024px) and (min-height: 720px) {
+  .login-content {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

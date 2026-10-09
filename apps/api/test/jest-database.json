@@ -1,0 +1,8 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".database-spec.ts$",
+  "setupFiles": ["<rootDir>/setup-database-env.ts"],
+  "transform": { "^.+\\.ts$": "ts-jest" }
+}

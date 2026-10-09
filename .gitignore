@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.test.example
 
 # Dependencies
 node_modules/
@@ -11,13 +12,29 @@ dist/
 build/
 coverage/
 .next/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+packages/database/src/generated/
 
 # Runtime data
 uploads/
 *.log
+playwright-report/
+test-results/
 
 # Editors and operating systems
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Temporary
+*.md
+PLAN.md
+/docs/DEVELOPMENT_HANDOFF.md
+
+# Local API coding standards
+/apps/api/instructions/
+/apps/api/AGENTS.md
+/apps/api/CLAUDE.md

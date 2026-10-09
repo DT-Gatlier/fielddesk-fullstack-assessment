@@ -1,0 +1,38 @@
+{
+  "name": "@fielddesk/root",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.23.1 <23",
+    "pnpm": "10.34.6"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@fielddesk/web",
+    "dev:api": "turbo run dev --filter=@fielddesk/api",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "format:check": "prettier . --check",
+    "format": "prettier . --write",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @fielddesk/database generate",
+    "db:migrate:dev": "pnpm --filter @fielddesk/database migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @fielddesk/database migrate:deploy",
+    "db:seed": "pnpm --filter @fielddesk/database seed",
+    "db:studio": "pnpm --filter @fielddesk/database studio",
+    "db:test:setup": "pnpm --filter @fielddesk/database test:setup",
+    "db:test:reset": "pnpm --filter @fielddesk/database test:reset",
+    "test:integration": "pnpm --filter @fielddesk/database build && pnpm --filter @fielddesk/database test:integration && pnpm --filter @fielddesk/api test:integration",
+    "prepare:api": "pnpm --filter @fielddesk/database build",
+    "codegen": "pnpm --filter @fielddesk/web codegen",
+    "test:e2e": "pnpm --filter @fielddesk/web test:e2e"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^2.0.0",
+    "typescript": "~5.9.3"
+  }
+}

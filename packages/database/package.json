@@ -1,0 +1,46 @@
+{
+  "name": "@fielddesk/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "build": "pnpm generate && tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "migrate:dev": "tsx scripts/database-command.ts migrate-dev",
+    "migrate:deploy": "tsx scripts/database-command.ts migrate-deploy",
+    "seed": "tsx scripts/database-command.ts seed",
+    "studio": "tsx scripts/database-command.ts studio",
+    "test:setup": "tsx scripts/test-database.ts setup",
+    "test:reset": "tsx scripts/test-database.ts reset",
+    "test": "tsx --test test/safety.test.ts",
+    "test:integration": "tsx scripts/test-database.ts test"
+  },
+  "dependencies": {
+    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@fielddesk/eslint-config": "workspace:*",
+    "@fielddesk/typescript-config": "workspace:*",
+    "@types/node": "^22",
+    "@types/pg": "^8",
+    "argon2": "^0.44.0",
+    "dotenv": "^17",
+    "eslint": "^9",
+    "prisma": "7.10.0",
+    "tsx": "^4",
+    "typescript": "~5.9.3"
+  }
+}
