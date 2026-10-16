@@ -1,23 +1,12 @@
-# Environment and secrets
+node_modules/
+dist/
+coverage/
+storage/
+.test-storage/
+*.log
+.DS_Store
+
+# Local configuration and secrets never go into source control.
 .env
 .env.*
 !.env.example
-
-# Dependencies
-node_modules/
-
-# Build and test output
-dist/
-build/
-coverage/
-.next/
-
-# Runtime data
-uploads/
-*.log
-
-# Editors and operating systems
-.idea/
-.vscode/
-.DS_Store
-Thumbs.db

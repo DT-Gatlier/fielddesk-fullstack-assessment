@@ -1,0 +1,43 @@
+{
+  "name": "fielddesk",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "worker",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:api": "npm run dev -w backend",
+    "dev:worker": "npm run dev -w worker",
+    "dev:web": "npm run dev -w frontend",
+    "db:migrate": "tsx backend/src/db/migrate.ts",
+    "db:seed": "tsx backend/src/db/seed.ts",
+    "db:reset": "tsx backend/src/db/migrate.ts --reset && tsx backend/src/db/seed.ts",
+    "mock-provider": "tsx worker/src/mock-provider-cli.ts",
+    "build": "npm run build -w backend && npm run build -w worker && npm run build -w frontend",
+    "typecheck": "tsc -p backend --noEmit && tsc -p worker --noEmit && tsc -p frontend --noEmit && tsc -p tests --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --config tests/vitest.config.ts && npm run test -w frontend",
+    "test:api": "vitest run --config tests/vitest.config.ts",
+    "test:e2e": "npm run test -w frontend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "supertest": "^7.0.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vite": "^6.4.4",
+    "vitest": "^3.2.7"
+  }
+}

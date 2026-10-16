@@ -1,0 +1,98 @@
+# FieldDesk local stack:  docker compose up --build
+#   Web app:  http://localhost:8080      API: http://localhost:4000
+# All credentials below are local-development placeholders. Override any of
+# them through a git-ignored .env file next to this compose file.
+
+x-app-env: &app-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgres://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk_dev_password}@postgres:5432/${POSTGRES_DB:-fielddesk}
+  REDIS_URL: redis://redis:6379
+  TRUST_PROXY: 'true'
+  COOKIE_SECURE: ${COOKIE_SECURE:-false} # local http; must be true behind HTTPS
+  TRUSTED_ORIGINS: http://localhost:8080,http://localhost:5173
+  STORAGE_DIR: /app/storage
+  MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
+  DEFAULT_ORG_STORAGE_LIMIT_BYTES: ${DEFAULT_ORG_STORAGE_LIMIT_BYTES:-52428800}
+  NOTIFY_MAX_ATTEMPTS: ${NOTIFY_MAX_ATTEMPTS:-5}
+  NOTIFY_BACKOFF_BASE_MS: ${NOTIFY_BACKOFF_BASE_MS:-1000}
+  MOCK_PROVIDER_MODE: ${MOCK_PROVIDER_MODE:-success}
+  MOCK_PROVIDER_FLAKY_FAILURES: ${MOCK_PROVIDER_FLAKY_FAILURES:-2}
+  SEED_PASSWORD: ${SEED_PASSWORD:-Password123!}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fielddesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fielddesk_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-fielddesk}
+    # Published on 55432, not 5432, so it never collides with a locally installed
+    # PostgreSQL (which would otherwise answer localhost:5432 and reject our credentials).
+    ports: ['${POSTGRES_HOST_PORT:-55432}:5432']
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    # Append-only persistence so queued jobs survive a Redis restart.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: apply migrations, then seed demo data if the database is empty.
+  migrate:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment: *app-env
+    command: ['sh', '-c', 'node backend/dist/db/migrate.js && node backend/dist/db/seed.js']
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      <<: *app-env
+      SERVICE_NAME: fielddesk-api
+      PORT: '4000'
+    ports: ['4000:4000']
+    volumes: [storage:/app/storage]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+  worker:
+    build: { context: ., dockerfile: worker/Dockerfile }
+    environment:
+      <<: *app-env
+      SERVICE_NAME: fielddesk-worker
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    stop_grace_period: 20s
+    restart: unless-stopped
+
+  web:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    ports: ['8080:80']
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:

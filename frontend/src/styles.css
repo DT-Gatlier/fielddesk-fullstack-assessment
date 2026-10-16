@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+/*
+  FieldDesk palette: a midnight sidebar and soft neutral surfaces for
+  structure, indigo for actions, and amber reserved for the two things a
+  dispatcher must not miss — urgent work and live status.
+*/
+@theme {
+  --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --color-ink: #0e1525;
+  --color-ink-soft: #4b5568;
+  --color-ink-faint: #8a93a6;
+  --color-canvas: #f5f6f8;
+  --color-panel: #ffffff;
+  --color-line: #e3e6ec;
+  --color-line-soft: #eff1f4;
+
+  --color-action: #4f46e5;
+  --color-action-strong: #4338ca;
+  --color-action-tint: #eef0ff;
+
+  --color-signal: #f5a524;
+  --color-signal-tint: #fff6e3;
+  --color-danger: #d4321f;
+  --color-danger-tint: #fef1ef;
+  --color-ok: #0c8a52;
+  --color-ok-tint: #e9f8f0;
+
+  --color-prio-low: #a0a8b8;
+  --color-prio-medium: #2e8ae6;
+  --color-prio-high: #ef8b0c;
+  --color-prio-urgent: #e5402f;
+
+  --color-night: #0b1020;
+  --color-night-raised: #151b2e;
+  --color-night-line: #1f2740;
+  --color-night-text: #a5adc4;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-lift: 0 4px 10px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.05);
+  --shadow-pop: 0 20px 40px -12px rgb(16 24 40 / 0.25);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-action);
+    outline-offset: 2px;
+  }
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-action) 18%, transparent);
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Native select with a custom chevron, so it matches the other controls. */
+.select-chevron {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a93a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+}
+
+/* Subtle dot grid behind the sign-in screen. */
+.auth-backdrop {
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(circle at 1px 1px, rgb(14 21 37 / 0.07) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.live-ping {
+  animation: live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.rise-in {
+  animation: rise-in 0.25s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
