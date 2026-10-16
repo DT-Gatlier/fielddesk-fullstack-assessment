@@ -1,0 +1,20 @@
+{
+  "name": "@fielddesk/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts src/mock-provider-cli.ts --format esm --target node22 --out-dir dist --clean",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.34.0",
+    "ioredis": "^5.4.2",
+    "pg": "^8.13.1",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10"
+  }
+}
