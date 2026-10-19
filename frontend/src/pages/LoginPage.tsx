@@ -49,6 +49,11 @@ export function LoginPage() {
         <button type="submit" disabled={submitting || !email || !password}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
+        {import.meta.env.DEV && (
+          <p className="muted small">
+            Demo accounts: owner@, dispatcher@ or tech1@ at northwind.test or harbor.test. Password: FieldDesk!2026
+          </p>
+        )}
       </form>
     </div>
   );
