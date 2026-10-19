@@ -1,0 +1,116 @@
+name: fielddesk
+
+x-backend-env: &backend-env
+  NODE_ENV: ${NODE_ENV:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  API_HOST: 0.0.0.0
+  API_PORT: 3000
+  # The browser origin. With Compose, the web app is served by nginx on port 8080.
+  WEB_ORIGIN: ${COMPOSE_WEB_ORIGIN:-http://localhost:8080}
+  DATABASE_URL: postgres://${APP_DB_USER:-fielddesk_app}:${APP_DB_PASSWORD:-change-me-app}@postgres:5432/${POSTGRES_DB:-fielddesk}
+  MIGRATION_DATABASE_URL: postgres://${POSTGRES_USER:-fielddesk_owner}:${POSTGRES_PASSWORD:-change-me-owner}@postgres:5432/${POSTGRES_DB:-fielddesk}
+  REDIS_URL: redis://redis:6379
+  SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  # The API is reachable only through nginx (no published port), so the forwarded client IP is
+  # trustworthy and login rate limits apply per real client rather than to nginx as a whole.
+  TRUST_PROXY: "true"
+  MAX_ATTACHMENT_BYTES: ${MAX_ATTACHMENT_BYTES:-10485760}
+  NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
+  NOTIFICATION_BACKOFF_MS: ${NOTIFICATION_BACKOFF_MS:-2000}
+  MOCK_PROVIDER_MODE: ${MOCK_PROVIDER_MODE:-success}
+  SEED_PASSWORD: ${SEED_PASSWORD:-FieldDesk!2026}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fielddesk_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-owner}
+      POSTGRES_DB: ${POSTGRES_DB:-fielddesk}
+      APP_DB_USER: ${APP_DB_USER:-fielddesk_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-change-me-app}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot job: applies migrations and seed data, then exits.
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["sh", "-c", "node backend/dist/db/migrate.js && node backend/dist/db/seed.js"]
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *backend-env
+    # No published port: all traffic goes through the web (nginx) service.
+    expose:
+      - "3000"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    stop_grace_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["node", "backend/dist/worker.js"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
