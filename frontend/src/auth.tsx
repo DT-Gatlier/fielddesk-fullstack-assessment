@@ -29,30 +29,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: Infinity,
   });
 
-  // Any 401 from the API (expired or revoked session) returns the app to the login screen.
-  useEffect(() => {
-    const onUnauthenticated = () => {
-      queryClient.clear();
-      queryClient.setQueryData(['me'], null);
-    };
-    window.addEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
-    return () => window.removeEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
-  }, [queryClient]);
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const { user } = await api<{ user: CurrentUser }>('/api/auth/login', { json: { email, password } });
-      queryClient.clear();
-      queryClient.setQueryData(['me'], user);
+  // Switches the signed-in user. Cached data from the previous session is dropped, but the ['me']
+  // query itself is kept: removing it would orphan the component observing it, leaving the app
+  // stuck on the loading screen.
+  const setSession = useCallback(
+    (next: CurrentUser | null) => {
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'me' });
+      queryClient.setQueryData(['me'], next);
     },
     [queryClient],
   );
 
+  // Any 401 from the API (expired or revoked session) returns the app to the login screen.
+  useEffect(() => {
+    const onUnauthenticated = () => setSession(null);
+    window.addEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
+    return () => window.removeEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
+  }, [setSession]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { user } = await api<{ user: CurrentUser }>('/api/auth/login', { json: { email, password } });
+      setSession(user);
+    },
+    [setSession],
+  );
+
   const logout = useCallback(async () => {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
-    queryClient.clear();
-    queryClient.setQueryData(['me'], null);
-  }, [queryClient]);
+    setSession(null);
+  }, [setSession]);
 
   const user = me.data ?? null;
   const can = useCallback((...roles: Role[]) => !!user && roles.includes(user.role), [user]);

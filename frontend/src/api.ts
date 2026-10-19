@@ -110,7 +110,8 @@ export async function api<T>(path: string, options: { method?: string; json?: un
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const error = body?.error;
-    if (response.status === 401 && !path.endsWith('/auth/login')) window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
+    // Auth endpoints handle their own 401s (wrong password, no session yet).
+    if (response.status === 401 && !path.startsWith('/api/auth/')) window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
     throw new ApiError(
       response.status,
       error?.code ?? 'HTTP_ERROR',

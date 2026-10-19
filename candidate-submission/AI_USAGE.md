@@ -32,6 +32,7 @@ If no AI tool was used, write: **No AI-assisted tools were used for this submiss
    - Literal BOM characters in the CSV code were flagged by ESLint and replaced with `String.fromCharCode(0xfeff)`.
    - An upload pipeline used `.pipe()`, which does not propagate errors. It was replaced with `stream.pipeline` so oversized uploads cannot hang.
    - `npm audit` found advisories in Vitest 3 and React Router 6. Both were upgraded to patched majors.
+   - Manual testing found that the app stayed on "Starting FieldDesk" when nobody was signed in. The 401 handler cleared the query cache, including the in-flight session query. It was fixed to keep that query, and a regression test (`App.test.tsx`) was added that fails on the old code.
    - _Add the changes you made yourself after review._
 
 4. **How correctness, security and compatibility were verified.**

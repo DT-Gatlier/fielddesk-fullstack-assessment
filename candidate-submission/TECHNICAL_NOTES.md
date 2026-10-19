@@ -34,7 +34,7 @@ All accounts use the password `FieldDesk!2026`, an assessment-only value set by 
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend tests | `npm run test:backend` | 11 files, **109 passed**, 0 failed (run 4× in a row with no flakes) |
-| Frontend tests | `npm run test:frontend` | 1 file, **1 passed** (create work order → validation → schedule conflict → success) |
+| Frontend tests | `npm run test:frontend` | 2 files, **2 passed** (session lifecycle: no session → login → dashboard → logout; create work order → validation → schedule conflict → success) |
 | Integration tests | Part of the backend suite: real PostgreSQL + Redis, HTTP via `inject`, real WebSockets, real BullMQ | Included above |
 | Lint | `npm run lint` | ESLint + `tsc --noEmit`, both workspaces: **0 problems** |
 | Build | `npm run build` | API/worker `tsc` and Vite production build: **success** |
@@ -220,5 +220,5 @@ Because Postgres enforces the rule at commit time, it holds for any number of AP
 - **Session lifetime.** Sessions have a fixed TTL with no sliding renewal, and there is no "log out all sessions" endpoint.
 - **Password management.** There is no password reset or change flow; owners set initial passwords.
 - **Real-time revalidation lag.** Revalidation runs on the 30-second heartbeat, so a revoked session's socket can stay open for up to one interval (it receives only change hints, never data).
-- **Frontend tests.** These cover one workflow (create work order with a scheduling conflict). Other screens are verified manually and through the API tests.
+- **Frontend tests.** These cover two workflows: the session lifecycle, and creating a work order with a scheduling conflict. Other screens are verified manually and through the API tests.
 - **Rate limiting fails open.** If Redis is unavailable, rate limiting is skipped (`skipOnError`) rather than blocking all logins. Readiness reports the outage.
