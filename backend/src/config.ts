@@ -24,6 +24,9 @@ const configSchema = z.object({
   REDIS_URL: z.string().min(1),
   SESSION_TTL_HOURS: z.coerce.number().positive().max(24 * 30).default(12),
   COOKIE_SECURE: booleanString,
+  // Set when the API is only reachable through a reverse proxy (nginx in Compose, a load balancer in
+  // production), so request.ip and rate limiting use the client address from X-Forwarded-For.
+  TRUST_PROXY: booleanString,
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   LOGIN_RATE_LIMIT_WINDOW: z.string().default('1 minute'),
   EVENT_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),

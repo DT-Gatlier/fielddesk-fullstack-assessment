@@ -64,7 +64,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       return typeof incoming === 'string' && REQUEST_ID_PATTERN.test(incoming) ? incoming : randomUUID();
     },
     logController: new LogController({ requestIdLogLabel: 'requestId' }),
-    trustProxy: config.NODE_ENV === 'production',
+    trustProxy: config.TRUST_PROXY,
     bodyLimit: 1024 * 1024,
   });
 

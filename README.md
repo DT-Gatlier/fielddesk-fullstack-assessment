@@ -25,7 +25,9 @@ docker compose up --build
 | URL | What |
 | --- | --- |
 | http://localhost:8080 | Web app (nginx serving the SPA and proxying `/api`) |
-| http://localhost:3000/health/ready | API readiness |
+| http://localhost:8080/health/ready | API readiness, through nginx |
+
+The API container publishes no port of its own. All traffic goes through nginx, so the client IP used for rate limiting can be trusted.
 
 Compose starts Postgres and Redis, runs the one-shot `migrate` service (migrations followed by seed data), then starts `api`, `worker` and `web`. To reset everything, run `docker compose down -v`.
 

@@ -12,6 +12,9 @@ x-backend-env: &backend-env
   REDIS_URL: redis://redis:6379
   SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
   COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  # The API is reachable only through nginx (no published port), so the forwarded client IP is
+  # trustworthy and login rate limits apply per real client rather than to nginx as a whole.
+  TRUST_PROXY: "true"
   MAX_ATTACHMENT_BYTES: ${MAX_ATTACHMENT_BYTES:-10485760}
   NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
   NOTIFICATION_BACKOFF_MS: ${NOTIFICATION_BACKOFF_MS:-2000}
@@ -67,8 +70,9 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment: *backend-env
-    ports:
-      - "3000:3000"
+    # No published port: all traffic goes through the web (nginx) service.
+    expose:
+      - "3000"
     volumes:
       - uploads:/app/uploads
     depends_on:

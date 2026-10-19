@@ -15,7 +15,7 @@ docker compose up --build     # postgres, redis, migrate (+seed), api, worker, w
 ```
 
 - Web app: http://localhost:8080
-- API: http://localhost:3000 (readiness: `/health/ready`)
+- API readiness: http://localhost:8080/health/ready. The API is reachable only through nginx; with `TRUST_PROXY=true` the forwarded client IP drives rate limiting.
 - Reset all data: `docker compose down -v`
 
 To run without Docker, use `database/local-setup.sql` and the `dev:*` scripts. See [README](../README.md#running-without-docker).
@@ -40,7 +40,10 @@ All accounts use the password `FieldDesk!2026`, an assessment-only value set by 
 | Build | `npm run build` | API/worker `tsc` and Vite production build: **success** |
 | End-to-end smoke test | Scripted run against the live API, worker and Vite proxy | **21/21 checks passed**: login for both orgs, cross-org 404s, scheduling conflict, idempotent event replay, upload and type rejection, CSV, worker retries (2 failures then success), real-time isolation, logout revocation |
 
-Environment for these runs: Windows 11, Node 22.15, PostgreSQL 18.6 and Redis 8.10. The Compose stack pins PostgreSQL 17 and Redis 7.4. Docker could not be run on the development machine because WSL was not installed, so `docker compose up --build` was not executed there.
+Environment for these runs: Windows 11, Node 22.15, PostgreSQL 18.6 and Redis 8.10. The Compose stack pins PostgreSQL 17 and Redis 7.4. Docker could not be run on the development machine because WSL was not installed, so `docker compose up --build` was not executed there. As a substitute, the container path was checked without Docker:
+- `docker compose config` validates the Compose file;
+- the backend image's production install (`npm ci --workspace backend --include-workspace-root --omit=dev`) was reproduced in an empty directory;
+- the compiled `migrate.js`, `seed.js`, `server.js` and `worker.js` were run from that install against a fresh database, with readiness, login and per-client rate limiting behind `TRUST_PROXY` all confirmed.
 
 ## Architecture
 
@@ -215,7 +218,7 @@ Because Postgres enforces the rule at commit time, it holds for any number of AP
 
 ## Known limitations or incomplete requirements
 
-- **Compose stack not run end to end.** The Docker Compose stack (Dockerfiles, nginx proxy, first-boot role script) was written but **not executed** on the development machine, which has no WSL. Every component was verified natively against PostgreSQL 18 and Redis 8 instead (see Verification results).
+- **Compose stack not run end to end.** The Docker Compose stack was **not executed** on the development machine, which has no WSL. The Compose file was validated, and the image's production install and every container command were reproduced natively (see Verification results). Not exercised: the image builds themselves, the nginx proxy, and the Postgres first-boot role script.
 - **Orphaned files.** Stored objects left by a crash between file write and commit are not cleaned up automatically (the approach is described above).
 - **Session lifetime.** Sessions have a fixed TTL with no sliding renewal, and there is no "log out all sessions" endpoint.
 - **Password management.** There is no password reset or change flow; owners set initial passwords.
