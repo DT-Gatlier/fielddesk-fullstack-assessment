@@ -1,0 +1,53 @@
+services:
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  redis:
+    image: redis:7
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: 'fielddeskDb'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: '123'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fielddeskDb"]
+
+
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    
+    command: celery -A config worker -l info
+    
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+volumes:
+  pgdata:

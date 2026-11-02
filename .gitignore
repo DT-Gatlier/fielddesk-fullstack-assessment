@@ -1,23 +1,17 @@
-# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Dependencies
-node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
 
-# Build and test output
+node_modules/
 dist/
 build/
-coverage/
-.next/
 
-# Runtime data
-uploads/
-*.log
-
-# Editors and operating systems
 .idea/
 .vscode/
 .DS_Store
-Thumbs.db
