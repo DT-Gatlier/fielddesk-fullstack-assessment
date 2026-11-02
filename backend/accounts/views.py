@@ -8,9 +8,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from accounts.authentication import LoginAuthentication
 from core.models import audit
-from core.permissions import IsDispatcherOrOwner, IsOwner
+from core.permissions import IsDispatcher, IsOwner
 
 from .models import User
 from .serializers import LoginSerializer, MeSerializer, OrganizationSerializer, TechnicianSerializer, UserSerializer
@@ -25,7 +24,7 @@ def set_refresh_cookie(response, token):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = [LoginAuthentication]
+    authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
@@ -102,7 +101,7 @@ class OrganizationView(APIView):
 
 
 class TechnicianListView(ListAPIView):
-    permission_classes = [IsDispatcherOrOwner]
+    permission_classes = [IsDispatcher]  # only dispatchers assign work
     serializer_class = TechnicianSerializer
     pagination_class = None
 

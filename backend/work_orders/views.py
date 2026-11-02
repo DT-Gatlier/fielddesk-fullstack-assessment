@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from core.mixins import TenantScopedMixin
 from core.models import AuditLog, audit
-from core.permissions import IsDispatcherOrOwner, IsTechnician
+from core.permissions import IsDispatcher, IsDispatcherOrOwner, IsTechnician
 from core.realtime import publish_on_commit
 from core.serializers import AuditLogSerializer
 
@@ -50,7 +50,9 @@ class WorkOrderViewSet(TenantScopedMixin, viewsets.ModelViewSet):
             return [IsAuthenticated()]
         if self.action == "attachments" and self.request.method == "GET":
             return [IsAuthenticated()]
-        return [IsDispatcherOrOwner()]  # create, edit, assign, status, export, upload
+        if self.action == "export":
+            return [IsDispatcherOrOwner()]  # reporting is read-only, so owners may export too
+        return [IsDispatcher()]  # create, edit, assign, status, upload: dispatcher work only (owner manages users/settings)
 
     # ---- create / edit
     def perform_create(self, serializer):

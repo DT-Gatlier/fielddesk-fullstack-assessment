@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { EmptyState, ErrorBox, Loading, Pagination, PriorityBadge, StatusBadge } from "../components/ui.jsx";
-import { PRIORITIES, STATUSES, canManage, fmt, label } from "../constants.js";
+import { PRIORITIES, STATUSES, canDispatch, canManage, fmt, label } from "../constants.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { useLiveRefresh } from "../hooks/live.js";
 
@@ -57,12 +57,10 @@ export default function WorkOrderList() {
     <>
       <div className="page-head">
         <h1>Work orders</h1>
-        {canManage(user) && (
-          <div className="actions">
-            <button onClick={exportCsv}>Export CSV</button>
-            <Link className="button primary" to="/work-orders/new">New work order</Link>
-          </div>
-        )}
+        <div className="actions">
+          {canManage(user) && <button onClick={exportCsv}>Export CSV</button>}
+          {canDispatch(user) && <Link className="button primary" to="/work-orders/new">New work order</Link>}
+        </div>
       </div>
       {exportError && <div className="banner error" role="alert">Export failed: {exportError}</div>}
 
@@ -95,7 +93,7 @@ export default function WorkOrderList() {
           {data.results.length === 0 ? (
             <EmptyState title={hasFilters ? "No work orders match these filters" : "No work orders yet"}>
               {hasFilters ? <p>Try removing a filter or searching for something else.</p>
-                : canManage(user) ? <Link to="/work-orders/new">Create a work order</Link> : <p>Nothing has been assigned to you.</p>}
+                : canDispatch(user) ? <Link to="/work-orders/new">Create a work order</Link> : <p>Nothing has been assigned to you.</p>}
             </EmptyState>
           ) : (
             <table className="grid">

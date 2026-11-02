@@ -1,72 +1,151 @@
-# Technical notes
+# FieldDesk – Technical Notes
 
-Complete this document as part of the submission.
+## 1. Project Overview
 
-## Candidate
+FieldDesk is a full-stack work order management application built using Django REST Framework and React.
 
-- Name:
-- GitHub username:
-- Final commit SHA:
-- Screen-recording link:
+The application supports organization-based workflows, role-based access control, work order management, scheduling, attachments, background processing and activity tracking.
 
-## Local setup
+The implementation focuses on data integrity, authorization, security, reliability and maintainability.
 
-Document the exact commands required to configure and start the application.
+## 2. Technology Stack
 
-## Sample accounts
+### Backend
+- Python
+- Django
+- Django REST Framework
+- PostgreSQL
+- Redis
+- Celery
+- Server-Sent Events (SSE)
 
-List the seeded organisations, roles and sample login credentials. Use assessment-only credentials.
+### Frontend
+- React
+- JavaScript
+- REST API integration
 
-## Verification results
+### Infrastructure
+- Docker
+- Docker Compose
 
-| Check | Command | Result |
-| --- | --- | --- |
-| Backend tests |  |  |
-| Frontend tests |  |  |
-| Integration tests |  |  |
-| Lint |  |  |
-| Build |  |  |
+## 3. Architecture and Implementation
 
-## Architecture
+### Authentication and Authorization
 
-Describe the major components, their responsibilities and important dependencies.
+- Implemented JWT-based authentication.
+- Refresh tokens are handled using secure HTTP-only cookies.
+- Access is controlled through role-based permissions.
+- Protected endpoints validate user permissions before allowing operations.
 
-## Database design
+### Organization Isolation
 
-Explain the principal tables, relationships, constraints, indexes and migration strategy.
+- Implemented organization-level data isolation.
+- Users can only access resources belonging to their authorized organization.
+- Backend querysets and permission checks enforce tenant boundaries.
 
-## Authentication, roles and organisation isolation
+### Work Order Management
 
-Explain how authentication works and where organisation and role restrictions are enforced.
+- Implemented work order creation and management workflows.
+- Added role-based restrictions for work order operations.
+- Status changes are handled through controlled API operations.
+- Activity history maintains a record of important changes.
 
-## Transactions, idempotency and concurrency
+### Scheduling and Concurrency
 
-Explain the transaction boundaries, duplicate-event handling and concurrent scheduling protection.
+- Implemented scheduling conflict prevention.
+- Used PostgreSQL database-level constraints to protect against conflicting concurrent operations.
+- Database transactions are used where operations require atomicity.
 
-## Background jobs
+### Idempotency
 
-Explain delivery guarantees, retries, backoff, duplicate prevention and permanent failure handling.
+- Implemented idempotent event processing to prevent duplicate processing.
+- Designed event handling to maintain consistency when requests or events are retried.
 
-## Real-time updates
+### Attachments
 
-Explain connection authentication, organisation isolation, reconnection and degraded behaviour.
+- Implemented attachment handling with access restrictions.
+- Added quota-related validation.
+- Resource access is checked before allowing attachment operations.
 
-## File security and storage limits
+### Background Processing
 
-Explain validation, authorisation, quota enforcement and the production object-storage approach.
+- Celery handles asynchronous background tasks.
+- Redis is used as the message broker and supporting infrastructure.
 
-## Security considerations
+### Real-time Updates
 
-Describe relevant threats considered and the protections implemented.
+- Implemented Server-Sent Events (SSE) for real-time updates.
+- This allows clients to receive relevant updates without continuously polling the API.
 
-## Production deployment and operations
+### Audit History
 
-Explain how you would deploy, scale, monitor, back up and recover the application.
+- Maintained activity and audit records for important operations.
+- Audit records are protected against unauthorized modification and deletion through the API.
 
-## Assumptions and trade-offs
+### CSV Export
 
-List significant assumptions and explain important trade-offs.
+- Implemented CSV export functionality for relevant application data.
 
-## Known limitations or incomplete requirements
+## 4. Testing
 
-List anything incomplete or not working. If none, state that explicitly.
+Automated tests cover important application functionality, including:
+
+- Authentication and authorization.
+- Role-based access restrictions.
+- Organization-level isolation.
+- Work order operations.
+- Scheduling conflict handling.
+- Idempotency.
+- Attachment access and validation.
+- Audit history.
+- API behavior.
+
+### Verification commands
+
+Record the actual results from your final environment.
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+Run the backend test suite using the configured test command:
+
+```bash
+docker compose exec backend pytest
+```
+
+Run frontend tests:
+
+```bash
+docker compose exec frontend npm test
+```
+
+Run frontend linting and production build if configured:
+
+```bash
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run build
+```
+
+**Test results:** To be completed with the actual final test output. Do not report a passing test suite unless it has completed successfully.
+
+## 5. Important Design Decisions
+
+- Enforce authorization on the backend rather than relying only on frontend restrictions.
+- Use database-level constraints for important data-integrity requirements.
+- Use transactions for operations that must succeed or fail together.
+- Keep audit history protected from ordinary application-level modification.
+- Use asynchronous processing for background operations.
+- Validate uploaded files and enforce resource access restrictions.
+- Keep organization-level access checks consistent across API endpoints.
+
+## 6. Known Limitations
+
+Document any remaining limitations, incomplete features, environment-specific issues or test failures here.
+
+Do not describe an unverified feature as fully tested.
+
+## 7. Conclusion
+
+The implementation aims to provide a secure and reliable work order management system with emphasis on backend correctness, data integrity, authorization and maintainable full-stack architecture.

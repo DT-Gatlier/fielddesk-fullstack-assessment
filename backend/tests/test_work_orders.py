@@ -93,7 +93,7 @@ def test_manager_status_update_and_activity_history(world):
 
 def test_api_has_no_way_to_edit_or_delete_audit_or_orders(world):
     order = make_order(world.org_a, world.disp_a)
-    c = client_for(world.owner_a)
+    c = client_for(world.disp_a)
     assert c.delete(f"/api/work-orders/{order.pk}/").status_code == 405
     assert c.post("/api/audit-logs/", {"action": "x"}).status_code == 405
     assert c.patch("/api/audit-logs/1/", {"action": "x"}).status_code == 405

@@ -2,7 +2,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./auth.jsx";
 import Layout from "./components/Layout.jsx";
 import { Loading } from "./components/ui.jsx";
-import { canManage } from "./constants.js";
+import { canDispatch } from "./constants.js";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import WorkOrderList from "./pages/WorkOrderList.jsx";
@@ -18,9 +18,9 @@ function Protected() {
 }
 
 // UX only: hides pages the role can't use. The API enforces the real rule.
-function ManagerOnly({ children }) {
+function DispatcherOnly({ children }) {
   const { user } = useAuth();
-  return canManage(user) ? children : <Navigate to="/work-orders" replace />;
+  return canDispatch(user) ? children : <Navigate to="/work-orders" replace />;
 }
 
 export function AppRoutes() {
@@ -31,9 +31,9 @@ export function AppRoutes() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="work-orders" element={<WorkOrderList />} />
-          <Route path="work-orders/new" element={<ManagerOnly><WorkOrderForm /></ManagerOnly>} />
+          <Route path="work-orders/new" element={<DispatcherOnly><WorkOrderForm /></DispatcherOnly>} />
           <Route path="work-orders/:id" element={<WorkOrderDetail />} />
-          <Route path="work-orders/:id/edit" element={<ManagerOnly><WorkOrderForm /></ManagerOnly>} />
+          <Route path="work-orders/:id/edit" element={<DispatcherOnly><WorkOrderForm /></DispatcherOnly>} />
           <Route path="*" element={<p>Page not found.</p>} />
         </Route>
       </Route>

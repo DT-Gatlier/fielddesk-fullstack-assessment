@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { useLiveConnection } from "../hooks/live.js";
-import { canManage } from "../constants.js";
+import { canDispatch } from "../constants.js";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -16,7 +16,7 @@ export default function Layout() {
         <nav aria-label="Main">
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/work-orders" end>Work orders</NavLink>
-          {canManage(user) && <NavLink to="/work-orders/new">New work order</NavLink>}
+          {canDispatch(user) && <NavLink to="/work-orders/new">New work order</NavLink>}
         </nav>
         <div className="user">
           <span className={`dot ${live}`} title={liveText} aria-label={liveText} />

@@ -7,7 +7,7 @@ import AssignPanel from "../components/AssignPanel.jsx";
 import Attachments from "../components/Attachments.jsx";
 import StatusPanel from "../components/StatusPanel.jsx";
 import { ErrorBox, Loading, PriorityBadge, StatusBadge } from "../components/ui.jsx";
-import { canManage, fmt } from "../constants.js";
+import { canDispatch, fmt } from "../constants.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { useLiveRefresh } from "../hooks/live.js";
 
@@ -23,7 +23,7 @@ export default function WorkOrderDetail() {
   if (loading && !o) return <Loading />;
   if (error && !o) return <ErrorBox error={error} onRetry={reload} />;
 
-  const manager = canManage(user);
+  const dispatcher = canDispatch(user);
   const dl = (k, v) => <div><dt>{k}</dt><dd>{v}</dd></div>;
 
   return (
@@ -34,7 +34,7 @@ export default function WorkOrderDetail() {
           <small className="muted">{o.reference}</small>
           <h1>{o.title}</h1>
         </div>
-        {manager && <Link className="button" to={`/work-orders/${o.id}/edit`}>Edit</Link>}
+        {dispatcher && <Link className="button" to={`/work-orders/${o.id}/edit`}>Edit</Link>}
       </div>
 
       <section className="panel">
@@ -53,9 +53,9 @@ export default function WorkOrderDetail() {
 
       <div className="two-col">
         <div>
-          {manager && <AssignPanel order={o} onDone={refresh} />}
-          <StatusPanel key={o.status} order={o} role={user.role} onDone={refresh} />
-          <Attachments orderId={o.id} canUpload={manager} version={version} />
+          {dispatcher && <AssignPanel order={o} onDone={refresh} />}
+          {(dispatcher || user.role === "technician") && <StatusPanel key={o.status} order={o} role={user.role} onDone={refresh} />}
+          <Attachments orderId={o.id} canUpload={dispatcher} version={version} />
         </div>
         <Activity orderId={o.id} version={version} />
       </div>

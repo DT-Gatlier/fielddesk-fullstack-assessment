@@ -1,4 +1,5 @@
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from accounts.models import User
@@ -62,3 +63,26 @@ def test_technician_only_sees_assigned_orders(world):
     assert r.status_code == 200 and r.data["count"] == 1
     assert client_for(world.tech_a).get("/api/dashboard/").data["total"] == 1
     assert client_for(world.disp_a).get("/api/dashboard/").data["total"] == 2
+
+
+def test_owner_manages_users_but_cannot_run_work_orders(world):
+    """Brief: owner = users and organisation settings; dispatcher = create/schedule/assign/update work orders."""
+    order = make_order(world.org_a, world.disp_a)
+    c = client_for(world.owner_a)
+    base = f"/api/work-orders/{order.pk}/"
+    png = SimpleUploadedFile("a.png", b"\x89PNG\r\n\x1a\n" + b"0" * 32, content_type="image/png")
+    assert c.post("/api/work-orders/", NEW_ORDER).status_code == 403
+    assert c.patch(base, {"title": "x"}).status_code == 403
+    assert c.patch(base + "assign/", assign_payload(world.tech_a)).status_code == 403
+    assert c.patch(base + "status/", {"status": "cancelled"}).status_code == 403
+    assert c.post(base + "attachments/", {"file": png}, format="multipart").status_code == 403
+    assert c.get("/api/technicians/").status_code == 403
+    # ...but the owner can see everything in the organisation and use reporting
+    assert c.get("/api/work-orders/").data["count"] == 1
+    assert c.get(base).status_code == 200 and c.get(base + "activity/").status_code == 200
+    assert c.get("/api/dashboard/").data["total"] == 1
+    assert c.get("/api/work-orders/export/").status_code == 200
+    # and the owner's own job works
+    assert c.get("/api/users/").status_code == 200
+    assert c.patch("/api/organization/", {"name": "Acme Renamed"}).status_code == 200
+    assert client_for(world.disp_a).patch("/api/organization/", {"name": "Hacked"}).status_code == 403

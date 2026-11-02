@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { EmptyState, ErrorBox, Loading } from "../components/ui.jsx";
-import { STATUSES, canManage, label } from "../constants.js";
+import { STATUSES, canDispatch, label } from "../constants.js";
 import { useFetch } from "../hooks/useFetch.js";
 import { useLiveRefresh } from "../hooks/live.js";
 
@@ -29,7 +29,7 @@ export default function Dashboard() {
       </div>
       {data.total === 0 && (
         <EmptyState title="No work orders yet">
-          {canManage(user) ? <Link to="/work-orders/new">Create the first work order</Link> : <p>Nothing has been assigned to you.</p>}
+          {canDispatch(user) ? <Link to="/work-orders/new">Create the first work order</Link> : <p>Nothing has been assigned to you.</p>}
         </EmptyState>
       )}
     </>

@@ -15,4 +15,6 @@ export const ALLOWED_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 export const label = (s) => String(s ?? "").replace(/_/g, " ");
 export const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : "—");
 // UI convenience only: the backend is the real authority for roles
+// Only dispatchers create/edit/assign/update work orders; owners manage users and may view + export
+export const canDispatch = (u) => !!u && u.role === "dispatcher";
 export const canManage = (u) => !!u && ["owner", "dispatcher"].includes(u.role);
