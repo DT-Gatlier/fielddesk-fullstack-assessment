@@ -31,7 +31,19 @@ export class UserController {
       next(err);
     }
   };
+
+  /**
+   * List all active technicians for the authenticated organisation.
+   */
+  listTechnicians = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { organisationId } = req.tenantContext;
+      const technicians = await userRepository.listTechniciansByOrg(organisationId);
+      res.status(200).json({ technicians });
+    } catch (err) {
+      next(err);
+    }
+  };
 }
 
 export const userController = new UserController();
-

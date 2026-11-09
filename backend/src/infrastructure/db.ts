@@ -22,13 +22,13 @@ export function getDbPool(): Pool {
 }
 
 // In-memory mock database state for testing or when PG server is unreachable
-interface MockOrg {
+export interface MockOrg {
   id: string;
   name: string;
   storage_quota_bytes: number;
 }
 
-interface MockUser {
+export interface MockUser {
   id: string;
   organisation_id: string;
   email: string;
@@ -40,13 +40,43 @@ interface MockUser {
   updated_at: Date;
 }
 
-interface MockRefreshToken {
+export interface MockRefreshToken {
   id: string;
   user_id: string;
   organisation_id: string;
   token_hash: string;
   expires_at: Date;
   revoked_at: Date | null;
+  created_at: Date;
+}
+
+export interface MockWorkOrder {
+  id: string;
+  organisation_id: string;
+  reference_number: string;
+  title: string;
+  description: string | null;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'blocked' | 'completed' | 'cancelled';
+  site_name: string;
+  assigned_technician_id: string | null;
+  scheduled_start: Date | null;
+  scheduled_end: Date | null;
+  created_by: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MockAuditLog {
+  id: string;
+  organisation_id: string;
+  actor_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  before_state: any;
+  after_state: any;
+  metadata: any;
   created_at: Date;
 }
 
@@ -139,6 +169,92 @@ const mockUsers: MockUser[] = [
 
 const mockRefreshTokens: MockRefreshToken[] = [];
 
+const initialMockWorkOrders: MockWorkOrder[] = [
+  {
+    id: '10000000-0000-0000-0000-000000000001',
+    organisation_id: 'org-apex-01',
+    reference_number: 'WO-APEX-1001',
+    title: 'HVAC Filter Replacement & Calibration',
+    description: 'Routine 6-month air handling unit filter replacement and thermostat recalibration on Level 3.',
+    priority: 'medium',
+    status: 'open',
+    site_name: 'Apex Tower North - Floor 3',
+    assigned_technician_id: '11111111-1111-1111-1111-111111111103',
+    scheduled_start: new Date('2026-11-10T09:00:00Z'),
+    scheduled_end: new Date('2026-11-10T11:00:00Z'),
+    created_by: '11111111-1111-1111-1111-111111111102',
+    created_at: new Date('2026-11-08T10:00:00Z'),
+    updated_at: new Date('2026-11-08T10:00:00Z'),
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000002',
+    organisation_id: 'org-apex-01',
+    reference_number: 'WO-APEX-1002',
+    title: 'Emergency Server Room Chiller Leak',
+    description: 'Water pooling detected beneath Chiller Unit B in primary server rack room. Urgent repair required.',
+    priority: 'urgent',
+    status: 'in_progress',
+    site_name: 'Apex Data Center B2',
+    assigned_technician_id: '11111111-1111-1111-1111-111111111103',
+    scheduled_start: new Date('2026-11-10T13:00:00Z'),
+    scheduled_end: new Date('2026-11-10T15:00:00Z'),
+    created_by: '11111111-1111-1111-1111-111111111102',
+    created_at: new Date('2026-11-09T08:00:00Z'),
+    updated_at: new Date('2026-11-09T08:00:00Z'),
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000003',
+    organisation_id: 'org-apex-01',
+    reference_number: 'WO-APEX-1003',
+    title: 'Fire Alarm Strobe Testing',
+    description: 'Quarterly audible and visual alarm compliance test.',
+    priority: 'low',
+    status: 'completed',
+    site_name: 'Apex Headquarters Main Atrium',
+    assigned_technician_id: '11111111-1111-1111-1111-111111111104',
+    scheduled_start: new Date('2026-11-09T08:00:00Z'),
+    scheduled_end: new Date('2026-11-09T10:00:00Z'),
+    created_by: '11111111-1111-1111-1111-111111111102',
+    created_at: new Date('2026-11-07T08:00:00Z'),
+    updated_at: new Date('2026-11-07T08:00:00Z'),
+  },
+  {
+    id: '20000000-0000-0000-0000-000000000001',
+    organisation_id: 'org-summit-02',
+    reference_number: 'WO-SUMMIT-2001',
+    title: 'High Voltage Transformer Inspection',
+    description: 'Substation Alpha transformer oil level testing and infrared thermography.',
+    priority: 'high',
+    status: 'open',
+    site_name: 'Summit Power Substation 04',
+    assigned_technician_id: '22222222-2222-2222-2222-222222222203',
+    scheduled_start: new Date('2026-11-10T10:00:00Z'),
+    scheduled_end: new Date('2026-11-10T12:00:00Z'),
+    created_by: '22222222-2222-2222-2222-222222222202',
+    created_at: new Date('2026-11-08T09:00:00Z'),
+    updated_at: new Date('2026-11-08T09:00:00Z'),
+  },
+];
+
+let mockWorkOrders: MockWorkOrder[] = JSON.parse(JSON.stringify(initialMockWorkOrders));
+const mockAuditLogs: MockAuditLog[] = [];
+
+export function resetMockWorkOrders() {
+  mockWorkOrders = JSON.parse(JSON.stringify(initialMockWorkOrders));
+}
+
+export function getMockWorkOrders(): MockWorkOrder[] {
+  return mockWorkOrders;
+}
+
+export function getMockAuditLogs(): MockAuditLog[] {
+  return mockAuditLogs;
+}
+
+export function getMockUsers(): MockUser[] {
+  return mockUsers;
+}
+
 export function setUseMockDb(val: boolean) {
   useMock = val;
 }
@@ -187,7 +303,7 @@ function executeMockQuery<R extends QueryResultRow = any>(
   }
 
   // Find user by id and org
-  if (normalized.includes('where u.id = $1 and u.organisation_id = $2')) {
+  if (normalized.includes('from users u') && normalized.includes('where u.id = $1 and u.organisation_id = $2')) {
     const id = params[0];
     const orgId = params[1];
     const user = mockUsers.find((u) => u.id === id && u.organisation_id === orgId);
@@ -200,6 +316,13 @@ function executeMockQuery<R extends QueryResultRow = any>(
       organisation_name: org?.name ?? '',
     };
     return { rows: [row as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // List technicians for an organisation
+  if (normalized.includes('from users') && normalized.includes('role = \'technician\'') && normalized.includes('organisation_id = $1')) {
+    const orgId = params[0];
+    const techs = mockUsers.filter((u) => u.organisation_id === orgId && u.role === 'technician' && u.is_active);
+    return { rows: techs as unknown as R[], rowCount: techs.length, command: 'SELECT', oid: 0, fields: [] };
   }
 
   // Insert refresh token
@@ -221,7 +344,7 @@ function executeMockQuery<R extends QueryResultRow = any>(
   // Find active refresh token by hash
   if (normalized.includes('from refresh_tokens') && normalized.includes('token_hash = $1')) {
     const tokenHash = params[0];
-    const token = mockRefreshTokens.find((t) => t.token_hash === tokenHash && !t.revoked_at && t.expires_at > new Date());
+    const token = mockRefreshTokens.find((t) => t.token_hash === tokenHash && !t.revoked_at && new Date(t.expires_at) > new Date());
     if (!token) {
       return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
     }
@@ -250,6 +373,225 @@ function executeMockQuery<R extends QueryResultRow = any>(
       }
     }
     return { rows: [] as R[], rowCount: count, command: 'UPDATE', oid: 0, fields: [] };
+  }
+
+  // Insert audit log
+  if (normalized.includes('insert into audit_logs')) {
+    const [orgId, actorId, action, targetType, targetId, beforeState, afterState, metadata] = params;
+    const log: MockAuditLog = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      organisation_id: orgId,
+      actor_id: actorId,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      before_state: beforeState ? JSON.parse(typeof beforeState === 'string' ? beforeState : JSON.stringify(beforeState)) : null,
+      after_state: afterState ? JSON.parse(typeof afterState === 'string' ? afterState : JSON.stringify(afterState)) : null,
+      metadata: metadata ? JSON.parse(typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : {},
+      created_at: new Date(),
+    };
+    mockAuditLogs.push(log);
+    return { rows: [log as unknown as R], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
+  }
+
+  // Find audit logs by target_id
+  if (normalized.includes('from audit_logs') && normalized.includes('target_id = $1')) {
+    const targetId = params[0];
+    const logs = mockAuditLogs.filter((l) => l.target_id === targetId);
+    return { rows: logs as unknown as R[], rowCount: logs.length, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Dashboard metrics aggregation
+  if (normalized.includes('from work_orders') && (normalized.includes('count(*)') || normalized.includes('filter (where status ='))) {
+    const orgId = params[0];
+    const techId = params[1] || null;
+
+    let items = mockWorkOrders.filter((w) => w.organisation_id === orgId);
+    if (techId) {
+      items = items.filter((w) => w.assigned_technician_id === techId);
+    }
+
+    const metrics = {
+      total: items.length,
+      open: items.filter((w) => w.status === 'open').length,
+      in_progress: items.filter((w) => w.status === 'in_progress').length,
+      blocked: items.filter((w) => w.status === 'blocked').length,
+      completed: items.filter((w) => w.status === 'completed').length,
+      cancelled: items.filter((w) => w.status === 'cancelled').length,
+    };
+    return { rows: [metrics as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Single work order by id and organisation_id
+  if (normalized.includes('from work_orders wo') && normalized.includes('where wo.id = $1 and wo.organisation_id = $2')) {
+    const id = params[0];
+    const orgId = params[1];
+    const techId = params[2] || null;
+
+    let item = mockWorkOrders.find((w) => w.id === id && w.organisation_id === orgId);
+    if (item && techId && item.assigned_technician_id !== techId) {
+      item = undefined;
+    }
+
+    if (!item) {
+      return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
+    }
+
+    const tech = mockUsers.find((u) => u.id === item?.assigned_technician_id);
+    const creator = mockUsers.find((u) => u.id === item?.created_by);
+    const row = {
+      ...item,
+      technician_name: tech?.name || null,
+      technician_email: tech?.email || null,
+      creator_name: creator?.name || null,
+    };
+    return { rows: [row as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Insert new work order
+  if (normalized.includes('insert into work_orders')) {
+    const [
+      id,
+      organisationId,
+      referenceNumber,
+      title,
+      description,
+      priority,
+      status,
+      siteName,
+      assignedTechnicianId,
+      scheduledStart,
+      scheduledEnd,
+      createdBy,
+    ] = params;
+
+    const newWo: MockWorkOrder = {
+      id: id || `wo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      organisation_id: organisationId,
+      reference_number: referenceNumber,
+      title,
+      description: description || null,
+      priority: priority || 'medium',
+      status: status || 'open',
+      site_name: siteName,
+      assigned_technician_id: assignedTechnicianId || null,
+      scheduled_start: scheduledStart ? new Date(scheduledStart) : null,
+      scheduled_end: scheduledEnd ? new Date(scheduledEnd) : null,
+      created_by: createdBy,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    mockWorkOrders.unshift(newWo);
+
+    const tech = mockUsers.find((u) => u.id === newWo.assigned_technician_id);
+    const row = {
+      ...newWo,
+      technician_name: tech?.name || null,
+      technician_email: tech?.email || null,
+    };
+    return { rows: [row as unknown as R], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Update work order
+  if (normalized.includes('update work_orders') && normalized.includes('where id = $') && normalized.includes('organisation_id = $')) {
+    // Dynamic params
+    const id = params[params.length - 2];
+    const orgId = params[params.length - 1];
+    const item = mockWorkOrders.find((w) => w.id === id && w.organisation_id === orgId);
+
+    if (!item) {
+      return { rows: [] as R[], rowCount: 0, command: 'UPDATE', oid: 0, fields: [] };
+    }
+
+    // Inspect fields dynamically by parsing SET assignments e.g. "title = $1"
+    const setMatches = normalized.matchAll(/(\w+)\s*=\s*\$(\d+)/g);
+    for (const match of setMatches) {
+      const field = match[1];
+      const paramIdx = parseInt(match[2], 10) - 1;
+      const val = params[paramIdx];
+
+      if (field === 'title' && val !== undefined) item.title = val;
+      else if (field === 'description') item.description = val;
+      else if (field === 'priority' && val !== undefined) item.priority = val;
+      else if (field === 'status' && val !== undefined) item.status = val;
+      else if (field === 'site_name' && val !== undefined) item.site_name = val;
+      else if (field === 'assigned_technician_id') item.assigned_technician_id = val;
+      else if (field === 'scheduled_start') item.scheduled_start = val ? new Date(val) : null;
+      else if (field === 'scheduled_end') item.scheduled_end = val ? new Date(val) : null;
+    }
+
+    item.updated_at = new Date();
+
+    const tech = mockUsers.find((u) => u.id === item.assigned_technician_id);
+    const row = {
+      ...item,
+      technician_name: tech?.name || null,
+      technician_email: tech?.email || null,
+    };
+    return { rows: [row as unknown as R], rowCount: 1, command: 'UPDATE', oid: 0, fields: [] };
+  }
+
+  // Work Orders: List query (count or records)
+  if (normalized.includes('from work_orders wo')) {
+    const orgId = params[0];
+    let items = mockWorkOrders.filter((w) => w.organisation_id === orgId);
+
+    // Filter by tech if technician scope applied
+    if (params.includes('11111111-1111-1111-1111-111111111103')) {
+      items = items.filter((w) => w.assigned_technician_id === '11111111-1111-1111-1111-111111111103');
+    } else if (params.includes('22222222-2222-2222-2222-222222222203')) {
+      items = items.filter((w) => w.assigned_technician_id === '22222222-2222-2222-2222-222222222203');
+    }
+
+    // Check search param
+    for (const p of params) {
+      if (typeof p === 'string' && p.startsWith('%') && p.endsWith('%')) {
+        const queryTerm = p.replace(/%/g, '').toLowerCase();
+        items = items.filter(
+          (w) =>
+            w.reference_number.toLowerCase().includes(queryTerm) ||
+            w.title.toLowerCase().includes(queryTerm) ||
+            w.site_name.toLowerCase().includes(queryTerm)
+        );
+      }
+    }
+
+    // Check status filter
+    const statusValues = ['open', 'in_progress', 'blocked', 'completed', 'cancelled'];
+    for (const p of params) {
+      if (statusValues.includes(p)) {
+        items = items.filter((w) => w.status === p);
+      }
+    }
+
+    // Check priority filter
+    const priorityValues = ['low', 'medium', 'high', 'urgent'];
+    for (const p of params) {
+      if (priorityValues.includes(p)) {
+        items = items.filter((w) => w.priority === p);
+      }
+    }
+
+    if (normalized.startsWith('select count(*)')) {
+      return { rows: [{ count: String(items.length) } as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+    }
+
+    // Slice for pagination: LIMIT and OFFSET are last two params in dataQuery
+    const limit = typeof params[params.length - 2] === 'number' ? params[params.length - 2] : 20;
+    const offset = typeof params[params.length - 1] === 'number' ? params[params.length - 1] : 0;
+    const paged = items.slice(offset, offset + limit);
+
+    // Format rows with joined technician info
+    const formatted = paged.map((w) => {
+      const tech = mockUsers.find((u) => u.id === w.assigned_technician_id);
+      return {
+        ...w,
+        technician_name: tech?.name || null,
+        technician_email: tech?.email || null,
+      };
+    });
+
+    return { rows: formatted as unknown as R[], rowCount: formatted.length, command: 'SELECT', oid: 0, fields: [] };
   }
 
   return { rows: [] as R[], rowCount: 0, command: 'UNKNOWN', oid: 0, fields: [] };

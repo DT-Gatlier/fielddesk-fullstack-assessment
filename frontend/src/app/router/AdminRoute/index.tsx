@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom"
 import { useGetProfileDetails, useGetPermissions } from "@/app/api/queryHooks"
 import { APP_USER_ROLES } from "@/app/shared/configs"
 
-import LoadingOverlay from "../../shared/components/LoadingOverlay"
+import LoadingOverlay from "@/app/shared/components/LoadingOverlay"
 import { ROUTE_CONFIG } from "../config"
 
 interface AdminRouteProps {
