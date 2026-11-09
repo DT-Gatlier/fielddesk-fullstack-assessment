@@ -1,5 +1,6 @@
 import apiClient from "../../client"
 import type {
+  AssignTechnicianInput,
   CreateWorkOrderInput,
   DashboardMetrics,
   PaginatedWorkOrders,
@@ -53,6 +54,14 @@ export const workOrderService = {
   getTechnicians: async (): Promise<TechnicianUser[]> => {
     const res = await apiClient.get<{ technicians: TechnicianUser[] }>("/users/technicians")
     return res.data.technicians
+  },
+
+  assignTechnician: async (
+    id: string,
+    payload: AssignTechnicianInput
+  ): Promise<WorkOrder> => {
+    const res = await apiClient.post<WorkOrder>(`/work-orders/${id}/assign`, payload)
+    return res.data
   },
 }
 

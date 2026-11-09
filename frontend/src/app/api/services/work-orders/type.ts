@@ -103,3 +103,27 @@ export interface TechnicianUser {
   email: string
 }
 
+export interface AssignTechnicianInput {
+  technicianId: string
+  scheduledStart: string
+  scheduledEnd: string
+}
+
+export interface ConflictingWorkOrder {
+  id?: string
+  referenceNumber: string
+  scheduledStart: string
+  scheduledEnd: string
+}
+
+export interface SchedulingConflictErrorResponse {
+  type: string
+  title: string
+  status: number
+  code: string
+  detail: string
+  conflictingWorkOrder?: ConflictingWorkOrder
+  correlationId?: string
+}
+
+

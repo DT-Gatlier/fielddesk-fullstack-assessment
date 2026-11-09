@@ -42,6 +42,29 @@ export class ConflictError extends AppError {
   }
 }
 
+export interface ConflictingWorkOrderDetails {
+  id?: string;
+  referenceNumber?: string;
+  scheduledStart?: string | Date;
+  scheduledEnd?: string | Date;
+}
+
+export class SchedulingConflictError extends AppError {
+  readonly statusCode = 409;
+  readonly code = 'SCHEDULING_CONFLICT';
+  readonly title = 'Scheduling Conflict';
+  public readonly conflictingWorkOrder?: ConflictingWorkOrderDetails;
+
+  constructor(
+    message = 'The technician is already scheduled for an overlapping work order.',
+    conflictingWorkOrder?: ConflictingWorkOrderDetails
+  ) {
+    super(message);
+    (this as any).type = 'https://api.fielddesk.internal/errors/scheduling-conflict';
+    this.conflictingWorkOrder = conflictingWorkOrder;
+  }
+}
+
 export class ValidationError extends AppError {
   readonly statusCode = 422;
   readonly code = 'VALIDATION_FAILED';

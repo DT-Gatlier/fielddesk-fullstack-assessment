@@ -11,6 +11,20 @@ export function errorHandler(
 ): void {
   const correlationId = req.correlationId || 'unknown';
 
+  // Catch Postgres 23P01 exclusion constraint violation
+  if ((err as any).code === '23P01') {
+    logger.warn({ err: err.message, correlationId }, 'Postgres exclusion violation (23P01)');
+    res.status(409).json({
+      type: 'https://api.fielddesk.internal/errors/scheduling-conflict',
+      title: 'Scheduling Conflict',
+      status: 409,
+      code: 'SCHEDULING_CONFLICT',
+      detail: 'The technician is already scheduled for an overlapping work order.',
+      correlationId,
+    });
+    return;
+  }
+
   if (err instanceof AppError) {
     logger.warn(
       {
@@ -22,7 +36,20 @@ export function errorHandler(
       'Application handled error'
     );
 
-    // If specific error code like TOKEN_REVOKED, ensure matching response structure
+    // If specific error code like TOKEN_REVOKED or SCHEDULING_CONFLICT
+    if (err.code === 'SCHEDULING_CONFLICT') {
+      res.status(err.statusCode).json({
+        type: err.type,
+        title: err.title,
+        status: err.statusCode,
+        code: err.code,
+        detail: err.message,
+        ...((err as any).conflictingWorkOrder ? { conflictingWorkOrder: (err as any).conflictingWorkOrder } : {}),
+        correlationId,
+      });
+      return;
+    }
+
     if (err.code === 'TOKEN_REVOKED') {
       res.status(err.statusCode).json({
         type: err.type,

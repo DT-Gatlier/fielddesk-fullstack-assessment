@@ -66,3 +66,20 @@ export const updateWorkOrderSchema = z
 
 export type UpdateWorkOrderDTO = z.infer<typeof updateWorkOrderSchema>;
 
+export const assignTechnicianSchema = z
+  .object({
+    technicianId: z.string().uuid('Technician ID must be a valid UUID'),
+    scheduledStart: z.string().datetime('Scheduled start must be a valid ISO 8601 datetime string'),
+    scheduledEnd: z.string().datetime('Scheduled end must be a valid ISO 8601 datetime string'),
+  })
+  .refine(
+    (data) => new Date(data.scheduledEnd) > new Date(data.scheduledStart),
+    {
+      message: 'Scheduled end time must be after scheduled start time',
+      path: ['scheduledEnd'],
+    }
+  );
+
+export type AssignTechnicianDTO = z.infer<typeof assignTechnicianSchema>;
+
+

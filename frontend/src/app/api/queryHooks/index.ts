@@ -9,7 +9,9 @@ import { queryClient } from "../configs/tanStackQuery"
 import { authenticationService } from "../services/authentication"
 import { workOrderService } from "../services/work-orders"
 import type {
+  AssignTechnicianInput,
   CreateWorkOrderInput,
+  SchedulingConflictErrorResponse,
   UpdateWorkOrderInput,
   WorkOrderFilters,
 } from "../services/work-orders/type"
@@ -169,5 +171,28 @@ export const useUpdateWorkOrder = () => {
     },
   })
 }
+
+export const useAssignTechnician = () => {
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: AssignTechnicianInput }) =>
+      workOrderService.assignTechnician(id, payload),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
+      void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
+      toast.success(`Technician assigned to ${data.referenceNumber}`)
+    },
+    onError: (error: AxiosError<SchedulingConflictErrorResponse>) => {
+      if (error?.response?.status !== 409) {
+        toast.error(
+          error?.response?.data?.detail ||
+            error?.response?.data?.title ||
+            "Failed to assign technician"
+        )
+      }
+    },
+  })
+}
+
 
 

@@ -401,6 +401,98 @@ function executeMockQuery<R extends QueryResultRow = any>(
     return { rows: logs as unknown as R[], rowCount: logs.length, command: 'SELECT', oid: 0, fields: [] };
   }
 
+  // Advisory Lock for Scheduling Concurrency
+  if (normalized.includes('pg_advisory_xact_lock')) {
+    return { rows: [{ pg_advisory_xact_lock: null } as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Check schedule conflict (GiST tstzrange overlap &&)
+  if (normalized.includes('tstzrange(scheduled_start, scheduled_end') && normalized.includes('assigned_technician_id = $1')) {
+    const techId = params[0];
+    const reqStart = new Date(params[1]).getTime();
+    const reqEnd = new Date(params[2]).getTime();
+    const excludeId = params[3] || null;
+
+    const conflict = mockWorkOrders.find((w) => {
+      if (w.assigned_technician_id !== techId) return false;
+      if (['cancelled', 'completed'].includes(w.status)) return false;
+      if (excludeId && w.id === excludeId) return false;
+      if (!w.scheduled_start || !w.scheduled_end) return false;
+
+      const wStart = new Date(w.scheduled_start).getTime();
+      const wEnd = new Date(w.scheduled_end).getTime();
+
+      // [wStart, wEnd) overlaps [reqStart, reqEnd) if max(start1, start2) < min(end1, end2)
+      return Math.max(reqStart, wStart) < Math.min(reqEnd, wEnd);
+    });
+
+    if (conflict) {
+      return {
+        rows: [
+          {
+            id: conflict.id,
+            reference_number: conflict.reference_number,
+            scheduled_start: conflict.scheduled_start,
+            scheduled_end: conflict.scheduled_end,
+          } as unknown as R,
+        ],
+        rowCount: 1,
+        command: 'SELECT',
+        oid: 0,
+        fields: [],
+      };
+    }
+
+    return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Assign technician schedule (Specific UPDATE)
+  if (normalized.includes('update work_orders') && normalized.includes('assigned_technician_id = $3')) {
+    const id = params[0];
+    const orgId = params[1];
+    const techId = params[2];
+    const start = params[3];
+    const end = params[4];
+
+    const item = mockWorkOrders.find((w) => w.id === id && w.organisation_id === orgId);
+    if (!item) {
+      return { rows: [] as R[], rowCount: 0, command: 'UPDATE', oid: 0, fields: [] };
+    }
+
+    // In mock mode: enforce GiST exclusion constraint (Postgres 23P01)
+    const reqStart = new Date(start).getTime();
+    const reqEnd = new Date(end).getTime();
+
+    const hasConflict = mockWorkOrders.some((w) => {
+      if (w.id === item.id) return false;
+      if (w.assigned_technician_id !== techId) return false;
+      if (['cancelled', 'completed'].includes(w.status)) return false;
+      if (!w.scheduled_start || !w.scheduled_end) return false;
+      const wStart = new Date(w.scheduled_start).getTime();
+      const wEnd = new Date(w.scheduled_end).getTime();
+      return Math.max(reqStart, wStart) < Math.min(reqEnd, wEnd);
+    });
+
+    if (hasConflict) {
+      const err: any = new Error('conflicting key value violates exclusion constraint "no_overlapping_technician_schedules"');
+      err.code = '23P01';
+      throw err;
+    }
+
+    item.assigned_technician_id = techId;
+    item.scheduled_start = new Date(start);
+    item.scheduled_end = new Date(end);
+    item.updated_at = new Date();
+
+    const tech = mockUsers.find((u) => u.id === techId);
+    const row = {
+      ...item,
+      technician_name: tech?.name || null,
+      technician_email: tech?.email || null,
+    };
+    return { rows: [row as unknown as R], rowCount: 1, command: 'UPDATE', oid: 0, fields: [] };
+  }
+
   // Work Orders: Dashboard metrics aggregation
   if (normalized.includes('from work_orders') && (normalized.includes('count(*)') || normalized.includes('filter (where status ='))) {
     const orgId = params[0];

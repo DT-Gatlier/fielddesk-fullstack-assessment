@@ -17,10 +17,12 @@ import {
   Eye,
   X,
   Loader2,
+  CalendarPlus,
 } from "lucide-react"
 
 import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
 import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
+import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import type { WorkOrder } from "@/app/api/services/work-orders/type"
 
 function WorkOrders() {
@@ -30,6 +32,7 @@ function WorkOrders() {
 
   const permissions = permsData?.permissions || []
   const canCreate = permissions.includes("work_orders:create")
+  const canAssign = permissions.includes("work_orders:assign") || permissions.includes("work_orders:create")
 
   // State from URL query parameters
   const initialStatus = searchParams.get("status") || "all"
@@ -46,6 +49,7 @@ function WorkOrders() {
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [assignTargetWo, setAssignTargetWo] = useState<WorkOrder | null>(null)
 
   // Sync URL params when internal state changes
   useEffect(() => {
@@ -320,17 +324,32 @@ function WorkOrders() {
                       {formatDate(wo.scheduledStart)}
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedOrderId(wo.id)
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View</span>
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        {!wo.assignedTechnician && canAssign && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAssignTargetWo(wo)
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors font-medium text-xs"
+                          >
+                            <CalendarPlus className="w-3.5 h-3.5" />
+                            <span>Assign</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedOrderId(wo.id)
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -394,6 +413,13 @@ function WorkOrders() {
         workOrderId={selectedOrderId}
         isOpen={!!selectedOrderId}
         onClose={() => setSelectedOrderId(null)}
+      />
+
+      {/* Quick Assign Modal from Table Row */}
+      <AssignTechnicianModal
+        workOrder={assignTargetWo}
+        isOpen={!!assignTargetWo}
+        onClose={() => setAssignTargetWo(null)}
       />
     </div>
   )

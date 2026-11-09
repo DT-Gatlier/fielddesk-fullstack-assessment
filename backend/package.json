@@ -10,7 +10,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
-    "test:auth": "vitest run ../tests/isolation/auth-and-tenant.test.ts"
+    "test:auth": "vitest run ../tests/isolation/auth-and-tenant.test.ts",
+    "test:concurrency": "vitest run ../tests/concurrency/scheduling-concurrency.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

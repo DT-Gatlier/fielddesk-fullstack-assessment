@@ -15,8 +15,10 @@ import {
   User,
   History,
   Loader2,
+  CalendarPlus,
 } from "lucide-react"
 import type { WorkOrderStatus, WorkOrderPriority } from "@/app/api/services/work-orders/type"
+import { AssignTechnicianModal } from "./AssignTechnicianModal"
 
 interface WorkOrderDetailModalProps {
   workOrderId: string | null
@@ -37,6 +39,7 @@ export function WorkOrderDetailModal({
   const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus>("open")
   const [selectedPriority, setSelectedPriority] = useState<WorkOrderPriority>("medium")
   const [selectedTechId, setSelectedTechId] = useState<string>("")
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
   const canEdit = hasPermission("work_orders:update") || hasPermission("work_orders:assign")
   const isTechnician = role.toLowerCase() === "technician"
@@ -92,8 +95,9 @@ export function WorkOrderDetailModal({
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
+    <>
+      <Modal
+        isOpen={isOpen}
       onClose={onClose}
       title={
         wo ? (
@@ -144,10 +148,22 @@ export function WorkOrderDetailModal({
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-slate-500" />
-                <span>Assigned Technician</span>
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Assigned Technician</span>
+                </span>
+                {!isTechnician && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAssignModalOpen(true)}
+                    className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
+                  >
+                    <CalendarPlus className="w-3 h-3" />
+                    <span>{wo.assignedTechnician ? "Reschedule" : "Assign"}</span>
+                  </button>
+                )}
+              </div>
               <p className="text-sm font-semibold text-slate-800">
                 {wo.assignedTechnician ? (
                   <span>
@@ -340,5 +356,12 @@ export function WorkOrderDetailModal({
         </div>
       )}
     </Modal>
+
+    <AssignTechnicianModal
+      workOrder={wo || null}
+      isOpen={isAssignModalOpen}
+      onClose={() => setIsAssignModalOpen(false)}
+    />
+  </>
   )
 }

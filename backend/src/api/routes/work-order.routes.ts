@@ -7,6 +7,7 @@ import {
   listWorkOrdersQuerySchema,
   createWorkOrderSchema,
   updateWorkOrderSchema,
+  assignTechnicianSchema,
 } from '../dtos/work-order.dto.js';
 
 const router = Router();
@@ -38,6 +39,14 @@ router.patch(
   requireRole('owner', 'dispatcher'),
   validate(updateWorkOrderSchema, 'body'),
   workOrderController.update
+);
+
+router.post(
+  '/:id/assign',
+  authenticate,
+  requireRole('owner', 'dispatcher'),
+  validate(assignTechnicianSchema, 'body'),
+  workOrderController.assignTechnician
 );
 
 export default router;
