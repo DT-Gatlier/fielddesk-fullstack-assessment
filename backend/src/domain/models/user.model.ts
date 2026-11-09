@@ -1,4 +1,5 @@
 import { UserRole } from './tenant-context.js';
+import { Permission } from './permissions.js';
 
 export interface User {
   id: string;
@@ -20,6 +21,7 @@ export interface UserProfile {
   role: UserRole;
   organisationId: string;
   organisationName: string;
+  permissions?: Permission[];
 }
 
 export interface RefreshToken {

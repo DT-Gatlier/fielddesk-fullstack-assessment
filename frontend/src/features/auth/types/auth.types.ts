@@ -1,5 +1,21 @@
 export type UserRole = 'owner' | 'dispatcher' | 'technician';
 
+export type Permission =
+  | 'work_orders:read'
+  | 'work_orders:create'
+  | 'work_orders:assign'
+  | 'work_orders:update_status'
+  | 'work_orders:delete'
+  | 'events:submit'
+  | 'attachments:upload'
+  | 'attachments:view'
+  | 'attachments:delete'
+  | 'team:read'
+  | 'team:manage'
+  | 'org:manage_settings'
+  | 'org:view_audit_logs'
+  | 'reports:export';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -7,6 +23,7 @@ export interface UserProfile {
   role: UserRole;
   organisationId: string;
   organisationName: string;
+  permissions?: Permission[];
 }
 
 export interface AuthResponse {

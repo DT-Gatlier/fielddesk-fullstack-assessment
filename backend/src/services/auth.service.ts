@@ -8,8 +8,9 @@ import {
   recordFailedAuthAttempt,
   revokeToken,
 } from '../infrastructure/redis.js';
-import { userRepository, UserRepository } from '../repositories/user.repository.js';
-import { User, UserProfile } from '../domain/models/user.model.js';
+import { userRepository } from '../repositories/user.repository.js';
+import { UserProfile } from '../domain/models/user.model.js';
+import { getPermissionsForRole, Permission } from '../domain/models/permissions.js';
 import {
   UnauthorizedError,
   NotFoundError,
@@ -36,47 +37,45 @@ export interface RefreshResult {
   refreshToken: string;
 }
 
+/**
+ * Hashes an opaque refresh token using SHA-256 for secure storage.
+ */
+function hashToken(rawToken: string): string {
+  return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+/**
+ * Generates a signed Access Token (15 minutes TTL)
+ */
+function generateAccessToken(user: { id: string; organisationId: string; role: any }): { token: string; jti: string } {
+  const jti = crypto.randomUUID();
+  const payload: JwtPayload = {
+    sub: user.id,
+    orgId: user.organisationId,
+    role: user.role,
+    jti,
+  };
+
+  const token = jwt.sign(payload, config.JWT_SECRET, {
+    expiresIn: config.JWT_EXPIRES_IN, // 900 seconds (15 mins)
+  });
+
+  return { token, jti };
+}
+
+/**
+ * Generates a cryptographically secure random refresh token (7 days TTL)
+ */
+async function generateAndStoreRefreshToken(userId: string, orgId: string): Promise<string> {
+  const rawToken = `ref_${crypto.randomBytes(32).toString('hex')}`;
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + config.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+
+  await userRepository.createRefreshToken(userId, orgId, tokenHash, expiresAt);
+  return rawToken;
+}
+
 export class AuthService {
-  constructor(private userRepo: UserRepository = userRepository) {}
-
-  /**
-   * Hashes an opaque refresh token using SHA-256 for secure storage.
-   */
-  private hashToken(rawToken: string): string {
-    return crypto.createHash('sha256').update(rawToken).digest('hex');
-  }
-
-  /**
-   * Generates a signed Access Token (15 minutes TTL)
-   */
-  private generateAccessToken(user: { id: string; organisationId: string; role: any }): { token: string; jti: string } {
-    const jti = crypto.randomUUID();
-    const payload: JwtPayload = {
-      sub: user.id,
-      orgId: user.organisationId,
-      role: user.role,
-      jti,
-    };
-
-    const token = jwt.sign(payload, config.JWT_SECRET, {
-      expiresIn: config.JWT_EXPIRES_IN, // 900 seconds (15 mins)
-    });
-
-    return { token, jti };
-  }
-
-  /**
-   * Generates a cryptographically secure random refresh token (7 days TTL)
-   */
-  private async generateAndStoreRefreshToken(userId: string, orgId: string): Promise<string> {
-    const rawToken = `ref_${crypto.randomBytes(32).toString('hex')}`;
-    const tokenHash = this.hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + config.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
-
-    await this.userRepo.createRefreshToken(userId, orgId, tokenHash, expiresAt);
-    return rawToken;
-  }
-
   /**
    * Authenticate user credentials with brute-force rate-limiting
    */
@@ -88,7 +87,7 @@ export class AuthService {
     }
 
     // 2. Lookup user by email
-    const user = await this.userRepo.findByEmail(email);
+    const user = await userRepository.findByEmail(email);
     if (!user || !user.isActive) {
       await recordFailedAuthAttempt(ip);
       throw new UnauthorizedError('Invalid email or password.', 'INVALID_CREDENTIALS');
@@ -105,8 +104,8 @@ export class AuthService {
     await clearAuthRateLimit(ip);
 
     // 5. Generate tokens
-    const { token: accessToken } = this.generateAccessToken(user);
-    const refreshToken = await this.generateAndStoreRefreshToken(user.id, user.organisationId);
+    const { token: accessToken } = generateAccessToken(user);
+    const refreshToken = await generateAndStoreRefreshToken(user.id, user.organisationId);
 
     const userProfile: UserProfile = {
       id: user.id,
@@ -115,6 +114,7 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
       organisationName: user.organisationName ?? '',
+      permissions: getPermissionsForRole(user.role),
     };
 
     return {
@@ -128,25 +128,25 @@ export class AuthService {
    * Refresh Token rotation: Burns the old refresh token and issues a new token pair
    */
   async refresh(rawRefreshToken: string): Promise<RefreshResult> {
-    const tokenHash = this.hashToken(rawRefreshToken);
-    const storedToken = await this.userRepo.findActiveRefreshTokenByHash(tokenHash);
+    const tokenHash = hashToken(rawRefreshToken);
+    const storedToken = await userRepository.findActiveRefreshTokenByHash(tokenHash);
 
     if (!storedToken) {
       throw new UnauthorizedError('Invalid or expired refresh token. Please log in again.', 'INVALID_REFRESH_TOKEN');
     }
 
     // Burn old refresh token immediately (Token Rotation)
-    await this.userRepo.revokeRefreshToken(storedToken.id);
+    await userRepository.revokeRefreshToken(storedToken.id);
 
     // Retrieve user ensuring account is still active
-    const user = await this.userRepo.findUserByIdAndOrg(storedToken.userId, storedToken.organisationId);
+    const user = await userRepository.findUserByIdAndOrg(storedToken.userId, storedToken.organisationId);
     if (!user || !user.isActive) {
       throw new UnauthorizedError('User account is inactive or no longer exists.', 'USER_INACTIVE');
     }
 
     // Mint new pair
-    const { token: accessToken } = this.generateAccessToken(user);
-    const newRefreshToken = await this.generateAndStoreRefreshToken(user.id, user.organisationId);
+    const { token: accessToken } = generateAccessToken(user);
+    const newRefreshToken = await generateAndStoreRefreshToken(user.id, user.organisationId);
 
     return {
       accessToken,
@@ -159,7 +159,7 @@ export class AuthService {
    */
   async logout(userId: string, jti: string, exp?: number): Promise<void> {
     // 1. Revoke all refresh tokens for this user
-    await this.userRepo.revokeAllUserRefreshTokens(userId);
+    await userRepository.revokeAllUserRefreshTokens(userId);
 
     // 2. Add JTI to Redis blocklist with exact remaining TTL
     if (jti && exp) {
@@ -175,7 +175,7 @@ export class AuthService {
    * Get authenticated user profile (enforcing tenant context)
    */
   async getMe(userId: string, orgId: string): Promise<UserProfile> {
-    const user = await this.userRepo.findUserByIdAndOrg(userId, orgId);
+    const user = await userRepository.findUserByIdAndOrg(userId, orgId);
     if (!user) {
       throw new NotFoundError('User profile not found.');
     }
@@ -187,9 +187,9 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
       organisationName: user.organisationName ?? '',
+      permissions: getPermissionsForRole(user.role),
     };
   }
 }
 
 export const authService = new AuthService();
-

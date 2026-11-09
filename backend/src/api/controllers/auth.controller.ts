@@ -1,18 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import { authService, AuthService } from '../../services/auth.service.js';
+import { authService } from '../../services/auth.service.js';
 import { LoginDTO, RefreshDTO } from '../dtos/auth.dto.js';
 
 export class AuthController {
-  constructor(private service: AuthService = authService) {}
-
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, password } = req.body as LoginDTO;
-      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
-        req.socket.remoteAddress ||
-        '127.0.0.1';
+      const clientIp = req.ip || req.socket?.remoteAddress || `unknown_${req.correlationId}`;
 
-      const result = await this.service.login(email, password, clientIp);
+      const result = await authService.login(email, password, clientIp);
       res.status(200).json(result);
     } catch (err) {
       next(err);
@@ -22,7 +18,7 @@ export class AuthController {
   refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { refreshToken } = req.body as RefreshDTO;
-      const result = await this.service.refresh(refreshToken);
+      const result = await authService.refresh(refreshToken);
       res.status(200).json(result);
     } catch (err) {
       next(err);
@@ -35,7 +31,7 @@ export class AuthController {
       const jti = req.tokenPayload.jti;
       const exp = req.tokenPayload.exp;
 
-      await this.service.logout(userId, jti, exp);
+      await authService.logout(userId, jti, exp);
       res.status(204).send();
     } catch (err) {
       next(err);
@@ -45,8 +41,19 @@ export class AuthController {
   getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId, organisationId } = req.tenantContext;
-      const user = await this.service.getMe(userId, organisationId);
+      const user = await authService.getMe(userId, organisationId);
       res.status(200).json({ user });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getPermissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { role } = req.tenantContext;
+      const { getPermissionsForRole } = await import('../../domain/models/permissions.js');
+      const permissions = getPermissionsForRole(role);
+      res.status(200).json({ role, permissions });
     } catch (err) {
       next(err);
     }

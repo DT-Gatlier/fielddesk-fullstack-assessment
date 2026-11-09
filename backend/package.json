@@ -5,7 +5,8 @@
   "description": "FieldDesk REST API & Real-time Server",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "nodemon --watch src -e ts --exec tsx src/server.ts",
+    "dev:tsx": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
@@ -37,6 +38,7 @@
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "ioredis-mock": "^8.9.0",
+    "nodemon": "^3.1.14",
     "pg-mem": "^3.0.4",
     "supertest": "^7.0.0",
     "tsx": "^4.15.7",
