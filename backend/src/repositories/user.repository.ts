@@ -87,6 +87,20 @@ export class UserRepository {
   }
 
   /**
+   * List all technicians in an organisation
+   */
+  async listTechniciansByOrg(orgId: string): Promise<Array<{ id: string; name: string; email: string }>> {
+    const sql = `
+      SELECT id, name, email
+      FROM users
+      WHERE organisation_id = $1 AND role = 'technician' AND is_active = TRUE
+      ORDER BY name ASC
+    `;
+    const result = await query<{ id: string; name: string; email: string }>(sql, [orgId]);
+    return result.rows;
+  }
+
+  /**
    * Store a new refresh token hash in the database
    */
   async createRefreshToken(
@@ -168,4 +182,3 @@ export class UserRepository {
 }
 
 export const userRepository = new UserRepository();
-

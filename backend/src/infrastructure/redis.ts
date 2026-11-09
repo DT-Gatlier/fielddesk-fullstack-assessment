@@ -109,3 +109,54 @@ export async function clearAuthRateLimit(ip: string): Promise<void> {
     logger.error({ err: err.message }, 'Error clearing auth rate limit in Redis');
   }
 }
+
+/**
+ * Get cached dashboard metrics from Redis
+ */
+export async function getCachedDashboardMetrics(
+  orgId: string,
+  scope = 'all'
+): Promise<any | null> {
+  const key = `cache:${orgId}:dashboard:counts:${scope}`;
+  try {
+    const client = getRedisClient();
+    const data = await client.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error reading cached dashboard metrics from Redis');
+    return null;
+  }
+}
+
+/**
+ * Set cached dashboard metrics in Redis (default 30s TTL per spec)
+ */
+export async function setCachedDashboardMetrics(
+  orgId: string,
+  metrics: any,
+  scope = 'all',
+  ttlSeconds = 30
+): Promise<void> {
+  const key = `cache:${orgId}:dashboard:counts:${scope}`;
+  try {
+    const client = getRedisClient();
+    await client.set(key, JSON.stringify(metrics), 'EX', ttlSeconds);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error caching dashboard metrics in Redis');
+  }
+}
+
+/**
+ * Invalidate cached dashboard metrics for an organisation
+ */
+export async function invalidateDashboardCache(orgId: string): Promise<void> {
+  try {
+    const client = getRedisClient();
+    const keys = await client.keys(`cache:${orgId}:dashboard:counts:*`);
+    if (keys.length > 0) {
+      await client.del(...keys);
+    }
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error invalidating dashboard cache in Redis');
+  }
+}

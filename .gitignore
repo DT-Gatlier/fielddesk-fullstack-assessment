@@ -11,6 +11,9 @@ dist/
 build/
 coverage/
 .next/
+.vite/
+.vite
+
 
 # Runtime data
 uploads/

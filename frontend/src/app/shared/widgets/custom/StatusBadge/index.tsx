@@ -13,7 +13,7 @@ import type { StatusBadgeProps } from "./type"
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const normalized = status?.toLowerCase() || ""
 
-  let variant: "default" | "emerald" | "blue" | "purple" | "destructive" | "secondary" | "slate" = "default"
+  let variant: "default" | "emerald" | "blue" | "purple" | "destructive" | "amber" | "secondary" | "slate" = "default"
 
   switch (normalized) {
     case APP_USER_ROLES.OWNER:
@@ -25,10 +25,22 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     case APP_USER_ROLES.TECHNICIAN:
       variant = "blue"
       break
-    case "high":
+    case "urgent":
     case "failed":
     case "revoked":
+    case "blocked":
       variant = "destructive"
+      break
+    case "high":
+      variant = "amber"
+      break
+    case "medium":
+      variant = "blue"
+      break
+    case "low":
+    case "open":
+    case "cancelled":
+      variant = "slate"
       break
     case "completed":
     case "active":
