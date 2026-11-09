@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import { useGetProfileDetails } from "@/app/api/queryHooks"
 import { ROUTE_CONFIG } from "@/app/router/config"
 import { Can } from "@/app/shared/components/Can"
-import { Badge } from "@/components/ui/Badge"
+import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import {
   ShieldCheck,
   UserCheck,
@@ -21,12 +21,6 @@ function Dashboard() {
 
   if (!user) return null
 
-  const roleColors: Record<string, "emerald" | "blue" | "purple"> = {
-    owner: "purple",
-    dispatcher: "emerald",
-    technician: "blue",
-  }
-
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
@@ -34,9 +28,7 @@ function Dashboard() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-slate-900">Welcome, {user.name}</h2>
-            <Badge variant={roleColors[user.role] || "emerald"}>
-              {user.role}
-            </Badge>
+            <StatusBadge status={user.role} />
           </div>
           <p className="text-sm text-slate-500">
             Authenticated into <strong className="text-slate-800">{user.organisationName}</strong> with full zero-trust role isolation.
@@ -166,4 +158,3 @@ function Dashboard() {
 }
 
 export default Dashboard
-

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { ROUTE_CONFIG } from "@/app/router/config"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/app/shared/widgets/base/button"
 
 function NotFound() {
   const navigate = useNavigate()
@@ -31,7 +31,7 @@ function NotFound() {
           </Button>
           <Button
             onClick={() => navigate(ROUTE_CONFIG.dashboard.path)}
-            variant="primary"
+            variant="default"
           >
             Go to Dashboard
           </Button>
@@ -42,4 +42,3 @@ function NotFound() {
 }
 
 export default NotFound
-

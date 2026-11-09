@@ -2,8 +2,8 @@ import { NavLink, Outlet } from "react-router-dom"
 import { useGetProfileDetails, useGetPermissions, useLogout } from "@/app/api/queryHooks"
 import { ROUTE_CONFIG } from "@/app/router/config"
 import { Can } from "@/app/shared/components/Can"
-import { Badge } from "@/components/ui/Badge"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/app/shared/widgets/base/button"
+import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import {
   ShieldCheck,
   Building2,
@@ -27,12 +27,6 @@ function Layout() {
 
   if (!user) return null
 
-  const roleColors: Record<string, "emerald" | "blue" | "purple" | "slate"> = {
-    owner: "purple",
-    dispatcher: "emerald",
-    technician: "blue",
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Header */}
@@ -55,9 +49,7 @@ function Layout() {
             <span className="font-semibold text-slate-900">{user.organisationName || user.organisationId}</span>
           </div>
 
-          <Badge variant={roleColors[user.role] || "slate"}>
-            {user.role}
-          </Badge>
+          <StatusBadge status={user.role} />
 
           <div className="h-5 w-px bg-slate-200" />
 
@@ -203,4 +195,3 @@ function Layout() {
 }
 
 export default Layout
-

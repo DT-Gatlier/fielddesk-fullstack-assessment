@@ -1,6 +1,7 @@
 import { useGetProfileDetails, useGetPermissions } from "@/app/api/queryHooks"
 import { Plus, Search, Filter } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/app/shared/widgets/base/button"
+import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 
 function WorkOrders() {
   const { data: userInfo } = useGetProfileDetails()
@@ -47,7 +48,7 @@ function WorkOrders() {
         </div>
 
         {canCreate && (
-          <Button variant="primary">
+          <Button variant="default">
             <Plus className="h-4 w-4 mr-1.5" />
             <span>Create Work Order</span>
           </Button>
@@ -91,13 +92,7 @@ function WorkOrders() {
                   <td className="py-3 px-4 font-mono font-semibold text-slate-900">{wo.id}</td>
                   <td className="py-3 px-4 font-medium text-slate-800">{wo.title}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${
-                      wo.priority === 'high' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                      wo.priority === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                      'bg-slate-100 text-slate-700'
-                    }`}>
-                      {wo.priority}
-                    </span>
+                    <StatusBadge status={wo.priority} />
                   </td>
                   <td className="py-3 px-4">
                     <span className="capitalize">{wo.status.replace('_', ' ')}</span>

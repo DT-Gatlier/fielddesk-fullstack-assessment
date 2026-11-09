@@ -1,6 +1,6 @@
 import { useGetProfileDetails } from "@/app/api/queryHooks"
 import { Building2, Shield, Save } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/app/shared/widgets/base/button"
 
 function TenantSettings() {
   const { data: userInfo } = useGetProfileDetails()
@@ -62,7 +62,7 @@ function TenantSettings() {
         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end">
-          <Button variant="primary">
+          <Button variant="default">
             <Save className="h-4 w-4 mr-1.5" />
             <span>Save Settings</span>
           </Button>
@@ -73,4 +73,3 @@ function TenantSettings() {
 }
 
 export default TenantSettings
-

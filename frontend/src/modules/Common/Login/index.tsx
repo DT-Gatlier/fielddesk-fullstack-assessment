@@ -7,8 +7,8 @@ import { ShieldCheck } from "lucide-react"
 import { useGetProfileDetails, useLoginWithCredentials } from "@/app/api/queryHooks"
 import { ROUTE_CONFIG } from "@/app/router/config"
 import LoadingOverlay from "@/app/shared/components/LoadingOverlay"
-import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
+import { Button } from "@/app/shared/widgets/base/button"
+import { Input } from "@/app/shared/widgets/base/input"
 
 import { loginSchema } from "./schema"
 import type { LoginFormValues } from "./types"
@@ -92,7 +92,7 @@ function Login() {
 
             <Button
               type="submit"
-              variant="primary"
+              variant="default"
               className="w-full justify-center py-2.5 font-semibold"
               disabled={isSubmitting || isLoggingIn}
             >

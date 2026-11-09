@@ -1,6 +1,6 @@
 import { useNavigate, useRouteError } from "react-router-dom"
 import { ROUTE_CONFIG } from "@/app/router/config"
-import { Button } from "@/components/ui/Button"
+import { Button } from "@/app/shared/widgets/base/button"
 
 function ErrorBoundary() {
   const error = useRouteError() as Error
@@ -33,4 +33,3 @@ function ErrorBoundary() {
 }
 
 export default ErrorBoundary
-

@@ -46,13 +46,17 @@ const router = createBrowserRouter([
       {
         id: ROUTE_CONFIG.workOrders.id,
         path: ROUTE_CONFIG.workOrders.path,
-        element: <WorkOrders />,
+        element: (
+          <AdminRoute requiredPermission="work_orders:read">
+            <WorkOrders />
+          </AdminRoute>
+        ),
       },
       {
         id: ROUTE_CONFIG.team.id,
         path: ROUTE_CONFIG.team.path,
         element: (
-          <AdminRoute allowedRoles={["owner", "dispatcher"]}>
+          <AdminRoute allowedRoles={["owner", "dispatcher"]} requiredPermission="team:read">
             <TeamManagement />
           </AdminRoute>
         ),
@@ -61,7 +65,7 @@ const router = createBrowserRouter([
         id: ROUTE_CONFIG.settings.id,
         path: ROUTE_CONFIG.settings.path,
         element: (
-          <AdminRoute allowedRoles={["owner"]}>
+          <AdminRoute allowedRoles={["owner"]} requiredPermission="org:manage_settings">
             <TenantSettings />
           </AdminRoute>
         ),
@@ -91,4 +95,3 @@ function AppRouter() {
 }
 
 export default AppRouter
-

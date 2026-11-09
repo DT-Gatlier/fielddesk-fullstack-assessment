@@ -1,7 +1,7 @@
 import { useGetProfileDetails } from "@/app/api/queryHooks"
-import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/app/shared/widgets/base/button"
+import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import { Users, UserPlus, Mail, Shield } from "lucide-react"
-import { Button } from "@/components/ui/Button"
 
 function TeamManagement() {
   const { data: userInfo } = useGetProfileDetails()
@@ -41,7 +41,7 @@ function TeamManagement() {
           </p>
         </div>
 
-        <Button variant="primary">
+        <Button variant="default">
           <UserPlus className="h-4 w-4 mr-1.5" />
           <span>Invite Member</span>
         </Button>
@@ -54,9 +54,7 @@ function TeamManagement() {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                 <Users className="h-5 w-5" />
               </div>
-              <Badge variant={member.role === 'owner' ? 'purple' : member.role === 'dispatcher' ? 'emerald' : 'blue'}>
-                {member.role}
-              </Badge>
+              <StatusBadge status={member.role} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-slate-900">{member.name}</h3>
@@ -80,4 +78,3 @@ function TeamManagement() {
 }
 
 export default TeamManagement
-

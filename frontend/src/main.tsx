@@ -1,12 +1,12 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { QueryClientProvider } from "@tanstack/react-query"
-import { Toaster } from "sonner"
 
 import { getEnvValidationError } from "./app/api/configs/environment/index.ts"
 import { queryClient } from "./app/api/configs/tanStackQuery/index.ts"
 import AppRouter from "./app/router/index.tsx"
 import ConfigError from "./app/shared/pages/ConfigError/index.tsx"
+import { Toaster } from "./app/shared/widgets/base/sonner.tsx"
 
 import "./index.css"
 
@@ -20,7 +20,7 @@ if (getEnvValidationError() !== null) {
   createRoot(rootElement).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" />
         <AppRouter />
       </QueryClientProvider>
     </StrictMode>
