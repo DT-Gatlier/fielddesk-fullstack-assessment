@@ -20,3 +20,8 @@ export async function getMeApi(): Promise<{ user: UserProfile }> {
   return data;
 }
 
+export async function getPermissionsApi(): Promise<{ role: string; permissions: string[] }> {
+  const { data } = await apiClient.get<{ role: string; permissions: string[] }>('/api/v1/auth/permissions');
+  return data;
+}
+

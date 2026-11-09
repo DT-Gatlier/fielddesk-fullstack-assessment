@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../../services/auth.service.js';
+import { getPermissionsForRole } from '../../domain/models/permissions.js';
 import { LoginDTO, RefreshDTO } from '../dtos/auth.dto.js';
 
 export class AuthController {
@@ -51,7 +52,6 @@ export class AuthController {
   getPermissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { role } = req.tenantContext;
-      const { getPermissionsForRole } = await import('../../domain/models/permissions.js');
       const permissions = getPermissionsForRole(role);
       res.status(200).json({ role, permissions });
     } catch (err) {

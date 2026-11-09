@@ -1,17 +1,27 @@
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
+import { getPermissionsApi } from '../api/auth.api';
 import { Permission, UserRole } from '../types/auth.types';
 
 export function usePermissions() {
   const { user } = useAuth();
 
+  // Fetch permissions independently from the dedicated /permissions API
+  const { data, isLoading } = useQuery({
+    queryKey: ['auth', 'permissions', user?.id],
+    queryFn: getPermissionsApi,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
+
+  const permissions = (data?.permissions as Permission[]) || [];
+
   const hasPermission = (permission: Permission): boolean => {
-    if (!user || !user.permissions) return false;
-    return user.permissions.includes(permission);
+    return permissions.includes(permission);
   };
 
-  const hasAnyPermission = (permissions: Permission[]): boolean => {
-    if (!user || !user.permissions) return false;
-    return permissions.some((p) => user.permissions?.includes(p));
+  const hasAnyPermission = (perms: Permission[]): boolean => {
+    return perms.some((p) => permissions.includes(p));
   };
 
   const hasRole = (...roles: UserRole[]): boolean => {
@@ -20,8 +30,9 @@ export function usePermissions() {
   };
 
   return {
-    permissions: user?.permissions || [],
+    permissions,
     role: user?.role,
+    isLoading,
     hasPermission,
     hasAnyPermission,
     hasRole,
@@ -30,4 +41,3 @@ export function usePermissions() {
     isTechnician: user?.role === 'technician',
   };
 }
-

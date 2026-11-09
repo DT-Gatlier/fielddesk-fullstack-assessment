@@ -10,7 +10,6 @@ import {
 } from '../infrastructure/redis.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { UserProfile } from '../domain/models/user.model.js';
-import { getPermissionsForRole, Permission } from '../domain/models/permissions.js';
 import {
   UnauthorizedError,
   NotFoundError,
@@ -114,7 +113,6 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
       organisationName: user.organisationName ?? '',
-      permissions: getPermissionsForRole(user.role),
     };
 
     return {
@@ -187,7 +185,6 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
       organisationName: user.organisationName ?? '',
-      permissions: getPermissionsForRole(user.role),
     };
   }
 }

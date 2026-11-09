@@ -23,7 +23,11 @@ export interface UserProfile {
   role: UserRole;
   organisationId: string;
   organisationName: string;
-  permissions?: Permission[];
+}
+
+export interface PermissionsResponse {
+  role: UserRole;
+  permissions: Permission[];
 }
 
 export interface AuthResponse {
