@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useSubmitProgressEvent } from "@/app/api/queryHooks"
+import { useSubmitProgressEvent } from "./queryHooks"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
 import { Button } from "@/app/shared/widgets/base/button"
 import { Textarea } from "@/app/shared/widgets/base/textarea"
@@ -16,7 +16,7 @@ import type {
   WorkOrder,
   WorkOrderStatus,
   ProgressEventType,
-} from "@/app/api/services/work-orders/type"
+} from "./services/type"
 
 interface ProgressEventModalProps {
   workOrder: WorkOrder | null

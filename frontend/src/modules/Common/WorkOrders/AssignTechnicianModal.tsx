@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
-import { useAssignTechnician, useTechnicians } from "@/app/api/queryHooks"
+import { useAssignTechnician, useTechnicians } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { Input } from "@/app/shared/widgets/base/input"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
@@ -10,7 +10,7 @@ import type {
   ConflictingWorkOrder,
   SchedulingConflictErrorResponse,
   WorkOrder,
-} from "@/app/api/services/work-orders/type"
+} from "./services/type"
 
 import { ConflictResolutionModal } from "./ConflictResolutionModal"
 

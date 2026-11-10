@@ -1,8 +1,7 @@
-import apiClient from "../../client"
+import apiClient from "@/app/api/client"
 import type {
   AssignTechnicianInput,
   CreateWorkOrderInput,
-  DashboardMetrics,
   PaginatedWorkOrders,
   ProgressEventResponse,
   StorageQuota,
@@ -13,6 +12,8 @@ import type {
   WorkOrderAttachment,
   WorkOrderFilters,
 } from "./type"
+
+export * from "./type"
 
 export const workOrderService = {
   list: async (filters?: WorkOrderFilters): Promise<PaginatedWorkOrders> => {
@@ -48,11 +49,6 @@ export const workOrderService = {
       payload
     )
     return res.data.workOrder
-  },
-
-  getMetrics: async (): Promise<DashboardMetrics> => {
-    const res = await apiClient.get<{ metrics: DashboardMetrics }>("/dashboard/metrics")
-    return res.data.metrics
   },
 
   getTechnicians: async (): Promise<TechnicianUser[]> => {

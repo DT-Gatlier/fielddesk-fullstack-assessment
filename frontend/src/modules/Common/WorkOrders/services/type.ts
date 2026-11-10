@@ -104,15 +104,6 @@ export interface UpdateWorkOrderInput {
   scheduledEnd?: string | null
 }
 
-export interface DashboardMetrics {
-  total: number
-  open: number
-  in_progress: number
-  blocked: number
-  completed: number
-  cancelled: number
-}
-
 export interface TechnicianUser {
   id: string
   name: string
@@ -163,5 +154,4 @@ export interface ProgressEventResponse {
   processedAt?: string
   message?: string
 }
-
 

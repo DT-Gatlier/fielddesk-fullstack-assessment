@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { workOrderService } from "@/app/api/services/work-orders"
-import { useDeleteAttachment, usePermissions } from "@/app/api/queryHooks"
+import { workOrderService } from "../services"
+import { useDeleteAttachment } from "../queryHooks"
+import { usePermissions } from "@/app/api/queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import {
   FileText,
@@ -10,7 +11,7 @@ import {
   Loader2,
   Paperclip,
 } from "lucide-react"
-import type { WorkOrderAttachment } from "@/app/api/services/work-orders/type"
+import type { WorkOrderAttachment } from "../services/type"
 import { formatBytes } from "./QuotaProgressBar"
 import { toast } from "sonner"
 

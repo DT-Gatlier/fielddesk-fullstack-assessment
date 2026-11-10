@@ -6,8 +6,8 @@ export class EventController {
   submitProgressEvent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const dto = req.body as ProgressEventDTO;
-      const result = await eventService.processEvent(req.tenantContext, id, dto);
+      const progressEvent = req.body as ProgressEventDTO;
+      const result = await eventService.processEvent(req.tenantContext, id, progressEvent);
       res.status(200).json(result);
     } catch (err) {
       next(err);

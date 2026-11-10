@@ -1,5 +1,5 @@
 import { useState, useRef, DragEvent, ChangeEvent } from "react"
-import { useUploadAttachment } from "@/app/api/queryHooks"
+import { useUploadAttachment } from "../queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import {
   UploadCloud,

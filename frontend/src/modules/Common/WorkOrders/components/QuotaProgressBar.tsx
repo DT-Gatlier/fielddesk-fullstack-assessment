@@ -1,4 +1,4 @@
-import { useStorageQuota } from "@/app/api/queryHooks"
+import { useStorageQuota } from "../queryHooks"
 import { HardDrive, AlertTriangle } from "lucide-react"
 
 export function formatBytes(bytes: number): string {

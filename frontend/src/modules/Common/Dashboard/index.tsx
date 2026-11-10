@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
-import { useDashboardMetrics, useGetProfileDetails } from "@/app/api/queryHooks"
+import { useGetProfileDetails } from "@/app/api/queryHooks"
+import { useDashboardMetrics } from "./queryHooks"
 import { ROUTE_CONFIG } from "@/app/router/config"
 import { Can } from "@/app/shared/components/Can"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"

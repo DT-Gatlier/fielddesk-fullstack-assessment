@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react"
 import {
+  usePermissions,
+  useGetProfileDetails,
+} from "@/app/api/queryHooks"
+import {
   useWorkOrderDetail,
   useUpdateWorkOrder,
   useTechnicians,
-  usePermissions,
-  useGetProfileDetails,
   useWorkOrderAttachments,
-} from "@/app/api/queryHooks"
+} from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
@@ -21,7 +23,7 @@ import {
   Activity,
   Paperclip,
 } from "lucide-react"
-import type { WorkOrderStatus, WorkOrderPriority } from "@/app/api/services/work-orders/type"
+import type { WorkOrderStatus, WorkOrderPriority } from "./services/type"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
 import { AttachmentDropzone } from "./components/AttachmentDropzone"

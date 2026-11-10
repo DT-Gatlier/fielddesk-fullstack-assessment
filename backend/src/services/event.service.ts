@@ -22,21 +22,21 @@ export interface ProcessEventResult {
 
 export class EventService {
   async processEvent(
-    ctx: TenantContext,
+    tenantContext: TenantContext,
     workOrderId: string,
-    dto: ProgressEventDTO
+    progressEvent: ProgressEventDTO
   ): Promise<ProcessEventResult> {
     // 1. Verify route parameter matches body
-    if (dto.workOrderId && dto.workOrderId !== workOrderId) {
+    if (progressEvent.workOrderId && progressEvent.workOrderId !== workOrderId) {
       throw new ValidationError('workOrderId in URL parameter and request body must match.');
     }
 
     // 2. Fast-Path check via Redis idempotency key
-    const redisStatus = await tryAcquireIdempotencyKey(ctx.organisationId, dto.eventId);
+    const redisStatus = await tryAcquireIdempotencyKey(tenantContext.organisationId, progressEvent.eventId);
     if (redisStatus === 'COMPLETED') {
       return {
         status: 'duplicate_ignored',
-        eventId: dto.eventId,
+        eventId: progressEvent.eventId,
         message: 'Event was previously processed. No changes applied.',
       };
     }
@@ -46,7 +46,7 @@ export class EventService {
         // 3. Fetch work order FOR UPDATE (Anti-enumeration & lock)
         const woRes = await query<any>(
           `SELECT * FROM work_orders WHERE id = $1 AND organisation_id = $2 FOR UPDATE`,
-          [workOrderId, ctx.organisationId]
+          [workOrderId, tenantContext.organisationId]
         );
 
         if (!woRes.rows.length) {
@@ -56,7 +56,7 @@ export class EventService {
         const wo = woRes.rows[0];
 
         // 4. Authorize: Technicians can only submit for work orders assigned to them
-        if (ctx.role === 'technician' && wo.assigned_technician_id !== ctx.userId) {
+        if (tenantContext.role === 'technician' && wo.assigned_technician_id !== tenantContext.userId) {
           throw new ForbiddenError(
             'Technicians can only submit progress events for work orders assigned to them.'
           );
@@ -72,29 +72,29 @@ export class EventService {
           RETURNING event_id
         `,
           [
-            dto.eventId,
-            ctx.organisationId,
+            progressEvent.eventId,
+            tenantContext.organisationId,
             workOrderId,
-            dto.type,
-            dto.occurredAt,
-            JSON.stringify(dto.payload),
+            progressEvent.type,
+            progressEvent.occurredAt,
+            JSON.stringify(progressEvent.payload),
           ]
         );
 
         // If duplicate detected in database (0 rows inserted)
         if (insertEventRes.rowCount === 0 || !insertEventRes.rows.length) {
-          await completeIdempotencyKey(ctx.organisationId, dto.eventId);
+          await completeIdempotencyKey(tenantContext.organisationId, progressEvent.eventId);
           return {
             status: 'duplicate_ignored',
-            eventId: dto.eventId,
+            eventId: progressEvent.eventId,
             message: 'Event was previously processed. No changes applied.',
           };
         }
 
-        const newStatus = dto.payload.status || wo.status;
+        const newStatus = progressEvent.payload.status || wo.status;
 
         // 6. Update work order status if specified
-        if (dto.payload.status && dto.payload.status !== wo.status) {
+        if (progressEvent.payload.status && progressEvent.payload.status !== wo.status) {
           await query(
             `UPDATE work_orders SET status = $1, updated_at = NOW() WHERE id = $2`,
             [newStatus, workOrderId]
@@ -103,8 +103,8 @@ export class EventService {
 
         // 7. Insert audit record for the progress event
         await workOrderRepository.createAuditLog({
-          organisationId: ctx.organisationId,
-          actorId: ctx.userId,
+          organisationId: tenantContext.organisationId,
+          actorId: tenantContext.userId,
           action: 'STATUS_CHANGED_VIA_EVENT',
           targetType: 'work_order',
           targetId: workOrderId,
@@ -115,33 +115,33 @@ export class EventService {
             status: newStatus,
           },
           metadata: {
-            eventId: dto.eventId,
-            type: dto.type,
-            occurredAt: dto.occurredAt,
-            note: dto.payload.note,
+            eventId: progressEvent.eventId,
+            type: progressEvent.type,
+            occurredAt: progressEvent.occurredAt,
+            note: progressEvent.payload.note,
           },
         });
 
         // 8. Mark Redis idempotency key as COMPLETED (24-hour TTL)
-        await completeIdempotencyKey(ctx.organisationId, dto.eventId);
+        await completeIdempotencyKey(tenantContext.organisationId, progressEvent.eventId);
 
         // 9. Invalidate dashboard metrics cache
-        await invalidateDashboardCache(ctx.organisationId);
+        await invalidateDashboardCache(tenantContext.organisationId);
 
         // 10. Publish event to Redis channel for live dashboard streaming
-        await publishRealtimeEvent(ctx.organisationId, {
+        await publishRealtimeEvent(tenantContext.organisationId, {
           type: 'work_order:progress_updated',
           workOrderId,
-          eventId: dto.eventId,
-          eventType: dto.type,
+          eventId: progressEvent.eventId,
+          eventType: progressEvent.type,
           newStatus,
-          occurredAt: dto.occurredAt,
-          actorId: ctx.userId,
+          occurredAt: progressEvent.occurredAt,
+          actorId: tenantContext.userId,
         });
 
         return {
           status: 'applied',
-          eventId: dto.eventId,
+          eventId: progressEvent.eventId,
           workOrderId,
           newStatus,
           processedAt: new Date().toISOString(),
@@ -149,7 +149,7 @@ export class EventService {
       });
     } catch (err) {
       // Clear in-flight Redis lock if an unhandled error occurred
-      await clearIdempotencyKey(ctx.organisationId, dto.eventId);
+      await clearIdempotencyKey(tenantContext.organisationId, progressEvent.eventId);
       throw err;
     }
   }

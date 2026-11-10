@@ -5,14 +5,14 @@ import { SupportedMimeType } from '../middlewares/file-validator.js';
 export class AttachmentController {
   async uploadAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ctx = req.tenantContext!;
+      const tenantContext = req.tenantContext!;
       const workOrderId = req.params.id;
       const file = req.file!;
       const validatedMimeType = (req as any).validatedMimeType as SupportedMimeType;
       const sanitizedFilename = (req as any).sanitizedFilename as string;
 
       const attachment = await attachmentService.uploadAttachment(
-        ctx,
+        tenantContext,
         workOrderId,
         file,
         validatedMimeType,
@@ -35,10 +35,10 @@ export class AttachmentController {
 
   async downloadAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ctx = req.tenantContext!;
+      const tenantContext = req.tenantContext!;
       const attachmentId = req.params.id;
 
-      const { attachment, stream } = await attachmentService.getAttachmentStream(ctx, attachmentId);
+      const { attachment, stream } = await attachmentService.getAttachmentStream(tenantContext, attachmentId);
 
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader(
@@ -55,8 +55,8 @@ export class AttachmentController {
 
   async getQuota(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ctx = req.tenantContext!;
-      const quota = await attachmentService.getOrganisationQuota(ctx);
+      const tenantContext = req.tenantContext!;
+      const quota = await attachmentService.getOrganisationQuota(tenantContext);
 
       res.status(200).json({
         usedBytes: quota.usedBytes,
@@ -70,10 +70,10 @@ export class AttachmentController {
 
   async listWorkOrderAttachments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ctx = req.tenantContext!;
+      const tenantContext = req.tenantContext!;
       const workOrderId = req.params.id;
 
-      const attachments = await attachmentService.listWorkOrderAttachments(ctx, workOrderId);
+      const attachments = await attachmentService.listWorkOrderAttachments(tenantContext, workOrderId);
       res.status(200).json({ attachments });
     } catch (err) {
       next(err);
@@ -82,10 +82,10 @@ export class AttachmentController {
 
   async deleteAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ctx = req.tenantContext!;
+      const tenantContext = req.tenantContext!;
       const attachmentId = req.params.id;
 
-      const deleted = await attachmentService.deleteAttachment(ctx, attachmentId);
+      const deleted = await attachmentService.deleteAttachment(tenantContext, attachmentId);
       res.status(200).json({
         message: 'Attachment deleted successfully',
         attachment: deleted,

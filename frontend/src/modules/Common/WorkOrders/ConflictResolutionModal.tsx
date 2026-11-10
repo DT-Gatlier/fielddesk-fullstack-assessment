@@ -1,7 +1,7 @@
 import { Button } from "@/app/shared/widgets/base/button"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
 import { CalendarX, Clock, ArrowRight } from "lucide-react"
-import type { ConflictingWorkOrder } from "@/app/api/services/work-orders/type"
+import type { ConflictingWorkOrder } from "./services/type"
 
 interface ConflictResolutionModalProps {
   isOpen: boolean

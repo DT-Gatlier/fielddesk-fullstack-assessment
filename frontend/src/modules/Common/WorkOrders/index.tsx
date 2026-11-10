@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
-  useWorkOrders,
   useGetProfileDetails,
   useGetPermissions,
 } from "@/app/api/queryHooks"
+import { useWorkOrders } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import {
@@ -25,7 +25,7 @@ import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
 import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
-import type { WorkOrder } from "@/app/api/services/work-orders/type"
+import type { WorkOrder } from "./services/type"
 
 function WorkOrders() {
   const [searchParams, setSearchParams] = useSearchParams()
