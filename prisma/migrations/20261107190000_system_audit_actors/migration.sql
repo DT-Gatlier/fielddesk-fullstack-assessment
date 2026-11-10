@@ -1,0 +1,2 @@
+ALTER TABLE "AuditLog"
+ALTER COLUMN "changedById" DROP NOT NULL;

@@ -1,0 +1,38 @@
+name: Verify FieldDesk
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fielddesk
+          POSTGRES_PASSWORD: fielddesk
+          POSTGRES_DB: fielddesk_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U fielddesk" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://fielddesk:fielddesk@localhost:5432/fielddesk_test
+      REDIS_URL: redis://localhost:6379
+      RUN_QUEUE_TESTS: '1'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm --prefix web ci
+      - run: npm run db:generate && npm run db:migrate && npm run db:seed
+      - run: npm run lint && npm run build && npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: docker compose config --quiet
+        env:
+          JWT_SECRET: ci-configuration-only-no-real-secret-required
+      - run: docker build -t fielddesk-ci .

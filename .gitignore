@@ -21,3 +21,15 @@ uploads/
 .vscode/
 .DS_Store
 Thumbs.db
+
+/generated/prisma
+.tmp/
+test-results/
+playwright-report/
+
+# Local coding-tool configuration
+.agents/
+.claude/
+.windsurf/
+.codex/
+skills-lock.json
