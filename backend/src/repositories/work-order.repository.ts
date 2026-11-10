@@ -198,6 +198,12 @@ export class WorkOrderRepository {
       [id, orgId]
     );
 
+    // Fetch attachments for this work order
+    const attRes = await query<any>(
+      `SELECT * FROM attachments WHERE work_order_id = $1 AND organisation_id = $2 ORDER BY created_at DESC`,
+      [id, orgId]
+    );
+
     return {
       id: row.id,
       organisationId: row.organisation_id,
@@ -224,7 +230,15 @@ export class WorkOrderRepository {
             name: row.creator_name || 'Creator',
           }
         : undefined,
-      attachments: [],
+      attachments: attRes.rows.map((a: any) => ({
+        id: a.id,
+        workOrderId: a.work_order_id,
+        originalFilename: a.original_filename,
+        mimeType: a.mime_type,
+        fileSizeBytes: Number(a.file_size_bytes),
+        downloadUrl: `/api/v1/attachments/${a.id}/download`,
+        createdAt: a.created_at,
+      })),
       auditLogs: auditRes.rows.map((al) => ({
         id: al.id,
         action: al.action,
@@ -452,6 +466,100 @@ export class WorkOrderRepository {
       entry.afterState ? JSON.stringify(entry.afterState) : null,
       entry.metadata ? JSON.stringify(entry.metadata) : '{}',
     ]);
+  }
+
+  async findConflictingSchedule(
+    techId: string,
+    start: Date,
+    end: Date,
+    excludeWorkOrderId?: string
+  ): Promise<{ id: string; referenceNumber: string; scheduledStart: Date; scheduledEnd: Date } | null> {
+    const text = `
+      SELECT id, reference_number, scheduled_start, scheduled_end
+      FROM work_orders
+      WHERE assigned_technician_id = $1
+        AND status NOT IN ('cancelled', 'completed')
+        AND scheduled_start IS NOT NULL
+        AND scheduled_end IS NOT NULL
+        AND ($4::uuid IS NULL OR id != $4)
+        AND tstzrange(scheduled_start, scheduled_end, '[)') && tstzrange($2, $3, '[)')
+      LIMIT 1
+    `;
+    const res = await query<any>(text, [
+      techId,
+      start.toISOString(),
+      end.toISOString(),
+      excludeWorkOrderId || null,
+    ]);
+
+    if (!res.rows.length) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      referenceNumber: row.reference_number,
+      scheduledStart: row.scheduled_start,
+      scheduledEnd: row.scheduled_end,
+    };
+  }
+
+  async assignTechnician(
+    id: string,
+    orgId: string,
+    techId: string,
+    start: Date,
+    end: Date
+  ): Promise<WorkOrderWithDetails | null> {
+    const text = `
+      UPDATE work_orders
+      SET 
+        assigned_technician_id = $3,
+        scheduled_start = $4,
+        scheduled_end = $5,
+        updated_at = NOW()
+      WHERE id = $1 AND organisation_id = $2
+      RETURNING *
+    `;
+    const res = await query<any>(text, [
+      id,
+      orgId,
+      techId,
+      start.toISOString(),
+      end.toISOString(),
+    ]);
+
+    if (!res.rows.length) return null;
+    const row = res.rows[0];
+
+    // Fetch technician details
+    const techRes = await query<any>(
+      `SELECT name, email FROM users WHERE id = $1 AND organisation_id = $2`,
+      [techId, orgId]
+    );
+    const tech = techRes.rows[0];
+
+    return {
+      id: row.id,
+      organisationId: row.organisation_id,
+      referenceNumber: row.reference_number,
+      title: row.title,
+      description: row.description,
+      priority: row.priority,
+      status: row.status,
+      siteName: row.site_name,
+      assignedTechnicianId: row.assigned_technician_id,
+      assignedTechnician: tech
+        ? {
+            id: row.assigned_technician_id,
+            name: tech.name,
+            email: tech.email,
+          }
+        : null,
+      scheduledStart: row.scheduled_start,
+      scheduledEnd: row.scheduled_end,
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 }
 

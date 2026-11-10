@@ -160,3 +160,77 @@ export async function invalidateDashboardCache(orgId: string): Promise<void> {
     logger.error({ err: err.message }, 'Error invalidating dashboard cache in Redis');
   }
 }
+
+/**
+ * Try to acquire an idempotency lock in Redis fast-path
+ * Returns: 'NEW' if successfully locked, 'PROCESSING' or 'COMPLETED' if duplicate
+ */
+export async function tryAcquireIdempotencyKey(
+  orgId: string,
+  eventId: string,
+  ttlSeconds = 86400
+): Promise<'NEW' | 'PROCESSING' | 'COMPLETED'> {
+  const key = `idemp:${orgId}:${eventId}`;
+  try {
+    const client = getRedisClient();
+    const existing = await client.get(key);
+    if (existing) {
+      return existing === 'COMPLETED' ? 'COMPLETED' : 'PROCESSING';
+    }
+
+    const acquired = await client.set(key, 'PROCESSING', 'EX', ttlSeconds, 'NX');
+    return acquired === 'OK' ? 'NEW' : 'PROCESSING';
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error checking idempotency key in Redis');
+    return 'NEW'; // Fall back to DB deduplication
+  }
+}
+
+/**
+ * Mark idempotency key as completed with 24-hour TTL (86400s)
+ */
+export async function completeIdempotencyKey(
+  orgId: string,
+  eventId: string,
+  ttlSeconds = 86400
+): Promise<void> {
+  const key = `idemp:${orgId}:${eventId}`;
+  try {
+    const client = getRedisClient();
+    await client.set(key, 'COMPLETED', 'EX', ttlSeconds);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error completing idempotency key in Redis');
+  }
+}
+
+/**
+ * Clear an idempotency key (e.g. on rollback)
+ */
+export async function clearIdempotencyKey(
+  orgId: string,
+  eventId: string
+): Promise<void> {
+  const key = `idemp:${orgId}:${eventId}`;
+  try {
+    const client = getRedisClient();
+    await client.del(key);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error clearing idempotency key in Redis');
+  }
+}
+
+/**
+ * Publish real-time event to organisation Redis Pub/Sub channel
+ */
+export async function publishRealtimeEvent(
+  orgId: string,
+  event: any
+): Promise<void> {
+  const channel = `realtime:events:${orgId}`;
+  try {
+    const client = getRedisClient();
+    await client.publish(channel, JSON.stringify(event));
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error publishing realtime event to Redis channel');
+  }
+}

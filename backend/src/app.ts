@@ -8,6 +8,8 @@ import authRoutes from './api/routes/auth.routes.js';
 import userRoutes from './api/routes/user.routes.js';
 import workOrderRoutes from './api/routes/work-order.routes.js';
 import dashboardRoutes from './api/routes/dashboard.routes.js';
+import attachmentRoutes from './api/routes/attachment.routes.js';
+import organisationRoutes from './api/routes/organisation.routes.js';
 import { NotFoundError } from './domain/errors/index.js';
 
 export function createApp(): Express {
@@ -42,6 +44,8 @@ export function createApp(): Express {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/work-orders', workOrderRoutes);
   app.use('/api/v1/dashboard', dashboardRoutes);
+  app.use('/api/v1/attachments', attachmentRoutes);
+  app.use('/api/v1/organisations', organisationRoutes);
 
   // 404 handler for unknown routes
   app.use((req: Request, res: Response, next: NextFunction) => {

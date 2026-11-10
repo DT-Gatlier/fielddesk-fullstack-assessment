@@ -47,6 +47,10 @@ export class UserRepository {
   /**
    * Find a user by ID and Organisation ID (Strict tenant isolation)
    */
+  async findById(userId: string, orgId: string): Promise<User | null> {
+    return this.findUserByIdAndOrg(userId, orgId);
+  }
+
   async findUserByIdAndOrg(userId: string, orgId: string): Promise<User | null> {
     const sql = `
       SELECT 

@@ -26,6 +26,22 @@ export interface WorkOrderAuditLog {
   createdAt: string
 }
 
+export interface WorkOrderAttachment {
+  id: string
+  workOrderId: string
+  originalFilename: string
+  mimeType: string
+  fileSizeBytes: number
+  downloadUrl: string
+  createdAt: string
+}
+
+export interface StorageQuota {
+  usedBytes: number
+  quotaBytes: number
+  percentUsed: number
+}
+
 export interface WorkOrder {
   id: string
   organisationId: string
@@ -41,7 +57,7 @@ export interface WorkOrder {
   scheduledEnd?: string | null
   createdBy: string
   creator?: WorkOrderCreator
-  attachments?: string[]
+  attachments?: WorkOrderAttachment[]
   auditLogs?: WorkOrderAuditLog[]
   createdAt: string
   updatedAt: string
@@ -88,18 +104,54 @@ export interface UpdateWorkOrderInput {
   scheduledEnd?: string | null
 }
 
-export interface DashboardMetrics {
-  total: number
-  open: number
-  in_progress: number
-  blocked: number
-  completed: number
-  cancelled: number
-}
-
 export interface TechnicianUser {
   id: string
   name: string
   email: string
+}
+
+export interface AssignTechnicianInput {
+  technicianId: string
+  scheduledStart: string
+  scheduledEnd: string
+}
+
+export interface ConflictingWorkOrder {
+  id?: string
+  referenceNumber: string
+  scheduledStart: string
+  scheduledEnd: string
+}
+
+export interface SchedulingConflictErrorResponse {
+  type: string
+  title: string
+  status: number
+  code: string
+  detail: string
+  conflictingWorkOrder?: ConflictingWorkOrder
+  correlationId?: string
+}
+
+export type ProgressEventType = "status_changed" | "note_added" | "work_paused"
+
+export interface SubmitProgressEventInput {
+  eventId: string
+  workOrderId: string
+  type: ProgressEventType
+  occurredAt: string
+  payload: {
+    status?: WorkOrderStatus
+    note?: string
+  }
+}
+
+export interface ProgressEventResponse {
+  status: "applied" | "duplicate_ignored"
+  eventId: string
+  workOrderId?: string
+  newStatus?: WorkOrderStatus
+  processedAt?: string
+  message?: string
 }
 

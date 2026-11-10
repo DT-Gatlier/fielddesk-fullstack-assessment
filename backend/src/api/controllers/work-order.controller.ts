@@ -4,6 +4,7 @@ import {
   ListWorkOrdersQueryDTO,
   CreateWorkOrderDTO,
   UpdateWorkOrderDTO,
+  assignTechnicianSchema,
 } from '../dtos/work-order.dto.js';
 
 export class WorkOrderController {
@@ -42,6 +43,17 @@ export class WorkOrderController {
       const { id } = req.params;
       const dto = req.body as UpdateWorkOrderDTO;
       const result = await workOrderService.updateWorkOrder(id, dto, req.tenantContext);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  assignTechnician = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const parsedBody = assignTechnicianSchema.parse(req.body);
+      const result = await workOrderService.assignTechnician(id, parsedBody, req.tenantContext);
       res.status(200).json(result);
     } catch (err) {
       next(err);

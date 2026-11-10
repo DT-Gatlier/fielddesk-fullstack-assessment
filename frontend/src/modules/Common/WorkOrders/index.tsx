@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
-  useWorkOrders,
   useGetProfileDetails,
   useGetPermissions,
 } from "@/app/api/queryHooks"
+import { useWorkOrders } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import {
@@ -17,11 +17,15 @@ import {
   Eye,
   X,
   Loader2,
+  CalendarPlus,
+  Activity,
 } from "lucide-react"
 
 import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
 import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
-import type { WorkOrder } from "@/app/api/services/work-orders/type"
+import { AssignTechnicianModal } from "./AssignTechnicianModal"
+import { ProgressEventModal } from "./ProgressEventModal"
+import type { WorkOrder } from "./services/type"
 
 function WorkOrders() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -30,6 +34,8 @@ function WorkOrders() {
 
   const permissions = permsData?.permissions || []
   const canCreate = permissions.includes("work_orders:create")
+  const canAssign = permissions.includes("work_orders:assign") || permissions.includes("work_orders:create")
+  const isTechnician = userInfo?.user?.role?.toLowerCase() === "technician"
 
   // State from URL query parameters
   const initialStatus = searchParams.get("status") || "all"
@@ -46,6 +52,8 @@ function WorkOrders() {
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [assignTargetWo, setAssignTargetWo] = useState<WorkOrder | null>(null)
+  const [progressTargetWo, setProgressTargetWo] = useState<WorkOrder | null>(null)
 
   // Sync URL params when internal state changes
   useEffect(() => {
@@ -320,17 +328,46 @@ function WorkOrders() {
                       {formatDate(wo.scheduledStart)}
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedOrderId(wo.id)
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View</span>
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        {!wo.assignedTechnician && canAssign && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAssignTargetWo(wo)
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-colors font-medium text-xs"
+                          >
+                            <CalendarPlus className="w-3.5 h-3.5" />
+                            <span>Assign</span>
+                          </button>
+                        )}
+                        {(isTechnician ? wo.assignedTechnicianId === userInfo?.user?.id : true) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setProgressTargetWo(wo)
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 transition-colors font-medium text-xs"
+                            title="Submit Progress Event"
+                          >
+                            <Activity className="w-3.5 h-3.5" />
+                            <span>Progress</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedOrderId(wo.id)
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -394,6 +431,20 @@ function WorkOrders() {
         workOrderId={selectedOrderId}
         isOpen={!!selectedOrderId}
         onClose={() => setSelectedOrderId(null)}
+      />
+
+      {/* Quick Assign Modal from Table Row */}
+      <AssignTechnicianModal
+        workOrder={assignTargetWo}
+        isOpen={!!assignTargetWo}
+        onClose={() => setAssignTargetWo(null)}
+      />
+
+      {/* Progress Event Modal from Table Row */}
+      <ProgressEventModal
+        workOrder={progressTargetWo}
+        isOpen={!!progressTargetWo}
+        onClose={() => setProgressTargetWo(null)}
       />
     </div>
   )

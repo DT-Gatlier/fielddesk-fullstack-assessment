@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useCreateWorkOrder, useTechnicians } from "@/app/api/queryHooks"
+import { useCreateWorkOrder, useTechnicians } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { Input } from "@/app/shared/widgets/base/input"
 import { Textarea } from "@/app/shared/widgets/base/textarea"

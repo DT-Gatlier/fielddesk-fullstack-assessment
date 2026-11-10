@@ -1,17 +1,42 @@
 import { workOrderRepository, PaginatedWorkOrders } from '../repositories/work-order.repository.js';
+import { userRepository } from '../repositories/user.repository.js';
 import { WorkOrderWithDetails, DashboardMetrics } from '../domain/models/work-order.model.js';
 import { TenantContext } from '../domain/models/tenant-context.js';
 import {
   ListWorkOrdersQueryDTO,
   CreateWorkOrderDTO,
   UpdateWorkOrderDTO,
+  AssignTechnicianDTO,
 } from '../api/dtos/work-order.dto.js';
-import { NotFoundError, ForbiddenError } from '../domain/errors/index.js';
+import { NotFoundError, ForbiddenError, SchedulingConflictError } from '../domain/errors/index.js';
 import {
   getCachedDashboardMetrics,
   setCachedDashboardMetrics,
   invalidateDashboardCache,
 } from '../infrastructure/redis.js';
+import { notificationQueue } from '../infrastructure/queue.js';
+
+// In-process lock for scheduling concurrency per technician
+const technicianLocks = new Map<string, Promise<void>>();
+
+async function acquireTechnicianLock<T>(technicianId: string, fn: () => Promise<T>): Promise<T> {
+  while (technicianLocks.has(technicianId)) {
+    await technicianLocks.get(technicianId);
+  }
+
+  let release: () => void;
+  const lockPromise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  technicianLocks.set(technicianId, lockPromise);
+
+  try {
+    return await fn();
+  } finally {
+    technicianLocks.delete(technicianId);
+    release!();
+  }
+}
 
 export class WorkOrderService {
   async listWorkOrders(
@@ -172,6 +197,108 @@ export class WorkOrderService {
     await setCachedDashboardMetrics(ctx.organisationId, metrics, scope, 30);
 
     return metrics;
+  }
+
+  async assignTechnician(
+    id: string,
+    dto: AssignTechnicianDTO,
+    ctx: TenantContext
+  ): Promise<WorkOrderWithDetails> {
+    if (ctx.role !== 'owner' && ctx.role !== 'dispatcher') {
+      throw new ForbiddenError('Only owners and dispatchers can assign technicians to work orders.');
+    }
+
+    // Anti-enumeration & tenant validation
+    const existing = await workOrderRepository.findById(
+      id,
+      ctx.organisationId,
+      ctx.role,
+      ctx.userId
+    );
+
+    if (!existing) {
+      throw new NotFoundError(`Work order with ID '${id}' not found.`);
+    }
+
+    // Verify technician exists and belongs to the same organisation
+    const tech = await userRepository.findById(dto.technicianId, ctx.organisationId);
+    if (!tech || tech.role !== 'technician') {
+      throw new NotFoundError('Technician not found in this organisation.');
+    }
+
+    const startDate = new Date(dto.scheduledStart);
+    const endDate = new Date(dto.scheduledEnd);
+
+    // Concurrency advisory lock per technician
+    return acquireTechnicianLock(dto.technicianId, async () => {
+      // 1. Query existing active work orders overlapping [scheduled_start, scheduled_end)
+      const conflict = await workOrderRepository.findConflictingSchedule(
+        dto.technicianId,
+        startDate,
+        endDate,
+        id
+      );
+
+      if (conflict) {
+        const formatTime = (d: Date | string) => {
+          const date = new Date(d);
+          return date.toISOString().slice(11, 16);
+        };
+        throw new SchedulingConflictError(
+          `Technician ${tech.name} is already scheduled for ${conflict.referenceNumber} from ${formatTime(conflict.scheduledStart)} to ${formatTime(conflict.scheduledEnd)}.`,
+          {
+            id: conflict.id,
+            referenceNumber: conflict.referenceNumber,
+            scheduledStart: conflict.scheduledStart,
+            scheduledEnd: conflict.scheduledEnd,
+          }
+        );
+      }
+
+      // 2. Perform schedule assignment
+      const updated = await workOrderRepository.assignTechnician(
+        id,
+        ctx.organisationId,
+        dto.technicianId,
+        startDate,
+        endDate
+      );
+
+      if (!updated) {
+        throw new NotFoundError(`Work order with ID '${id}' not found.`);
+      }
+
+      // 3. Record audit log
+      await workOrderRepository.createAuditLog({
+        organisationId: ctx.organisationId,
+        actorId: ctx.userId,
+        action: 'WORK_ORDER_ASSIGNED',
+        targetType: 'work_order',
+        targetId: id,
+        beforeState: {
+          assignedTechnicianId: existing.assignedTechnicianId,
+          scheduledStart: existing.scheduledStart,
+          scheduledEnd: existing.scheduledEnd,
+        },
+        afterState: {
+          assignedTechnicianId: updated.assignedTechnicianId,
+          scheduledStart: updated.scheduledStart,
+          scheduledEnd: updated.scheduledEnd,
+        },
+      });
+
+      // 4. Enqueue notification job via BullMQ / Redis queue
+      await notificationQueue.add('send-notification', {
+        workOrderId: id,
+        technicianId: dto.technicianId,
+        organisationId: ctx.organisationId,
+      });
+
+      // 5. Invalidate dashboard metrics cache
+      await invalidateDashboardCache(ctx.organisationId);
+
+      return updated;
+    });
   }
 }
 

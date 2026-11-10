@@ -4,15 +4,8 @@ import type { AxiosError } from "axios"
 import { toast } from "sonner"
 
 import { ROUTE_CONFIG } from "@/app/router/config"
-
 import { queryClient } from "../configs/tanStackQuery"
 import { authenticationService } from "../services/authentication"
-import { workOrderService } from "../services/work-orders"
-import type {
-  CreateWorkOrderInput,
-  UpdateWorkOrderInput,
-  WorkOrderFilters,
-} from "../services/work-orders/type"
 
 export const useLoginWithCredentials = () => {
   const navigate = useNavigate()
@@ -98,76 +91,3 @@ export const usePermissions = () => {
     hasRole,
   }
 }
-
-export const useDashboardMetrics = () => {
-  return useQuery({
-    queryKey: ["dashboard-metrics"],
-    queryFn: () => workOrderService.getMetrics(),
-    refetchInterval: 30 * 1000,
-    staleTime: 15 * 1000,
-  })
-}
-
-export const useWorkOrders = (filters: WorkOrderFilters) => {
-  return useQuery({
-    queryKey: ["work-orders", filters],
-    queryFn: () => workOrderService.list(filters),
-    staleTime: 10 * 1000,
-  })
-}
-
-export const useWorkOrderDetail = (id: string | null) => {
-  return useQuery({
-    queryKey: ["work-order-detail", id],
-    queryFn: () => (id ? workOrderService.getById(id) : null),
-    enabled: !!id,
-  })
-}
-
-export const useTechnicians = () => {
-  return useQuery({
-    queryKey: ["technicians-list"],
-    queryFn: () => workOrderService.getTechnicians(),
-    staleTime: 60 * 1000,
-  })
-}
-
-export const useCreateWorkOrder = () => {
-  return useMutation({
-    mutationFn: (payload: CreateWorkOrderInput) => workOrderService.create(payload),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
-      toast.success(`Work order ${data.referenceNumber} created successfully`)
-    },
-    onError: (error: AxiosError<{ message?: string; error?: string }>) => {
-      toast.error(
-        error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          "Failed to create work order"
-      )
-    },
-  })
-}
-
-export const useUpdateWorkOrder = () => {
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateWorkOrderInput }) =>
-      workOrderService.update(id, payload),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
-      void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
-      toast.success(`Work order ${data.referenceNumber} updated successfully`)
-    },
-    onError: (error: AxiosError<{ message?: string; error?: string }>) => {
-      toast.error(
-        error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          "Failed to update work order"
-      )
-    },
-  })
-}
-
-
