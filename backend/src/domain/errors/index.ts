@@ -85,5 +85,28 @@ export class RateLimitError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  readonly statusCode = 400;
+  readonly code: string;
+  readonly title = 'Bad Request';
+
+  constructor(message = 'Bad request', code = 'BAD_REQUEST') {
+    super(message);
+    this.code = code;
+    (this as any).type = 'https://api.fielddesk.internal/errors/bad-request';
+  }
+}
+
+export class QuotaExceededError extends AppError {
+  readonly statusCode = 422;
+  readonly code = 'QUOTA_EXCEEDED';
+  readonly title = 'Storage Quota Exceeded';
+
+  constructor(message = 'Organisation storage quota exceeded') {
+    super(message);
+    (this as any).type = 'https://api.fielddesk.internal/errors/quota-exceeded';
+  }
+}
+
 export * from './app-error.js';
 

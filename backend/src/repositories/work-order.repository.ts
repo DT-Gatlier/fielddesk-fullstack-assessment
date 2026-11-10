@@ -198,6 +198,12 @@ export class WorkOrderRepository {
       [id, orgId]
     );
 
+    // Fetch attachments for this work order
+    const attRes = await query<any>(
+      `SELECT * FROM attachments WHERE work_order_id = $1 AND organisation_id = $2 ORDER BY created_at DESC`,
+      [id, orgId]
+    );
+
     return {
       id: row.id,
       organisationId: row.organisation_id,
@@ -224,7 +230,15 @@ export class WorkOrderRepository {
             name: row.creator_name || 'Creator',
           }
         : undefined,
-      attachments: [],
+      attachments: attRes.rows.map((a: any) => ({
+        id: a.id,
+        workOrderId: a.work_order_id,
+        originalFilename: a.original_filename,
+        mimeType: a.mime_type,
+        fileSizeBytes: Number(a.file_size_bytes),
+        downloadUrl: `/api/v1/attachments/${a.id}/download`,
+        createdAt: a.created_at,
+      })),
       auditLogs: auditRes.rows.map((al) => ({
         id: al.id,
         action: al.action,

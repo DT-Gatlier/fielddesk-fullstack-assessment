@@ -25,6 +25,31 @@ export function errorHandler(
     return;
   }
 
+  // Catch Multer errors (file size limit, etc.)
+  if ((err as any).name === 'MulterError') {
+    logger.warn({ err: err.message, code: (err as any).code, correlationId }, 'Multer upload error');
+    if ((err as any).code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({
+        type: 'https://api.fielddesk.internal/errors/file-too-large',
+        title: 'File Too Large',
+        status: 400,
+        code: 'FILE_TOO_LARGE',
+        detail: 'File size exceeds maximum allowed limit of 10 MB.',
+        correlationId,
+      });
+      return;
+    }
+    res.status(400).json({
+      type: 'https://api.fielddesk.internal/errors/bad-request',
+      title: 'Bad Request',
+      status: 400,
+      code: 'UPLOAD_ERROR',
+      detail: err.message,
+      correlationId,
+    });
+    return;
+  }
+
   if (err instanceof AppError) {
     logger.warn(
       {

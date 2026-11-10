@@ -18,11 +18,13 @@ import {
   X,
   Loader2,
   CalendarPlus,
+  Activity,
 } from "lucide-react"
 
 import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
 import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
+import { ProgressEventModal } from "./ProgressEventModal"
 import type { WorkOrder } from "@/app/api/services/work-orders/type"
 
 function WorkOrders() {
@@ -33,6 +35,7 @@ function WorkOrders() {
   const permissions = permsData?.permissions || []
   const canCreate = permissions.includes("work_orders:create")
   const canAssign = permissions.includes("work_orders:assign") || permissions.includes("work_orders:create")
+  const isTechnician = userInfo?.user?.role?.toLowerCase() === "technician"
 
   // State from URL query parameters
   const initialStatus = searchParams.get("status") || "all"
@@ -50,6 +53,7 @@ function WorkOrders() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [assignTargetWo, setAssignTargetWo] = useState<WorkOrder | null>(null)
+  const [progressTargetWo, setProgressTargetWo] = useState<WorkOrder | null>(null)
 
   // Sync URL params when internal state changes
   useEffect(() => {
@@ -338,6 +342,20 @@ function WorkOrders() {
                             <span>Assign</span>
                           </button>
                         )}
+                        {(isTechnician ? wo.assignedTechnicianId === userInfo?.user?.id : true) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setProgressTargetWo(wo)
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 transition-colors font-medium text-xs"
+                            title="Submit Progress Event"
+                          >
+                            <Activity className="w-3.5 h-3.5" />
+                            <span>Progress</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -420,6 +438,13 @@ function WorkOrders() {
         workOrder={assignTargetWo}
         isOpen={!!assignTargetWo}
         onClose={() => setAssignTargetWo(null)}
+      />
+
+      {/* Progress Event Modal from Table Row */}
+      <ProgressEventModal
+        workOrder={progressTargetWo}
+        isOpen={!!progressTargetWo}
+        onClose={() => setProgressTargetWo(null)}
       />
     </div>
   )

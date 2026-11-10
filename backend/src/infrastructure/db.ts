@@ -239,6 +239,54 @@ const initialMockWorkOrders: MockWorkOrder[] = [
 let mockWorkOrders: MockWorkOrder[] = JSON.parse(JSON.stringify(initialMockWorkOrders));
 const mockAuditLogs: MockAuditLog[] = [];
 
+export interface MockProcessedEvent {
+  event_id: string;
+  organisation_id: string;
+  work_order_id: string;
+  event_type: string;
+  occurred_at: Date;
+  payload: any;
+  created_at: Date;
+}
+
+export interface MockAttachment {
+  id: string;
+  organisation_id: string;
+  work_order_id: string;
+  original_filename: string;
+  storage_key: string;
+  mime_type: string;
+  file_size_bytes: number;
+  uploaded_by: string;
+  created_at: Date;
+}
+
+let mockProcessedEvents: MockProcessedEvent[] = [];
+let mockAttachments: MockAttachment[] = [];
+
+export function resetMockProcessedEvents() {
+  mockProcessedEvents = [];
+}
+
+export function getMockProcessedEvents(): MockProcessedEvent[] {
+  return mockProcessedEvents;
+}
+
+export function resetMockAttachments() {
+  mockAttachments = [];
+}
+
+export function getMockAttachments(): MockAttachment[] {
+  return mockAttachments;
+}
+
+export function setMockOrgQuota(orgId: string, bytes: number) {
+  const org = mockOrgs.find((o) => o.id === orgId);
+  if (org) {
+    org.storage_quota_bytes = bytes;
+  }
+}
+
 export function resetMockWorkOrders() {
   mockWorkOrders = JSON.parse(JSON.stringify(initialMockWorkOrders));
 }
@@ -392,6 +440,124 @@ function executeMockQuery<R extends QueryResultRow = any>(
     };
     mockAuditLogs.push(log);
     return { rows: [log as unknown as R], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
+  }
+
+  // Processed Events (Idempotency insert with ON CONFLICT DO NOTHING)
+  if (normalized.includes('insert into processed_events')) {
+    const [eventId, orgId, workOrderId, eventType, occurredAt, payload] = params;
+    const exists = mockProcessedEvents.some(
+      (e) => e.organisation_id === orgId && e.event_id === eventId
+    );
+
+    if (exists) {
+      return { rows: [] as R[], rowCount: 0, command: 'INSERT', oid: 0, fields: [] };
+    }
+
+    const newEvent: MockProcessedEvent = {
+      event_id: eventId,
+      organisation_id: orgId,
+      work_order_id: workOrderId,
+      event_type: eventType,
+      occurred_at: new Date(occurredAt),
+      payload: typeof payload === 'string' ? JSON.parse(payload) : payload,
+      created_at: new Date(),
+    };
+    mockProcessedEvents.push(newEvent);
+
+    return { rows: [{ event_id: eventId } as unknown as R], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
+  }
+
+  // Organisation quota & details
+  if (normalized.includes('from organisations') && normalized.includes('where id = $1')) {
+    const orgId = params[0];
+    const org = mockOrgs.find((o) => o.id === orgId);
+    if (!org) {
+      return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
+    }
+    return { rows: [org as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Current storage quota usage query
+  if (normalized.includes('from attachments') && normalized.includes('sum(file_size_bytes)')) {
+    const orgId = params[0];
+    const total = mockAttachments
+      .filter((a) => a.organisation_id === orgId)
+      .reduce((sum, a) => sum + Number(a.file_size_bytes), 0);
+    return {
+      rows: [{ current_usage: total, used_bytes: total } as unknown as R],
+      rowCount: 1,
+      command: 'SELECT',
+      oid: 0,
+      fields: [],
+    };
+  }
+
+  // Insert attachment
+  if (normalized.includes('insert into attachments')) {
+    const [id, orgId, workOrderId, originalFilename, storageKey, mimeType, fileSizeBytes, uploadedBy] = params;
+    const att: MockAttachment = {
+      id: id || `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      organisation_id: orgId,
+      work_order_id: workOrderId,
+      original_filename: originalFilename,
+      storage_key: storageKey,
+      mime_type: mimeType,
+      file_size_bytes: Number(fileSizeBytes),
+      uploaded_by: uploadedBy,
+      created_at: new Date(),
+    };
+    mockAttachments.push(att);
+    return { rows: [att as unknown as R], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
+  }
+
+  // Find attachment by id and organisation
+  if (normalized.includes('from attachments') && normalized.includes('where id = $1 and organisation_id = $2')) {
+    const [id, orgId] = params;
+    const att = mockAttachments.find((a) => a.id === id && a.organisation_id === orgId);
+    if (!att) {
+      return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
+    }
+    return { rows: [att as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // List attachments by work order
+  if (normalized.includes('from attachments') && normalized.includes('where work_order_id = $1 and organisation_id = $2')) {
+    const [woId, orgId] = params;
+    const items = mockAttachments.filter((a) => a.work_order_id === woId && a.organisation_id === orgId);
+    return { rows: items as unknown as R[], rowCount: items.length, command: 'SELECT', oid: 0, fields: [] };
+  }
+
+  // Delete attachment
+  if (normalized.includes('delete from attachments') && normalized.includes('where id = $1 and organisation_id = $2')) {
+    const [id, orgId] = params;
+    const idx = mockAttachments.findIndex((a) => a.id === id && a.organisation_id === orgId);
+    if (idx === -1) {
+      return { rows: [] as R[], rowCount: 0, command: 'DELETE', oid: 0, fields: [] };
+    }
+    const deleted = mockAttachments.splice(idx, 1)[0];
+    return { rows: [deleted as unknown as R], rowCount: 1, command: 'DELETE', oid: 0, fields: [] };
+  }
+
+  // Work Orders: Update status from event
+  if (normalized.includes('update work_orders set status = $1') && normalized.includes('where id = $2')) {
+    const [newStatus, id] = params;
+    const item = mockWorkOrders.find((w) => w.id === id);
+    if (item) {
+      item.status = newStatus;
+      item.updated_at = new Date();
+      return { rows: [item as unknown as R], rowCount: 1, command: 'UPDATE', oid: 0, fields: [] };
+    }
+    return { rows: [] as R[], rowCount: 0, command: 'UPDATE', oid: 0, fields: [] };
+  }
+
+  // Work Orders: FOR UPDATE select
+  if (normalized.includes('from work_orders') && normalized.includes('for update') && normalized.includes('where id = $1 and organisation_id = $2')) {
+    const [id, orgId] = params;
+    const item = mockWorkOrders.find((w) => w.id === id && w.organisation_id === orgId);
+    if (!item) {
+      return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
+    }
+    return { rows: [item as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
   }
 
   // Find audit logs by target_id

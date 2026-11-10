@@ -4,6 +4,8 @@ import {
   useUpdateWorkOrder,
   useTechnicians,
   usePermissions,
+  useGetProfileDetails,
+  useWorkOrderAttachments,
 } from "@/app/api/queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
@@ -16,9 +18,15 @@ import {
   History,
   Loader2,
   CalendarPlus,
+  Activity,
+  Paperclip,
 } from "lucide-react"
 import type { WorkOrderStatus, WorkOrderPriority } from "@/app/api/services/work-orders/type"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
+import { ProgressEventModal } from "./ProgressEventModal"
+import { AttachmentDropzone } from "./components/AttachmentDropzone"
+import { AttachmentList } from "./components/AttachmentList"
+import { QuotaProgressBar } from "./components/QuotaProgressBar"
 
 interface WorkOrderDetailModalProps {
   workOrderId: string | null
@@ -34,15 +42,22 @@ export function WorkOrderDetailModal({
   const { data: wo, isLoading, isError } = useWorkOrderDetail(workOrderId)
   const { data: technicians = [] } = useTechnicians()
   const { hasPermission, role } = usePermissions()
+  const { data: profile } = useGetProfileDetails()
+  const { data: attachments = [], isLoading: isLoadingAttachments } =
+    useWorkOrderAttachments(workOrderId)
   const updateMutation = useUpdateWorkOrder()
 
   const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus>("open")
   const [selectedPriority, setSelectedPriority] = useState<WorkOrderPriority>("medium")
   const [selectedTechId, setSelectedTechId] = useState<string>("")
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false)
 
   const canEdit = hasPermission("work_orders:update") || hasPermission("work_orders:assign")
   const isTechnician = role.toLowerCase() === "technician"
+  const currentUserId = profile?.user?.id
+  const isAssignedTech = isTechnician && wo?.assignedTechnicianId === currentUserId
+  const canSubmitProgress = isAssignedTech || !isTechnician
 
   useEffect(() => {
     if (wo) {
@@ -101,12 +116,26 @@ export function WorkOrderDetailModal({
       onClose={onClose}
       title={
         wo ? (
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-              {wo.referenceNumber}
-            </span>
-            <StatusBadge status={wo.priority} />
-            <StatusBadge status={wo.status} />
+          <div className="flex items-center justify-between gap-3 w-full pr-6">
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                {wo.referenceNumber}
+              </span>
+              <StatusBadge status={wo.priority} />
+              <StatusBadge status={wo.status} />
+            </div>
+            {canSubmitProgress && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsProgressModalOpen(true)}
+                className="h-7 text-xs font-semibold border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-1.5"
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Update Progress</span>
+              </Button>
+            )}
           </div>
         ) : (
           "Work Order Details"
@@ -316,6 +345,37 @@ export function WorkOrderDetailModal({
             </div>
           )}
 
+          {/* Attachments & Documentation Section */}
+          <div className="space-y-4 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Paperclip className="w-4 h-4 text-slate-400" />
+                <span>Attachments & Site Photos ({attachments.length})</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-normal">
+                JPEG, PNG, PDF (Max 10 MB)
+              </span>
+            </div>
+
+            {/* Quota Usage Bar */}
+            <QuotaProgressBar compact className="bg-slate-50/70 p-3 rounded-xl border border-slate-200" />
+
+            {/* Upload Dropzone (Guarded: assigned tech or dispatcher/owner) */}
+            {canSubmitProgress && (
+              <AttachmentDropzone
+                workOrderId={wo.id}
+                disabled={isTechnician && !isAssignedTech}
+              />
+            )}
+
+            {/* Attachment Items List */}
+            <AttachmentList
+              workOrderId={wo.id}
+              attachments={attachments}
+              isLoading={isLoadingAttachments}
+            />
+          </div>
+
           {/* Audit Logs History Section */}
           <div className="space-y-3 pt-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
@@ -361,6 +421,12 @@ export function WorkOrderDetailModal({
       workOrder={wo || null}
       isOpen={isAssignModalOpen}
       onClose={() => setIsAssignModalOpen(false)}
+    />
+
+    <ProgressEventModal
+      workOrder={wo || null}
+      isOpen={isProgressModalOpen}
+      onClose={() => setIsProgressModalOpen(false)}
     />
   </>
   )

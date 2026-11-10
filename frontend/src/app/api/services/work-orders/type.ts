@@ -26,6 +26,22 @@ export interface WorkOrderAuditLog {
   createdAt: string
 }
 
+export interface WorkOrderAttachment {
+  id: string
+  workOrderId: string
+  originalFilename: string
+  mimeType: string
+  fileSizeBytes: number
+  downloadUrl: string
+  createdAt: string
+}
+
+export interface StorageQuota {
+  usedBytes: number
+  quotaBytes: number
+  percentUsed: number
+}
+
 export interface WorkOrder {
   id: string
   organisationId: string
@@ -41,7 +57,7 @@ export interface WorkOrder {
   scheduledEnd?: string | null
   createdBy: string
   creator?: WorkOrderCreator
-  attachments?: string[]
+  attachments?: WorkOrderAttachment[]
   auditLogs?: WorkOrderAuditLog[]
   createdAt: string
   updatedAt: string
@@ -124,6 +140,28 @@ export interface SchedulingConflictErrorResponse {
   detail: string
   conflictingWorkOrder?: ConflictingWorkOrder
   correlationId?: string
+}
+
+export type ProgressEventType = "status_changed" | "note_added" | "work_paused"
+
+export interface SubmitProgressEventInput {
+  eventId: string
+  workOrderId: string
+  type: ProgressEventType
+  occurredAt: string
+  payload: {
+    status?: WorkOrderStatus
+    note?: string
+  }
+}
+
+export interface ProgressEventResponse {
+  status: "applied" | "duplicate_ignored"
+  eventId: string
+  workOrderId?: string
+  newStatus?: WorkOrderStatus
+  processedAt?: string
+  message?: string
 }
 
 

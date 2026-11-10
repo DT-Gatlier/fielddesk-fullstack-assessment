@@ -1,6 +1,7 @@
 import { useGetProfileDetails } from "@/app/api/queryHooks"
 import { Building2, Shield, Save } from "lucide-react"
 import { Button } from "@/app/shared/widgets/base/button"
+import { QuotaProgressBar } from "@/modules/Common/WorkOrders/components/QuotaProgressBar"
 
 function TenantSettings() {
   const { data: userInfo } = useGetProfileDetails()
@@ -43,6 +44,15 @@ function TenantSettings() {
               <p>
                 All database rows are cryptographically bound to <code className="font-mono">{user?.organisationId}</code>. No request parameter can override tenant scoping.
               </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              Organisation Storage Quota Limit
+            </label>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+              <QuotaProgressBar />
             </div>
           </div>
 
