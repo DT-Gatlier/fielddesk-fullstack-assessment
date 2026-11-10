@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  DISPATCHER
+  TECHNICIAN
+}
+
+enum JobStatus {
+  UNASSIGNED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum JobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model Organisation {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  storageUsedBytes BigInt @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  customers      Customer[]
+  jobs           Job[]
+  auditLogs      AuditLog[]
+  attachments    Attachment[]
+  progressEvents ProgressEvent[]
+  notifications  Notification[]
+
+  @@map("organisations")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  organisationId String
+  email          String   @unique
+  name           String
+  passwordHash   String
+  role           Role
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation        Organisation    @relation(fields: [organisationId], references: [id])
+  assignedJobs        Job[]           @relation("AssignedTech")
+  createdJobs         Job[]           @relation("CreatedJobs")
+  auditLogs           AuditLog[]
+  progressEvents      ProgressEvent[]
+  uploadedAttachments Attachment[]
+
+  @@index([organisationId])
+  @@index([organisationId, role])
+}
+
+model Customer {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  address        String
+  phone          String
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  jobs         Job[]
+
+  @@index([organisationId])
+}
+
+model Job {
+  id              String      @id @default(uuid())
+  organisationId  String
+  referenceNumber String
+  title           String
+  description     String
+  siteName        String?
+  status          JobStatus   @default(UNASSIGNED)
+  priority        JobPriority @default(NORMAL)
+
+  customerId   String
+  technicianId String?
+  createdById  String
+
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  technician   User?        @relation("AssignedTech", fields: [technicianId], references: [id])
+  createdBy    User         @relation("CreatedJobs", fields: [createdById], references: [id])
+
+  auditLogs      AuditLog[]
+  progressEvents ProgressEvent[]
+  attachments    Attachment[]
+  notifications  Notification[]
+
+  @@unique([organisationId, referenceNumber])
+  @@index([organisationId, status])
+  @@index([organisationId, technicianId])
+  @@index([organisationId, scheduledStart, scheduledEnd])
+  @@index([customerId])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organisationId String
+  jobId          String?
+  targetId       String?
+  targetType     String   @default("job")
+  changedById    String?
+  action         String
+  fromStatus     String?
+  toStatus       String?
+  beforeData     Json?
+  afterData      Json?
+  timestamp      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  job          Job?         @relation(fields: [jobId], references: [id])
+  changedBy    User?        @relation(fields: [changedById], references: [id])
+
+  @@index([organisationId, timestamp])
+  @@index([jobId, timestamp])
+  @@index([organisationId, targetType, targetId])
+}
+
+model Attachment {
+  id             String   @id @default(uuid())
+  organisationId String
+  jobId          String
+  uploadedById   String
+  fileName       String
+  mimeType       String
+  sizeBytes      BigInt
+  storageKey     String   @unique
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  job          Job          @relation(fields: [jobId], references: [id])
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+
+  @@index([organisationId, jobId])
+}
+
+model ProgressEvent {
+  id             String   @id @default(uuid())
+  organisationId String
+  jobId          String
+  userId         String
+  eventType      String
+  message        String?
+  metadata       Json?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  job          Job          @relation(fields: [jobId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([organisationId, jobId, createdAt])
+}
+
+model Notification {
+  id             String             @id @default(uuid())
+  organisationId String
+  jobId          String
+  recipient      String
+  channel        String
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  bullJobId      String?            @unique
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  job          Job          @relation(fields: [jobId], references: [id])
+
+  @@index([organisationId, status])
+  @@index([jobId])
+}
