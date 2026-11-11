@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom"
 import { useGetProfileDetails, useGetPermissions, useLogout } from "@/app/api/queryHooks"
+import { useRealtimeUpdates } from "@/app/shared/hooks/useRealtimeUpdates"
 import { ROUTE_CONFIG } from "@/app/router/config"
 import { Can } from "@/app/shared/components/Can"
 import { Button } from "@/app/shared/widgets/base/button"
@@ -21,11 +22,46 @@ function Layout() {
   const { data: userInfo } = useGetProfileDetails()
   const { data: permsData } = useGetPermissions()
   const { mutate: logout, isPending: isLoggingOut } = useLogout()
-
   const user = userInfo?.user
+  const { status: realtimeStatus } = useRealtimeUpdates(!!user)
+
   const permissions = permsData?.permissions || []
 
   if (!user) return null
+
+  const renderRealtimeStatus = () => {
+    if (realtimeStatus === "connected") {
+      return (
+        <div
+          title="Live real-time sync active (SSE connected)"
+          className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="hidden sm:inline">Live Sync Active</span>
+        </div>
+      )
+    }
+
+    if (realtimeStatus === "reconnecting") {
+      return (
+        <div
+          title="Reconnecting to real-time event stream..."
+          className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+          </span>
+          <span className="hidden sm:inline">Reconnecting...</span>
+        </div>
+      )
+    }
+
+    return null
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
@@ -48,6 +84,8 @@ function Layout() {
             <Building2 className="h-3.5 w-3.5 text-slate-500" />
             <span className="font-semibold text-slate-900">{user.organisationName || user.organisationId}</span>
           </div>
+
+          {renderRealtimeStatus()}
 
           <StatusBadge status={user.role} />
 

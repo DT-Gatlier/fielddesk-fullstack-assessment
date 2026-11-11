@@ -31,6 +31,32 @@ export function getRedisClient(): Redis {
   return redisInstance;
 }
 
+let bullRedisInstance: Redis | null = null;
+
+export function getBullRedisConnection(): Redis {
+  if (!bullRedisInstance) {
+    if (config.NODE_ENV === 'test') {
+      bullRedisInstance = new (RedisMock as any)() as unknown as Redis;
+    } else {
+      bullRedisInstance = new Redis(config.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        lazyConnect: true,
+        retryStrategy(times: number) {
+          if (times > 5) {
+            logger.warn('BullMQ Redis reconnection retries exceeded');
+            return null;
+          }
+          return Math.min(times * 200, 2000);
+        },
+      });
+      bullRedisInstance.on('error', (err: Error) => {
+        logger.error({ err: err.message }, 'BullMQ Redis connection error');
+      });
+    }
+  }
+  return bullRedisInstance;
+}
+
 /**
  * Check if a token's jti is in the revocation blocklist
  */
@@ -216,21 +242,5 @@ export async function clearIdempotencyKey(
     await client.del(key);
   } catch (err: any) {
     logger.error({ err: err.message }, 'Error clearing idempotency key in Redis');
-  }
-}
-
-/**
- * Publish real-time event to organisation Redis Pub/Sub channel
- */
-export async function publishRealtimeEvent(
-  orgId: string,
-  event: any
-): Promise<void> {
-  const channel = `realtime:events:${orgId}`;
-  try {
-    const client = getRedisClient();
-    await client.publish(channel, JSON.stringify(event));
-  } catch (err: any) {
-    logger.error({ err: err.message }, 'Error publishing realtime event to Redis channel');
   }
 }

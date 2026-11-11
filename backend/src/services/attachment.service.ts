@@ -12,6 +12,7 @@ import {
 import { Attachment, StorageQuotaInfo } from '../domain/models/attachment.model.js';
 import { SupportedMimeType, getExtensionForMime } from '../api/middlewares/file-validator.js';
 import { Readable } from 'stream';
+import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
 
 export async function uploadAttachment(
   ctx: TenantContext,
@@ -84,6 +85,12 @@ export async function uploadAttachment(
       }),
     ]
   );
+
+  void publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
+    type: 'WORK_ORDER_UPDATED',
+    workOrderId,
+    timestamp: new Date().toISOString(),
+  });
 
   return attachment;
 }
@@ -167,6 +174,12 @@ export async function deleteAttachment(ctx: TenantContext, attachmentId: string)
       }),
     ]
   );
+
+  void publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
+    type: 'WORK_ORDER_UPDATED',
+    workOrderId: attachment.workOrderId,
+    timestamp: new Date().toISOString(),
+  });
 
   return deleted!;
 }

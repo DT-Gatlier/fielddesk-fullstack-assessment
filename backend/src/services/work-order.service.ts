@@ -14,7 +14,8 @@ import {
   setCachedDashboardMetrics,
   invalidateDashboardCache,
 } from '../infrastructure/redis.js';
-import { notificationQueue } from '../infrastructure/queue.js';
+import { notificationQueue } from '../queues/notification.queue.js';
+import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
 
 // In-process lock for scheduling concurrency per technician
 const technicianLocks = new Map<string, Promise<void>>();
@@ -119,6 +120,15 @@ export class WorkOrderService {
     // Invalidate Redis dashboard cache
     await invalidateDashboardCache(ctx.organisationId);
 
+    // Publish real-time event
+    await publishRealtimeEvent(ctx.organisationId, 'work_order_created', {
+      type: 'WORK_ORDER_CREATED',
+      workOrderId: created.id,
+      referenceNumber: created.referenceNumber,
+      status: created.status,
+      timestamp: new Date().toISOString(),
+    });
+
     return created;
   }
 
@@ -173,6 +183,15 @@ export class WorkOrderService {
 
     // Invalidate Redis dashboard cache
     await invalidateDashboardCache(ctx.organisationId);
+
+    // Publish real-time event
+    await publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
+      type: 'WORK_ORDER_UPDATED',
+      workOrderId: updated.id,
+      referenceNumber: updated.referenceNumber,
+      status: updated.status,
+      timestamp: new Date().toISOString(),
+    });
 
     return updated;
   }
@@ -288,14 +307,33 @@ export class WorkOrderService {
       });
 
       // 4. Enqueue notification job via BullMQ / Redis queue
-      await notificationQueue.add('send-notification', {
-        workOrderId: id,
-        technicianId: dto.technicianId,
-        organisationId: ctx.organisationId,
-      });
+      await notificationQueue.add(
+        'send-technician-assignment',
+        {
+          workOrderId: id,
+          technicianId: dto.technicianId,
+          organisationId: ctx.organisationId,
+          simulationMode: (process.env.NOTIFICATION_SIMULATION_MODE as any) || 'always_success',
+        },
+        {
+          jobId: `notify:${ctx.organisationId}:${id}:${dto.technicianId}`,
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 2000 },
+        }
+      );
 
       // 5. Invalidate dashboard metrics cache
       await invalidateDashboardCache(ctx.organisationId);
+
+      // 6. Publish real-time event
+      await publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
+        type: 'WORK_ORDER_UPDATED',
+        workOrderId: updated.id,
+        referenceNumber: updated.referenceNumber,
+        status: updated.status,
+        technicianId: updated.assignedTechnicianId,
+        timestamp: new Date().toISOString(),
+      });
 
       return updated;
     });

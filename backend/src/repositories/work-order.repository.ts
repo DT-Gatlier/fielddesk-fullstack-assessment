@@ -245,6 +245,7 @@ export class WorkOrderRepository {
         actorId: al.actor_id,
         beforeState: al.before_state,
         afterState: al.after_state,
+        metadata: al.metadata,
         createdAt: al.created_at,
       })),
       createdAt: row.created_at,

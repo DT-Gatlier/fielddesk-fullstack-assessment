@@ -16,6 +16,9 @@ const configSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().default(5),
   AUTH_RATE_LIMIT_WINDOW_SECS: z.coerce.number().default(300), // 5 minutes
+  QUEUE_NAME: z.string().default('technician-notifications'),
+  NOTIFICATION_SIMULATION_MODE: z.enum(['always_success', 'temporary_failure', 'permanent_failure', 'random']).default('always_success'),
+  ENABLE_EMBEDDED_WORKER: z.preprocess((val) => val === undefined ? true : val === 'true' || val === true, z.boolean()).default(true),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -30,5 +33,8 @@ export const config: Config = configSchema.parse({
   REDIS_URL: process.env.REDIS_URL,
   AUTH_RATE_LIMIT_MAX: process.env.AUTH_RATE_LIMIT_MAX,
   AUTH_RATE_LIMIT_WINDOW_SECS: process.env.AUTH_RATE_LIMIT_WINDOW_SECS,
+  QUEUE_NAME: process.env.QUEUE_NAME,
+  NOTIFICATION_SIMULATION_MODE: process.env.NOTIFICATION_SIMULATION_MODE,
+  ENABLE_EMBEDDED_WORKER: process.env.ENABLE_EMBEDDED_WORKER,
 });
 
