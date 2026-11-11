@@ -7,8 +7,8 @@ import {
   completeIdempotencyKey,
   clearIdempotencyKey,
   invalidateDashboardCache,
-  publishRealtimeEvent,
 } from '../infrastructure/redis.js';
+import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
 import { workOrderRepository } from '../repositories/work-order.repository.js';
 
 export interface ProcessEventResult {

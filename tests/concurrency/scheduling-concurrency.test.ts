@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createApp } from '@/app.js';
 import { getRedisClient } from '@/infrastructure/redis.js';
 import { resetMockWorkOrders, getMockAuditLogs } from '@/infrastructure/db.js';
-import { notificationQueue } from '@/infrastructure/queue.js';
+import { notificationQueue } from '@/queues/notification.queue.js';
 
 const app = createApp();
 

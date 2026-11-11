@@ -14,7 +14,7 @@ import {
   setCachedDashboardMetrics,
   invalidateDashboardCache,
 } from '../infrastructure/redis.js';
-import { notificationQueue } from '../infrastructure/queue.js';
+import { notificationQueue } from '../queues/notification.queue.js';
 import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
 
 // In-process lock for scheduling concurrency per technician

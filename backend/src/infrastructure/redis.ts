@@ -244,5 +244,3 @@ export async function clearIdempotencyKey(
     logger.error({ err: err.message }, 'Error clearing idempotency key in Redis');
   }
 }
-
-export { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
