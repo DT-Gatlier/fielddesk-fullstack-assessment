@@ -22,6 +22,8 @@ import {
   CalendarPlus,
   Activity,
   Paperclip,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react"
 import type { WorkOrderStatus, WorkOrderPriority } from "./services/type"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
@@ -60,6 +62,61 @@ export function WorkOrderDetailModal({
   const currentUserId = profile?.user?.id
   const isAssignedTech = isTechnician && wo?.assignedTechnicianId === currentUserId
   const canSubmitProgress = isAssignedTech || !isTechnician
+
+  const latestNotificationLog = wo?.auditLogs?.find(
+    (log) =>
+      log.action === "NOTIFICATION_DELIVERED" ||
+      log.action === "NOTIFICATION_ATTEMPT_FAILED" ||
+      log.action === "NOTIFICATION_PERMANENTLY_FAILED"
+  )
+
+  const renderNotificationBadge = () => {
+    if (!wo?.assignedTechnician) return null
+
+    if (latestNotificationLog?.action === "NOTIFICATION_DELIVERED") {
+      return (
+        <span
+          title={`Delivered via ${latestNotificationLog.metadata?.provider || "MockNotificationProvider"}`}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+        >
+          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+          <span>Notified</span>
+        </span>
+      )
+    }
+
+    if (latestNotificationLog?.action === "NOTIFICATION_ATTEMPT_FAILED") {
+      const attempt = latestNotificationLog.metadata?.attempt || 1
+      return (
+        <span
+          title={`Temporary failure: ${latestNotificationLog.metadata?.error || "503 Service Unavailable"}`}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"
+        >
+          <Loader2 className="w-3 h-3 text-amber-600 animate-spin" />
+          <span>Sending / Retrying (Attempt {attempt})</span>
+        </span>
+      )
+    }
+
+    if (latestNotificationLog?.action === "NOTIFICATION_PERMANENTLY_FAILED") {
+      return (
+        <span
+          title={`Permanent failure: ${latestNotificationLog.metadata?.error || "400 Invalid Phone Format"}`}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+        >
+          <AlertTriangle className="w-3 h-3 text-rose-600" />
+          <span>Failed (Permanent)</span>
+        </span>
+      )
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+        <Clock className="w-3 h-3 text-amber-600" />
+        <span>Sending / Retrying (Attempt 1)</span>
+      </span>
+    )
+  }
 
   useEffect(() => {
     if (wo) {
@@ -184,16 +241,19 @@ export function WorkOrderDetailModal({
                   <User className="w-3.5 h-3.5 text-slate-500" />
                   <span>Assigned Technician</span>
                 </span>
-                {!isTechnician && (
-                  <button
-                    type="button"
-                    onClick={() => setIsAssignModalOpen(true)}
-                    className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
-                  >
-                    <CalendarPlus className="w-3 h-3" />
-                    <span>{wo.assignedTechnician ? "Reschedule" : "Assign"}</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {renderNotificationBadge()}
+                  {!isTechnician && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAssignModalOpen(true)}
+                      className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
+                    >
+                      <CalendarPlus className="w-3 h-3" />
+                      <span>{wo.assignedTechnician ? "Reschedule" : "Assign"}</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-sm font-semibold text-slate-800">
                 {wo.assignedTechnician ? (
@@ -402,6 +462,15 @@ export function WorkOrderDetailModal({
                           <strong className="text-slate-700 capitalize">
                             {log.afterState.status.replace("_", " ")}
                           </strong>
+                        </span>
+                      )}
+                      {log.action.startsWith("NOTIFICATION_") && log.metadata && (
+                        <span className="text-[11px]">
+                          {log.metadata.error ? (
+                            <span className="text-rose-600 font-medium">({log.metadata.error})</span>
+                          ) : (
+                            <span className="text-emerald-600 font-medium">(Attempt {log.metadata.attempt})</span>
+                          )}
                         </span>
                       )}
                     </div>

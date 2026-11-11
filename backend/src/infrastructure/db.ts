@@ -299,6 +299,17 @@ export function getMockAuditLogs(): MockAuditLog[] {
   return mockAuditLogs;
 }
 
+export function clearMockAuditLogs(): void {
+  mockAuditLogs.length = 0;
+}
+
+export async function closeDbPool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
+
 export function getMockUsers(): MockUser[] {
   return mockUsers;
 }

@@ -23,6 +23,7 @@ export interface WorkOrderAuditLog {
   actorId: string
   beforeState: Record<string, any> | null
   afterState: Record<string, any> | null
+  metadata?: Record<string, any> | null
   createdAt: string
 }
 

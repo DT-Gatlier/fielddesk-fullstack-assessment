@@ -53,6 +53,24 @@ services:
       redis:
         condition: service_healthy
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: npm run start:worker
+    container_name: fielddesk-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk123}@postgres:5432/${POSTGRES_DB:-fielddesk}
+      REDIS_URL: redis://redis:6379
+      NOTIFICATION_SIMULATION_MODE: ${NOTIFICATION_SIMULATION_MODE:-always_success}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
