@@ -1,38 +1,40 @@
-# AI usage disclosure
+# Independent-work declaration
 
-AI-assisted development tools are permitted for this assessment. Their use does not reduce the score by itself. Transparency, independent verification and understanding of the submitted work are required.
+Read the [no-AI policy](../docs/INDEPENDENT_WORK_POLICY.md), version 11 November 2026. AI assistance is prohibited. Disclosure is not permission. This filename is retained for compatibility with existing links and forks.
 
-List every AI tool used, including coding assistants, chat tools, code generators, design generators and automated review tools.
+## Assessment details
 
-If no AI tool was used, write: **No AI-assisted tools were used for this submission.**
+- Candidate name:
+- GitHub username:
+- Invitation date:
+- Policy version communicated to me:
+- Declaration date:
 
-## Usage summary
+For an earlier assessment, record the original instructions and any written clarification below. Do not make a false declaration to match a later template.
 
-| Tool and model, if known | Files, features or sections affected | Purpose of use | Nature of the output | How I reviewed or tested it |
-| --- | --- | --- | --- | --- |
-| Example: coding assistant | `backend/src/example.ts` | Suggested validation approach | Generated an initial function | Rewrote part of it and added validation tests |
-|  |  |  |  |  |
+## Personal confirmation
 
-## Details
+Tick only statements that are true:
 
-For each material use of AI, describe:
+- [ ] I completed the assessment independently without AI tools for planning, code, debugging, tests, configuration or documentation.
+- [ ] I disabled generative AI completion and assistant features while working on this assessment.
+- [ ] I have not submitted another person's or another candidate's solution.
+- [ ] I personally reviewed and understand every submitted file, including non-AI framework-generated files.
+- [ ] I can explain, debug and modify the implementation without AI assistance.
+- [ ] I personally ran reported checks and recorded actual results, including failures and skipped checks.
+- [ ] I identified external references and non-AI generated scaffolding below.
+- [ ] I did not submit secrets or confidential third-party material.
 
-1. What you asked the tool to help with.
-2. Which parts of the submission were generated or substantially modified.
-3. What you changed after receiving the output.
-4. How you verified correctness, security and compatibility.
-5. Any output you rejected and why.
+## References and non-AI tools
 
-## Candidate confirmation
+List documentation, significant reference snippets, framework generators and development tools used. Write `None` where applicable.
 
-Replace the unchecked boxes with checked boxes when true:
+| Resource or tool | Source URL or version | Affected files or purpose | What I implemented or verified personally |
+| --- | --- | --- | --- |
+|  |  |  |  |
 
-- [ ] I have disclosed all AI-assisted work in this submission.
-- [ ] I personally reviewed every submitted file.
-- [ ] I can explain and modify every part of the implementation.
-- [ ] I independently ran the documented tests and checks.
-- [ ] I did not submit confidential or proprietary third-party material.
+## Clarifications or non-compliance to disclose
 
-Candidate name:
+If AI assistance was used, do not tick the no-AI confirmation. State the tool, affected work and purpose, and contact Gatlier before proceeding. If earlier instructions permitted it, identify those instructions and any written clarification without publishing private email content. Do not include secrets or personal correspondence.
 
-Date:
+Write `None` only if there are no unresolved clarifications or prohibited uses to disclose.

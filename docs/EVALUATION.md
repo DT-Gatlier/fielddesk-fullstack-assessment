@@ -1,5 +1,13 @@
 # Evaluation criteria
 
+## Eligibility before technical scoring
+
+The [independent-work policy](INDEPENDENT_WORK_POLICY.md), version 11 November 2026, is an eligibility requirement. Confirmed prohibited AI assistance makes a submission ineligible regardless of its technical score. Keep implementation quality and policy eligibility separate. Resolve incomplete declarations before progression.
+
+Consider the instructions actually sent to each candidate and any conflicting older permission. Do not infer AI use solely from style or detector scores, or retrospectively penalise previously permitted assistance. A supervised no-AI explanation or modification may be required. Final recruitment decisions remain with the hiring team.
+
+## Technical rubric
+
 Gatlier will review the submission across the following areas:
 
 | Area | Weight |
