@@ -79,9 +79,14 @@ export class RateLimitError extends AppError {
   readonly statusCode = 429;
   readonly code = 'RATE_LIMIT_EXCEEDED';
   readonly title = 'Too Many Requests';
+  public readonly retryAfterSeconds: number;
 
-  constructor(message = 'Too many requests. Please try again later.') {
+  constructor(
+    message = 'Too many requests. Please try again later.',
+    retryAfterSeconds = 60
+  ) {
     super(message);
+    this.retryAfterSeconds = Math.max(1, Math.ceil(retryAfterSeconds));
   }
 }
 

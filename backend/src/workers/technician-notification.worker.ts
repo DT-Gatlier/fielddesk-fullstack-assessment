@@ -1,6 +1,6 @@
 import { ConnectionOptions, Job, UnrecoverableError, Worker } from 'bullmq';
 import { config } from '../infrastructure/config.js';
-import { logger } from '../infrastructure/logger.js';
+import { logger, runWithLogContext } from '../infrastructure/logger.js';
 import { getBullRedisConnection } from '../infrastructure/redis.js';
 import { mockNotificationProvider } from './providers/mock-notification.provider.js';
 import { NotificationPayload } from './types/notification.types.js';
@@ -17,93 +17,102 @@ let activeWorker: Worker<NotificationPayload> | null = null;
 
 export async function processTechnicianNotificationJob(job: ProcessableNotificationJob) {
   const attempt = (job.attemptsMade ?? 0) + 1;
-  const { workOrderId, technicianId, organisationId } = job.data;
+  const { workOrderId, technicianId, organisationId, correlationId } = job.data;
 
-  logger.info(
+  return runWithLogContext(
     {
-      jobId: job.id,
-      workOrderId,
-      technicianId,
-      attempt,
-      maxAttempts: job.opts?.attempts || 5,
-    },
-    `Processing technician assignment notification attempt #${attempt}`
-  );
-
-  try {
-    const result = await mockNotificationProvider.sendAssignmentNotification(job.data);
-
-    await notificationTrackerService.recordAudit({
+      correlationId: correlationId || job.id || 'worker',
       organisationId,
-      workOrderId,
-      technicianId,
-      action: 'NOTIFICATION_DELIVERED',
-      attempt,
-      provider: result.provider,
-      deliveredAt: result.deliveredAt,
-    });
-
-    logger.info(
-      { jobId: job.id, workOrderId, attempt },
-      'Technician notification delivered successfully'
-    );
-
-    return result;
-  } catch (error: any) {
-    const isPermanent =
-      error instanceof UnrecoverableError ||
-      error.name === 'UnrecoverableError' ||
-      error.message?.includes('MOCK_400');
-
-    if (isPermanent) {
-      await notificationTrackerService.recordAudit({
-        organisationId,
-        workOrderId,
-        technicianId,
-        action: 'NOTIFICATION_PERMANENTLY_FAILED',
-        attempt,
-        error: error.message,
-        fatal: true,
-      });
-
-      logger.error(
-        { jobId: job.id, workOrderId, attempt, err: error.message },
-        'Fatal notification delivery failure. Retries aborted immediately.'
-      );
-
-      // Re-throw so BullMQ flags unrecoverable failure
-      if (!(error instanceof UnrecoverableError)) {
-        throw new UnrecoverableError(error.message);
-      }
-      throw error;
-    } else {
-      // Exponential backoff calculation for diagnostics (e.g. 2s, 4s, 8s...)
-      const nextRetryDelay = Math.pow(2, attempt) * 1000;
-
-      await notificationTrackerService.recordAudit({
-        organisationId,
-        workOrderId,
-        technicianId,
-        action: 'NOTIFICATION_ATTEMPT_FAILED',
-        attempt,
-        error: error.message,
-        nextRetryDelay,
-      });
-
-      logger.warn(
+      jobId: job.id,
+    },
+    async () => {
+      logger.info(
         {
           jobId: job.id,
           workOrderId,
+          technicianId,
           attempt,
-          err: error.message,
-          nextRetryDelayMs: nextRetryDelay,
+          maxAttempts: job.opts?.attempts || 5,
         },
-        'Transient notification failure. BullMQ will retry with exponential backoff.'
+        `Processing technician assignment notification attempt #${attempt}`
       );
 
-      throw error;
+      try {
+        const result = await mockNotificationProvider.sendAssignmentNotification(job.data);
+
+        await notificationTrackerService.recordAudit({
+          organisationId,
+          workOrderId,
+          technicianId,
+          action: 'NOTIFICATION_DELIVERED',
+          attempt,
+          provider: result.provider,
+          deliveredAt: result.deliveredAt,
+        });
+
+        logger.info(
+          { jobId: job.id, workOrderId, attempt },
+          'Technician notification delivered successfully'
+        );
+
+        return result;
+      } catch (error: any) {
+        const isPermanent =
+          error instanceof UnrecoverableError ||
+          error.name === 'UnrecoverableError' ||
+          error.message?.includes('MOCK_400');
+
+        if (isPermanent) {
+          await notificationTrackerService.recordAudit({
+            organisationId,
+            workOrderId,
+            technicianId,
+            action: 'NOTIFICATION_PERMANENTLY_FAILED',
+            attempt,
+            error: error.message,
+            fatal: true,
+          });
+
+          logger.error(
+            { jobId: job.id, workOrderId, attempt, err: error.message },
+            'Fatal notification delivery failure. Retries aborted immediately.'
+          );
+
+          // Re-throw so BullMQ flags unrecoverable failure
+          if (!(error instanceof UnrecoverableError)) {
+            throw new UnrecoverableError(error.message);
+          }
+          throw error;
+        } else {
+          // Exponential backoff calculation for diagnostics (e.g. 2s, 4s, 8s...)
+          const nextRetryDelay = Math.pow(2, attempt) * 1000;
+
+          await notificationTrackerService.recordAudit({
+            organisationId,
+            workOrderId,
+            technicianId,
+            action: 'NOTIFICATION_ATTEMPT_FAILED',
+            attempt,
+            error: error.message,
+            nextRetryDelay,
+          });
+
+          logger.warn(
+            {
+              jobId: job.id,
+              workOrderId,
+              attempt,
+              err: error.message,
+              nextRetryDelayMs: nextRetryDelay,
+            },
+            'Transient notification failure. BullMQ will retry with exponential backoff.'
+          );
+
+          throw error;
+        }
+      }
     }
-  }
+  );
 }
 
 export function createTechnicianNotificationWorker(connection?: ConnectionOptions): Worker<NotificationPayload> {

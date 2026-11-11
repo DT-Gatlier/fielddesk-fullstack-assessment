@@ -194,7 +194,7 @@ export class WorkOrderRepository {
 
     // Fetch recent audit logs for this work order
     const auditRes = await query<any>(
-      `SELECT * FROM audit_logs WHERE target_id = $1 AND organisation_id = $2 ORDER BY created_at DESC LIMIT 10`,
+      `SELECT a.*, u.name AS actor_name FROM audit_logs a LEFT JOIN users u ON a.actor_id = u.id WHERE a.target_id = $1 AND a.organisation_id = $2 ORDER BY a.created_at DESC LIMIT 20`,
       [id, orgId]
     );
 
@@ -243,6 +243,10 @@ export class WorkOrderRepository {
         id: al.id,
         action: al.action,
         actorId: al.actor_id,
+        actor: al.actor_id
+          ? { id: al.actor_id, name: al.actor_name || 'Unknown User' }
+          : { id: null, name: 'System Worker' },
+        targetId: al.target_id,
         beforeState: al.before_state,
         afterState: al.after_state,
         metadata: al.metadata,

@@ -8,6 +8,7 @@ import {
   useUpdateWorkOrder,
   useTechnicians,
   useWorkOrderAttachments,
+  useWorkOrderActivity,
 } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
@@ -31,6 +32,7 @@ import { ProgressEventModal } from "./ProgressEventModal"
 import { AttachmentDropzone } from "./components/AttachmentDropzone"
 import { AttachmentList } from "./components/AttachmentList"
 import { QuotaProgressBar } from "./components/QuotaProgressBar"
+import { ActivityTimeline } from "./components/ActivityTimeline"
 
 interface WorkOrderDetailModalProps {
   workOrderId: string | null
@@ -49,6 +51,8 @@ export function WorkOrderDetailModal({
   const { data: profile } = useGetProfileDetails()
   const { data: attachments = [], isLoading: isLoadingAttachments } =
     useWorkOrderAttachments(workOrderId)
+  const { data: activities = [], isLoading: isLoadingActivity } =
+    useWorkOrderActivity(workOrderId)
   const updateMutation = useUpdateWorkOrder()
 
   const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus>("open")
@@ -63,7 +67,8 @@ export function WorkOrderDetailModal({
   const isAssignedTech = isTechnician && wo?.assignedTechnicianId === currentUserId
   const canSubmitProgress = isAssignedTech || !isTechnician
 
-  const latestNotificationLog = wo?.auditLogs?.find(
+  const notificationSource = activities.length > 0 ? activities : wo?.auditLogs || []
+  const latestNotificationLog = notificationSource.find(
     (log) =>
       log.action === "NOTIFICATION_DELIVERED" ||
       log.action === "NOTIFICATION_ATTEMPT_FAILED" ||
@@ -438,51 +443,22 @@ export function WorkOrderDetailModal({
             />
           </div>
 
-          {/* Audit Logs History Section */}
-          <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <History className="w-4 h-4 text-slate-400" />
-              <span>Immutable Audit Trail</span>
-            </h4>
+          {/* Activity Timeline & Immutable Audit Trail */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <History className="w-4 h-4 text-slate-400" />
+                <span>Activity Timeline &amp; Audit History</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-normal">
+                Immutable Append-Only Log
+              </span>
+            </div>
 
-            {wo.auditLogs && wo.auditLogs.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {wo.auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-800">
-                        {log.action}
-                      </span>
-                      {log.afterState?.status && (
-                        <span className="text-[11px] text-slate-500">
-                          Status &rarr;{" "}
-                          <strong className="text-slate-700 capitalize">
-                            {log.afterState.status.replace("_", " ")}
-                          </strong>
-                        </span>
-                      )}
-                      {log.action.startsWith("NOTIFICATION_") && log.metadata && (
-                        <span className="text-[11px]">
-                          {log.metadata.error ? (
-                            <span className="text-rose-600 font-medium">({log.metadata.error})</span>
-                          ) : (
-                            <span className="text-emerald-600 font-medium">(Attempt {log.metadata.attempt})</span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-400">
-                      {formatDate(log.createdAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic">No recorded audit history yet.</p>
-            )}
+            <ActivityTimeline
+              activities={activities}
+              isLoading={isLoadingActivity}
+            />
           </div>
         </div>
       )}

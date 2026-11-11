@@ -8,6 +8,7 @@ export interface NotificationPayload {
   workOrderId: string;
   technicianId: string;
   organisationId: string;
+  correlationId?: string;
   simulationMode?: NotificationSimulationMode;
 }
 

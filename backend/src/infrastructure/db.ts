@@ -318,6 +318,10 @@ export function setUseMockDb(val: boolean) {
   useMock = val;
 }
 
+export function isUsingMockDb(): boolean {
+  return useMock;
+}
+
 export async function query<R extends QueryResultRow = any>(
   text: string,
   params?: any[]
@@ -568,14 +572,69 @@ function executeMockQuery<R extends QueryResultRow = any>(
     if (!item) {
       return { rows: [] as R[], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
     }
-    return { rows: [item as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
+    return { rows: [{ ...item } as unknown as R], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
   }
 
-  // Find audit logs by target_id
-  if (normalized.includes('from audit_logs') && normalized.includes('target_id = $1')) {
-    const targetId = params[0];
-    const logs = mockAuditLogs.filter((l) => l.target_id === targetId);
-    return { rows: logs as unknown as R[], rowCount: logs.length, command: 'SELECT', oid: 0, fields: [] };
+  // Find audit logs by target_id and/or organisation_id
+  if (normalized.includes('from audit_logs')) {
+    let orgId: string | null = null;
+    let targetId: string | null = null;
+    let targetType: string | null = null;
+
+    if (
+      normalized.includes('organisation_id = $1') &&
+      normalized.includes('target_id = $2')
+    ) {
+      orgId = params[0];
+      targetId = params[1];
+      if (normalized.includes('target_type = $3')) {
+        targetType = params[2];
+      }
+    } else if (
+      normalized.includes('target_id = $1') &&
+      normalized.includes('organisation_id = $2')
+    ) {
+      targetId = params[0];
+      orgId = params[1];
+    } else if (normalized.includes('target_id = $1')) {
+      targetId = params[0];
+    }
+
+    let logs = mockAuditLogs.slice();
+    if (orgId) {
+      logs = logs.filter((l) => l.organisation_id === orgId);
+    }
+    if (targetId) {
+      logs = logs.filter((l) => l.target_id === targetId);
+    }
+    if (targetType) {
+      logs = logs.filter((l) => l.target_type === targetType);
+    }
+
+    // Reverse first so latest inserted comes first when timestamps tie within the same ms
+    logs.reverse();
+    logs.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    const enriched = logs.map((l) => {
+      const user = l.actor_id
+        ? mockUsers.find((u) => u.id === l.actor_id)
+        : null;
+      return {
+        ...l,
+        actor_name: user ? user.name : null,
+      };
+    });
+
+    return {
+      rows: enriched as unknown as R[],
+      rowCount: enriched.length,
+      command: 'SELECT',
+      oid: 0,
+      fields: [],
+    };
   }
 
   // Advisory Lock for Scheduling Concurrency

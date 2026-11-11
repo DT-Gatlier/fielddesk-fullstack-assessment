@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../../infrastructure/config.js';
+import { updateLogContext } from '../../infrastructure/logger.js';
 import { isTokenRevoked } from '../../infrastructure/redis.js';
 import { TenantContext } from '../../domain/models/tenant-context.js';
 import { JwtPayload } from '../../services/auth.service.js';
@@ -49,6 +50,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       role: decoded.role,
       correlationId: req.correlationId || '',
     };
+    updateLogContext({
+      organisationId: decoded.orgId,
+      userId: decoded.sub,
+    });
     req.tokenPayload = decoded;
     req.accessToken = token;
 

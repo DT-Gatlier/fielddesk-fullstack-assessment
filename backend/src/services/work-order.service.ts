@@ -16,6 +16,7 @@ import {
 } from '../infrastructure/redis.js';
 import { notificationQueue } from '../queues/notification.queue.js';
 import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
+import { auditService, AuditLogResponse } from './audit.service.js';
 
 // In-process lock for scheduling concurrency per technician
 const technicianLocks = new Map<string, Promise<void>>();
@@ -104,13 +105,20 @@ export class WorkOrderService {
     });
 
     // Record audit log entry
-    await workOrderRepository.createAuditLog({
+    await auditService.record({
       organisationId: ctx.organisationId,
       actorId: ctx.userId,
-      action: 'work_order:created',
+      action: 'WORK_ORDER_CREATED',
       targetType: 'work_order',
       targetId: created.id,
-      afterState: created,
+      beforeState: null,
+      afterState: {
+        title: created.title,
+        priority: created.priority,
+        siteName: created.siteName,
+        createdBy: created.createdBy,
+        status: created.status,
+      },
       metadata: {
         referenceNumber: created.referenceNumber,
         assignedTechnicianId: assignedTechId,
@@ -171,14 +179,18 @@ export class WorkOrderService {
     }
 
     // Record audit log entry
-    await workOrderRepository.createAuditLog({
+    const isStatusUpdate = Boolean(dto.status && dto.status !== existing.status);
+    await auditService.record({
       organisationId: ctx.organisationId,
       actorId: ctx.userId,
-      action: 'work_order:updated',
+      action: isStatusUpdate ? 'WORK_ORDER_STATUS_UPDATED' : 'work_order:updated',
       targetType: 'work_order',
       targetId: id,
-      beforeState: existing,
-      afterState: updated,
+      beforeState: isStatusUpdate ? { status: existing.status } : existing,
+      afterState: isStatusUpdate ? { status: updated.status } : updated,
+      metadata: {
+        fields: Object.keys(dto),
+      },
     });
 
     // Invalidate Redis dashboard cache
@@ -288,7 +300,7 @@ export class WorkOrderService {
       }
 
       // 3. Record audit log
-      await workOrderRepository.createAuditLog({
+      await auditService.record({
         organisationId: ctx.organisationId,
         actorId: ctx.userId,
         action: 'WORK_ORDER_ASSIGNED',
@@ -296,13 +308,21 @@ export class WorkOrderService {
         targetId: id,
         beforeState: {
           assignedTechnicianId: existing.assignedTechnicianId,
+          assignedTechnicianName: existing.assignedTechnician?.name || null,
           scheduledStart: existing.scheduledStart,
           scheduledEnd: existing.scheduledEnd,
         },
         afterState: {
           assignedTechnicianId: updated.assignedTechnicianId,
+          assignedTechnicianName: tech.name,
           scheduledStart: updated.scheduledStart,
           scheduledEnd: updated.scheduledEnd,
+        },
+        metadata: {
+          technicianId: dto.technicianId,
+          technicianName: tech.name,
+          scheduledStart: dto.scheduledStart,
+          scheduledEnd: dto.scheduledEnd,
         },
       });
 
@@ -313,6 +333,7 @@ export class WorkOrderService {
           workOrderId: id,
           technicianId: dto.technicianId,
           organisationId: ctx.organisationId,
+          correlationId: ctx.correlationId,
           simulationMode: (process.env.NOTIFICATION_SIMULATION_MODE as any) || 'always_success',
         },
         {
@@ -337,6 +358,21 @@ export class WorkOrderService {
 
       return updated;
     });
+  }
+
+  async getActivity(id: string, ctx: TenantContext): Promise<AuditLogResponse[]> {
+    const workOrder = await workOrderRepository.findById(id, ctx.organisationId);
+    if (!workOrder) {
+      throw new NotFoundError(`Work order with ID '${id}' not found.`);
+    }
+
+    if (ctx.role === 'technician' && workOrder.assignedTechnicianId !== ctx.userId) {
+      throw new ForbiddenError(
+        'Technicians can only view activity for work orders assigned to them.'
+      );
+    }
+
+    return auditService.getActivity(ctx, 'work_order', id);
   }
 }
 

@@ -55,10 +55,14 @@ export function useRealtimeUpdates(enabled = true) {
           void queryClient.invalidateQueries({
             queryKey: ["work-order-attachments", payload.workOrderId],
           })
+          void queryClient.invalidateQueries({
+            queryKey: ["work-order-activity", payload.workOrderId],
+          })
         }
       } catch {
         // Fallback broad invalidation
         void queryClient.invalidateQueries({ queryKey: ["work-order-detail"] })
+        void queryClient.invalidateQueries({ queryKey: ["work-order-activity"] })
       }
     })
 

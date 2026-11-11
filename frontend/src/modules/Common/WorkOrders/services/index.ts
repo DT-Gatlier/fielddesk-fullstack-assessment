@@ -1,5 +1,6 @@
 import apiClient from "@/app/api/client"
 import type {
+  ActivityLogItem,
   AssignTechnicianInput,
   CreateWorkOrderInput,
   PaginatedWorkOrders,
@@ -121,6 +122,46 @@ export const workOrderService = {
   getStorageQuota: async (): Promise<StorageQuota> => {
     const res = await apiClient.get<StorageQuota>("/organisations/quota")
     return res.data
+  },
+
+  getActivity: async (workOrderId: string): Promise<ActivityLogItem[]> => {
+    const res = await apiClient.get<ActivityLogItem[]>(`/work-orders/${workOrderId}/activity`)
+    return res.data
+  },
+
+  exportCsv: async (filters?: WorkOrderFilters): Promise<string> => {
+    const params: Record<string, any> = {}
+    if (filters?.status && filters.status !== "all") params.status = filters.status
+    if (filters?.priority && filters.priority !== "all") params.priority = filters.priority
+    if (filters?.search && filters.search.trim()) params.search = filters.search.trim()
+
+    const res = await apiClient.get("/work-orders/export/csv", {
+      params,
+      responseType: "blob",
+    })
+
+    const today = new Date().toISOString().slice(0, 10)
+    let filename = `work-orders-export-${today}.csv`
+    const disposition = res.headers?.["content-disposition"]
+    if (typeof disposition === "string") {
+      const match = disposition.match(/filename="([^"]+)"/)
+      if (match?.[1]) {
+        filename = match[1]
+      }
+    }
+
+    const url = window.URL.createObjectURL(
+      new Blob([res.data], { type: "text/csv;charset=utf-8;" })
+    )
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+
+    return filename
   },
 }
 

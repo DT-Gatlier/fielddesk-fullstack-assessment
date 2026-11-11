@@ -10,6 +10,7 @@ import {
 } from '../infrastructure/redis.js';
 import { publishRealtimeEvent } from '../realtime/realtime.publisher.js';
 import { workOrderRepository } from '../repositories/work-order.repository.js';
+import { auditService } from './audit.service.js';
 
 export interface ProcessEventResult {
   status: 'applied' | 'duplicate_ignored';
@@ -91,10 +92,11 @@ export class EventService {
           };
         }
 
-        const newStatus = progressEvent.payload.status || wo.status;
+        const previousStatus = wo.status;
+        const newStatus = progressEvent.payload.status || previousStatus;
 
         // 6. Update work order status if specified
-        if (progressEvent.payload.status && progressEvent.payload.status !== wo.status) {
+        if (progressEvent.payload.status && progressEvent.payload.status !== previousStatus) {
           await query(
             `UPDATE work_orders SET status = $1, updated_at = NOW() WHERE id = $2`,
             [newStatus, workOrderId]
@@ -102,17 +104,18 @@ export class EventService {
         }
 
         // 7. Insert audit record for the progress event
-        await workOrderRepository.createAuditLog({
+        await auditService.record({
           organisationId: tenantContext.organisationId,
           actorId: tenantContext.userId,
           action: 'STATUS_CHANGED_VIA_EVENT',
           targetType: 'work_order',
           targetId: workOrderId,
           beforeState: {
-            status: wo.status,
+            status: previousStatus,
           },
           afterState: {
             status: newStatus,
+            ...(progressEvent.payload.note ? { note: progressEvent.payload.note } : {}),
           },
           metadata: {
             eventId: progressEvent.eventId,

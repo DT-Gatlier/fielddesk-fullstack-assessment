@@ -1,0 +1,22 @@
+{
+  "name": "fielddesk-fullstack-assessment",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FieldDesk Multi-Tenant Field-Service Dispatch & Operational Workspace",
+  "scripts": {
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "test": "npm run --prefix backend test:unit && npm run --prefix backend test:isolation",
+    "test:unit": "npm run --prefix backend test:unit",
+    "test:isolation": "npm run --prefix backend test:isolation",
+    "test:concurrency": "npm run --prefix backend test:concurrency:all",
+    "test:frontend": "npm test --prefix frontend",
+    "test:all": "npm test --prefix backend && npm test --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "build:backend": "npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:worker": "npm run dev:worker --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend"
+  }
+}

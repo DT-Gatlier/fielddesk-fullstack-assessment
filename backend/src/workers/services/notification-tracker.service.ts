@@ -1,4 +1,4 @@
-import { query } from '../../infrastructure/db.js';
+import { auditService } from '../../services/audit.service.js';
 import { logger } from '../../infrastructure/logger.js';
 
 export interface AuditRecordParams {
@@ -35,24 +35,17 @@ export const notificationTrackerService = {
       metadata.nextRetryDelay = params.nextRetryDelay;
     }
 
-    const text = `
-      INSERT INTO audit_logs (
-        organisation_id, actor_id, action, target_type, target_id,
-        before_state, after_state, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `;
-
     try {
-      await query(text, [
-        params.organisationId,
-        null, // System background process has no actor_id
-        params.action,
-        'work_order',
-        params.workOrderId,
-        null,
-        null,
-        JSON.stringify(metadata),
-      ]);
+      await auditService.record({
+        organisationId: params.organisationId,
+        actorId: null, // System background process has no actor_id
+        action: params.action,
+        targetType: 'work_order',
+        targetId: params.workOrderId,
+        beforeState: null,
+        afterState: null,
+        metadata,
+      });
 
       logger.info(
         {

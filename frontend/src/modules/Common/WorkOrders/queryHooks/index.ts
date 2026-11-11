@@ -62,6 +62,7 @@ export const useUpdateWorkOrder = () => {
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
+      void queryClient.invalidateQueries({ queryKey: ["work-order-activity", data.id] })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
       toast.success(`Work order ${data.referenceNumber} updated successfully`)
     },
@@ -82,6 +83,7 @@ export const useAssignTechnician = () => {
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
+      void queryClient.invalidateQueries({ queryKey: ["work-order-activity", data.id] })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
       toast.success(`Technician assigned to ${data.referenceNumber}`)
     },
@@ -110,6 +112,9 @@ export const useSubmitProgressEvent = () => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({
         queryKey: ["work-order-detail", variables.workOrderId],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["work-order-activity", variables.workOrderId],
       })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
       if (data.status === "applied") {
@@ -148,6 +153,15 @@ export const useWorkOrderAttachments = (workOrderId: string | null) => {
   })
 }
 
+export const useWorkOrderActivity = (workOrderId: string | null) => {
+  return useQuery({
+    queryKey: ["work-order-activity", workOrderId],
+    queryFn: () => (workOrderId ? workOrderService.getActivity(workOrderId) : []),
+    enabled: !!workOrderId,
+    staleTime: 10 * 1000,
+  })
+}
+
 export const useUploadAttachment = () => {
   return useMutation({
     mutationFn: ({ workOrderId, file }: { workOrderId: string; file: File }) =>
@@ -158,6 +172,9 @@ export const useUploadAttachment = () => {
       })
       void queryClient.invalidateQueries({
         queryKey: ["work-order-detail", variables.workOrderId],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["work-order-activity", variables.workOrderId],
       })
       void queryClient.invalidateQueries({ queryKey: ["storage-quota"] })
       toast.success(`Attached "${data.originalFilename}" successfully`)
@@ -195,6 +212,9 @@ export const useDeleteAttachment = () => {
         void queryClient.invalidateQueries({
           queryKey: ["work-order-detail", variables.workOrderId],
         })
+        void queryClient.invalidateQueries({
+          queryKey: ["work-order-activity", variables.workOrderId],
+        })
       }
       void queryClient.invalidateQueries({ queryKey: ["storage-quota"] })
       toast.success("Attachment deleted")
@@ -205,6 +225,23 @@ export const useDeleteAttachment = () => {
           error?.response?.data?.message ||
           error?.response?.data?.error ||
           "Failed to delete attachment"
+      )
+    },
+  })
+}
+
+export const useExportWorkOrdersCsv = () => {
+  return useMutation({
+    mutationFn: (filters?: WorkOrderFilters) => workOrderService.exportCsv(filters),
+    onSuccess: (filename) => {
+      toast.success(`Exported "${filename}"`)
+    },
+    onError: (error: AxiosError<{ message?: string; error?: string; detail?: string }>) => {
+      toast.error(
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Failed to export work orders CSV"
       )
     },
   })

@@ -80,9 +80,12 @@ export class AuthService {
    */
   async login(email: string, passwordPlain: string, ip: string): Promise<AuthTokens> {
     // 1. Check rate limit for IP
-    const { allowed } = await checkAuthRateLimit(ip);
+    const { allowed, retryAfterSeconds } = await checkAuthRateLimit(ip);
     if (!allowed) {
-      throw new RateLimitError('Too many failed login attempts. Please try again in 5 minutes.');
+      throw new RateLimitError(
+        'Too many failed login attempts. Please try again in 5 minutes.',
+        retryAfterSeconds
+      );
     }
 
     // 2. Lookup user by email

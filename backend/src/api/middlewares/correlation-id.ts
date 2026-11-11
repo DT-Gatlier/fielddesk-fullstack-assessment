@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { runWithLogContext } from '../../infrastructure/logger.js';
 
 declare global {
   namespace Express {
@@ -10,11 +11,13 @@ declare global {
 }
 
 export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const incomingId = req.headers['x-correlation-id'] as string | undefined;
-  const correlationId = incomingId || `req_${crypto.randomUUID()}`;
-  
-  req.correlationId = correlationId;
-  res.setHeader('x-correlation-id', correlationId);
-  next();
-}
+  const rawHeader = req.headers['x-correlation-id'];
+  const incomingId = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  const trimmedId = incomingId?.trim();
+  const correlationId = trimmedId && trimmedId.length > 0 ? trimmedId : crypto.randomUUID();
 
+  req.correlationId = correlationId;
+  res.setHeader('X-Correlation-ID', correlationId);
+
+  runWithLogContext({ correlationId }, () => next());
+}

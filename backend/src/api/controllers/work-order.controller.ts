@@ -59,6 +59,16 @@ export class WorkOrderController {
       next(err);
     }
   };
+
+  getActivity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const result = await workOrderService.getActivity(id, req.tenantContext);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
 }
 
 export const workOrderController = new WorkOrderController();

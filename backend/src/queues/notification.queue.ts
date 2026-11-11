@@ -1,12 +1,13 @@
 import { Queue, QueueOptions, JobsOptions } from 'bullmq';
 import { Redis } from 'ioredis';
 import { config } from '../infrastructure/config.js';
-import { logger } from '../infrastructure/logger.js';
+import { getLogContext, logger } from '../infrastructure/logger.js';
 
 export interface NotificationJobData {
   workOrderId: string;
   technicianId: string;
   organisationId: string;
+  correlationId?: string;
   simulationMode?: 'always_success' | 'temporary_failure' | 'permanent_failure' | 'random';
   [key: string]: any;
 }
@@ -61,11 +62,16 @@ export const notificationQueue = {
   ): Promise<EnqueuedJobRecord> => {
     const queue = getBullQueue();
     const jobId = opts?.jobId || `notify:${data.organisationId}:${data.workOrderId}:${data.technicianId}`;
+    const correlationId = data.correlationId || getLogContext().correlationId;
+    const enrichedData: NotificationJobData = {
+      ...data,
+      ...(correlationId ? { correlationId } : {}),
+    };
 
     const record: EnqueuedJobRecord = {
       id: jobId,
       name,
-      data,
+      data: enrichedData,
       opts: {
         jobId,
         attempts: 5,
@@ -77,7 +83,7 @@ export const notificationQueue = {
 
     if (queue) {
       try {
-        await queue.add(name, data, record.opts);
+        await queue.add(name, enrichedData, record.opts);
       } catch (err: any) {
         logger.warn({ err: err.message }, 'Could not add job to live Redis queue; falling back to in-memory');
       }
@@ -91,6 +97,7 @@ export const notificationQueue = {
         jobName: name,
         workOrderId: data.workOrderId,
         technicianId: data.technicianId,
+        correlationId,
         attempts: record.opts?.attempts,
       },
       'Enqueued technician assignment notification job'

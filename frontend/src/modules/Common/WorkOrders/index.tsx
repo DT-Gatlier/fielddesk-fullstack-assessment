@@ -25,6 +25,7 @@ import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
 import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
+import { ExportCsvButton } from "./components/ExportCsvButton"
 import type { WorkOrder } from "./services/type"
 
 function WorkOrders() {
@@ -36,6 +37,9 @@ function WorkOrders() {
   const canCreate = permissions.includes("work_orders:create")
   const canAssign = permissions.includes("work_orders:assign") || permissions.includes("work_orders:create")
   const isTechnician = userInfo?.user?.role?.toLowerCase() === "technician"
+  const canExport = ["owner", "dispatcher"].includes(
+    userInfo?.user?.role?.toLowerCase() || ""
+  )
 
   // State from URL query parameters
   const initialStatus = searchParams.get("status") || "all"
@@ -212,6 +216,14 @@ function WorkOrders() {
               >
                 Reset
               </button>
+            )}
+
+            {canExport && (
+              <ExportCsvButton
+                status={statusFilter}
+                priority={priorityFilter}
+                search={debouncedSearch}
+              />
             )}
           </div>
         </div>
