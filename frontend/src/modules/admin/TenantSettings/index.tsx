@@ -10,9 +10,9 @@ function TenantSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tenant Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Organization Settings</h1>
         <p className="text-sm text-slate-500">
-          Organization ID: <code className="font-mono text-xs">{user?.organisationId}</code> • Elevated Owner Configuration
+          Organization ID: <code className="font-mono text-xs">{user?.organisationId}</code> • Manage organization preferences and defaults
         </p>
       </div>
 
@@ -34,15 +34,15 @@ function TenantSettings() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Multi-Tenant Data Isolation Strategy
+              Data Privacy &amp; Security
             </label>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
               <div className="flex items-center gap-1.5 font-semibold text-emerald-800">
                 <Shield className="h-4 w-4 text-emerald-600" />
-                <span>Zero-Trust Scoped Row Isolation</span>
+                <span>Dedicated Organization Isolation</span>
               </div>
               <p>
-                All database rows are cryptographically bound to <code className="font-mono">{user?.organisationId}</code>. No request parameter can override tenant scoping.
+                All organization records and work orders are securely partitioned and protected by role-based permissions.
               </p>
             </div>
           </div>

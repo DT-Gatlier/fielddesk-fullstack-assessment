@@ -12,7 +12,6 @@ import {
   UserCheck,
   LayoutDashboard,
   ClipboardList,
-  ShieldAlert,
   Users,
   Layers,
   Key,
@@ -186,7 +185,7 @@ function Layout() {
                   }
                 >
                   <Layers className="h-4 w-4" />
-                  <span>Tenant Settings</span>
+                  <span>Organization Settings</span>
                 </NavLink>
               </Can>
             </Can>
@@ -210,15 +209,14 @@ function Layout() {
             </div>
           </div>
 
-          {/* Zero-Trust Isolation Status Pill */}
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-emerald-950 space-y-1.5">
-            <div className="flex items-center gap-2 font-semibold text-emerald-900">
-              <ShieldAlert className="h-4 w-4 text-emerald-600" />
-              <span>Multi-Tenant Guard Active</span>
+          {/* Organization Workspace Card */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-700 space-y-1.5 shadow-sm">
+            <div className="flex items-center gap-2 font-semibold text-slate-900">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <span>Organization Workspace</span>
             </div>
-            <p className="text-[11px] text-emerald-800 leading-relaxed">
-              Scoped strictly to <span className="font-semibold">{user.organisationName}</span> (
-              <code className="font-mono text-[10px]">{user.organisationId}</code>).
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Connected to <span className="font-semibold text-slate-800">{user.organisationName}</span>.
             </p>
           </div>
         </aside>

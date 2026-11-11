@@ -65,7 +65,7 @@ function Login() {
               FieldDesk
             </h1>
             <p className="mt-1 text-xs text-slate-500">
-              Multi-Tenant Field Operations & Zero-Trust RBAC Platform
+              Field Operations & Work Order Management Platform
             </p>
           </div>
 
@@ -96,7 +96,7 @@ function Login() {
               className="w-full justify-center py-2.5 font-semibold"
               disabled={isSubmitting || isLoggingIn}
             >
-              {isLoggingIn ? "Authenticating tenant session..." : "Sign In"}
+              {isLoggingIn ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
@@ -104,7 +104,7 @@ function Login() {
           <div className="mt-8 border-t border-slate-100 pt-6">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Quick Personas (password123)
+                Demo Accounts (password123)
               </span>
             </div>
 
@@ -156,7 +156,7 @@ function Login() {
         </div>
 
         <p className="text-center text-[11px] text-slate-400">
-          Zero-Trust Multi-Tenancy Architecture • Feature 01 Enforced
+          FieldDesk Inc. • Enterprise Field Operations Management
         </p>
       </div>
     </div>

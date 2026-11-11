@@ -188,9 +188,9 @@ export function AssignTechnicianModal({
           </div>
 
           <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-500 space-y-1">
-            <p className="font-medium text-slate-700">Concurrency Safety Guarantee:</p>
+            <p className="font-medium text-slate-700">Schedule Protection</p>
             <p>
-              Assignments are verified with PostgreSQL GiST exclusion locks. Overlapping assignments are rejected with HTTP 409 Conflict.
+              Technician schedules are verified automatically to prevent overlapping appointments.
             </p>
           </div>
 
@@ -213,7 +213,7 @@ export function AssignTechnicianModal({
               {assignMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                  <span>Verifying & Locking Schedule...</span>
+                  <span>Saving Assignment...</span>
                 </>
               ) : (
                 <span>Confirm Assignment</span>

@@ -451,7 +451,7 @@ export function WorkOrderDetailModal({
                 <span>Activity Timeline &amp; Audit History</span>
               </h4>
               <span className="text-[11px] text-slate-400 font-normal">
-                Immutable Append-Only Log
+                Activity History
               </span>
             </div>
 

@@ -18,7 +18,6 @@ import {
   PlayCircle,
   AlertCircle,
   Activity,
-  Zap,
 } from "lucide-react"
 
 function Dashboard() {
@@ -92,23 +91,19 @@ function Dashboard() {
             <StatusBadge status={user.role} />
           </div>
           <p className="text-sm text-slate-500">
-            Authenticated into <strong className="text-slate-800">{user.organisationName}</strong> with full zero-trust role isolation.
+            Organization: <strong className="text-slate-800">{user.organisationName}</strong>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>JWT Session Active</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-            <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span>Redis 30s Metric Cache</span>
+            <span>System Operational</span>
           </span>
         </div>
       </div>
 
-      {/* Feature 02: Work Order Real-Time Metrics */}
+      {/* Work Order Real-Time Metrics */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -164,40 +159,40 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Feature 01 Verification Overview Grid */}
+      {/* Organization and Account Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
             <Building2 className="w-4 h-4 text-emerald-600" />
-            <span>Organisation Isolation</span>
+            <span>Organization</span>
           </div>
-          <div className="text-xl font-bold text-slate-900 truncate" title={user.organisationId}>
-            {user.organisationId}
+          <div className="text-xl font-bold text-slate-900 truncate" title={user.organisationName}>
+            {user.organisationName}
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            All repository queries strictly scoped by <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">organisation_id</code>.
+            Workspace ID: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">{user.organisationId}</code>
           </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
             <UserCheck className="w-4 h-4 text-sky-600" />
-            <span>Assigned Identity</span>
+            <span>Current Role</span>
           </div>
           <div className="text-xl font-bold text-slate-900 capitalize">{user.role}</div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Role derived strictly from server-side verified cryptographic claims.
+            Role-based operational and dispatch permissions assigned.
           </p>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
             <Lock className="w-4 h-4 text-purple-600" />
-            <span>Revocation Guard</span>
+            <span>Session Status</span>
           </div>
-          <div className="text-xl font-bold text-slate-900">Redis TTL</div>
+          <div className="text-xl font-bold text-slate-900">Encrypted &amp; Active</div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Revoked tokens (<code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">jti</code>) blacklisted with automatic expiration.
+            Secure authenticated session with automatic token refresh.
           </p>
         </div>
       </div>
@@ -217,7 +212,7 @@ function Dashboard() {
             </div>
             <h4 className="font-bold text-slate-900">Work Orders</h4>
             <p className="mt-1 text-xs text-slate-500">
-              Manage tenant work orders, assign technicians, track statuses.
+              Manage work orders, assign technicians, and track statuses.
             </p>
           </Link>
         </Can>
@@ -251,28 +246,24 @@ function Dashboard() {
               </div>
               <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
             </div>
-            <h4 className="font-bold text-slate-900">Tenant Settings</h4>
+            <h4 className="font-bold text-slate-900">Organization Settings</h4>
             <p className="mt-1 text-xs text-slate-500">
-              Configure tenant parameters, SLA policies, and integrations.
+              Configure organization preferences, quotas, and security policies.
             </p>
           </Link>
         </Can>
       </div>
 
-      {/* Multi-Tenant Security Guard Card */}
+      {/* Dispatch Platform Overview */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-6 shadow-md space-y-3">
         <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
           <ShieldCheck className="w-4 h-4" />
-          <span>Multi-Tenant Invariants Enforced</span>
+          <span>FieldDesk Dispatch Platform</span>
         </div>
-        <h3 className="text-lg font-semibold text-white">Zero-Trust Multi-Tenancy Architecture</h3>
+        <h3 className="text-lg font-semibold text-white">Centralized Field Service &amp; Work Order Dispatch</h3>
         <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-          The frontend is an untrusted presentation client. The backend never accepts client-supplied organisation identifiers in headers or bodies. All database operations strictly bind the verified tenant context. Cross-tenant tampering yields <code className="font-mono bg-slate-800 text-emerald-300 px-1.5 py-0.5 rounded border border-slate-700">404 Not Found</code> to prevent existence enumeration.
+          Monitor incoming maintenance requests, schedule active technicians, and review audit history in real time. Work orders and technician schedules synchronize automatically across all active sessions.
         </p>
-        <div className="pt-2 flex items-center gap-2 text-xs text-slate-400">
-          <span>Feature 02: Work-Order Management & Dashboard Complete</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </div>
       </div>
     </div>
   )

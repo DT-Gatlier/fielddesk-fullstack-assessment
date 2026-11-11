@@ -10,7 +10,7 @@ function TeamManagement() {
   const teamMembers = [
     {
       id: "u1",
-      name: user?.name || "Tenant Owner",
+      name: user?.name || "Account Owner",
       email: user?.email || "owner@apex.test",
       role: user?.role || "owner",
       status: "Active",
@@ -37,7 +37,7 @@ function TeamManagement() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Technician & Team Roster</h1>
           <p className="text-sm text-slate-500">
-            Tenant: <strong className="text-slate-700">{user?.organisationName}</strong> • Role-based access control
+            Organization: <strong className="text-slate-700">{user?.organisationName}</strong> • Active Team Members
           </p>
         </div>
 

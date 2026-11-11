@@ -57,7 +57,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
   )
 }
 
-describe("Feature 10 Frontend Critical Workflow: Technician Scheduling & 409 Conflict Resolution", () => {
+describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolution", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.spyOn(workOrderService, "getTechnicians").mockResolvedValue(sampleTechnicians)

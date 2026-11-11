@@ -152,7 +152,7 @@ export function CreateWorkOrderModal({ isOpen, onClose }: CreateWorkOrderModalPr
         <Textarea
           label="Description / Scope of Work"
           rows={3}
-          placeholder="Provide detailed equipment specifications, required safety equipment, or maintenance instructions..."
+          placeholder="Provide equipment details, safety requirements, or maintenance instructions..."
           error={errors.description?.message}
           {...register("description")}
         />
