@@ -31,9 +31,7 @@ export const handleError = (error: any): void => {
       }
       return
     case 403:
-      toast.error(
-        serverMsg || "You do not have permission to perform this action."
-      )
+      // Suppress 403 toast messages per user preference
       return
     case 404:
       if (serverMsg) {

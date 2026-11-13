@@ -57,6 +57,34 @@ function renderWithQueryClient(ui: React.ReactElement) {
   )
 }
 
+async function pickDateTime(
+  user: ReturnType<typeof userEvent.setup>,
+  labelRegex: RegExp,
+  dayOfMonth: string,
+  time24: string
+) {
+  await user.click(screen.getByLabelText(labelRegex))
+
+  const dayButton = screen
+    .getAllByRole("gridcell")
+    .map((cell) => (cell.tagName === "BUTTON" ? cell : cell.querySelector("button")))
+    .find(
+      (btn) =>
+        btn &&
+        btn.textContent?.trim() === dayOfMonth &&
+        !btn.className.includes("day-outside") &&
+        !btn.hasAttribute("disabled")
+    )
+
+  expect(dayButton).toBeTruthy()
+  await user.click(dayButton!)
+
+  const timeInput = screen.getByLabelText(/exact time/i)
+  fireEvent.change(timeInput, { target: { value: time24 } })
+
+  await user.click(screen.getByRole("button", { name: /^Done$/i }))
+}
+
 describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolution", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -82,11 +110,8 @@ describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolutio
 
     await user.selectOptions(selectEl, sampleTechnicians[0].id)
 
-    const startInput = screen.getByLabelText(/Scheduled Start/i) as HTMLInputElement
-    const endInput = screen.getByLabelText(/Scheduled End/i) as HTMLInputElement
-
-    fireEvent.change(startInput, { target: { value: "2026-12-01T14:00" } })
-    fireEvent.change(endInput, { target: { value: "2026-12-01T10:00" } })
+    await pickDateTime(user, /Scheduled Start/i, "15", "14:00")
+    await pickDateTime(user, /Scheduled End/i, "15", "10:00")
 
     await user.click(screen.getByRole("button", { name: /Confirm Assignment/i }))
 
@@ -145,11 +170,8 @@ describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolutio
 
     await user.selectOptions(selectEl, sampleTechnicians[0].id)
 
-    const startInput = screen.getByLabelText(/Scheduled Start/i) as HTMLInputElement
-    const endInput = screen.getByLabelText(/Scheduled End/i) as HTMLInputElement
-
-    fireEvent.change(startInput, { target: { value: "2026-12-01T09:30" } })
-    fireEvent.change(endInput, { target: { value: "2026-12-01T10:30" } })
+    await pickDateTime(user, /Scheduled Start/i, "15", "09:30")
+    await pickDateTime(user, /Scheduled End/i, "15", "10:30")
 
     // 1. Trigger overlapping schedule submission -> 409 Conflict
     await user.click(screen.getByRole("button", { name: /Confirm Assignment/i }))
@@ -171,12 +193,8 @@ describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolutio
     expect(preservedSelect.value).toBe(sampleTechnicians[0].id)
 
     // 3. Adjust window and resubmit -> succeeds cleanly
-    fireEvent.change(screen.getByLabelText(/Scheduled Start/i), {
-      target: { value: "2026-12-01T15:00" },
-    })
-    fireEvent.change(screen.getByLabelText(/Scheduled End/i), {
-      target: { value: "2026-12-01T17:00" },
-    })
+    await pickDateTime(user, /Scheduled Start/i, "15", "15:00")
+    await pickDateTime(user, /Scheduled End/i, "15", "17:00")
 
     await user.click(screen.getByRole("button", { name: /Confirm Assignment/i }))
 
@@ -184,6 +202,31 @@ describe("Frontend Critical Workflow: Technician Scheduling & Conflict Resolutio
       expect(assignSpy).toHaveBeenCalledTimes(2)
       expect(onClose).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it("unwraps raw and wrapped work order payloads correctly in workOrderService", async () => {
+    const rawWorkOrder = { ...sampleWorkOrder, referenceNumber: "WO-RAW-001" }
+    const wrappedWorkOrder = { ...sampleWorkOrder, referenceNumber: "WO-WRAPPED-002" }
+
+    // Test getById with raw response
+    const getSpy = vi
+      .spyOn(workOrderService, "getById")
+      .mockResolvedValueOnce(rawWorkOrder)
+    const resRaw = await workOrderService.getById("raw-id")
+    expect(resRaw.referenceNumber).toBe("WO-RAW-001")
+    expect(getSpy).toHaveBeenCalledWith("raw-id")
+
+    // Test create with wrapped response
+    const createSpy = vi
+      .spyOn(workOrderService, "create")
+      .mockResolvedValueOnce(wrappedWorkOrder)
+    const resWrapped = await workOrderService.create({
+      title: "Test",
+      priority: "medium",
+      siteName: "Site A",
+    })
+    expect(resWrapped.referenceNumber).toBe("WO-WRAPPED-002")
+    expect(createSpy).toHaveBeenCalled()
   })
 })
 

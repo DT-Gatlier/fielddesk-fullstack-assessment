@@ -56,7 +56,7 @@ function Login() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Card Header */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8 shadow-sm">
           <div className="mb-8 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-50">
               <ShieldCheck className="h-6 w-6" />
@@ -104,52 +104,81 @@ function Login() {
           <div className="mt-8 border-t border-slate-100 pt-6">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Demo Accounts (password123)
+                Quick Login (password: password123)
               </span>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-[11px] font-medium text-slate-500">Org 1 (Apex Services):</div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("owner@apex.test")}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                >
-                  Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("dispatcher@apex.test")}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                >
-                  Dispatcher
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("tech1@apex.test")}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                >
-                  Tech 1
-                </button>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 text-[11px] font-medium text-slate-600">
+                  Org 1: Apex Facilities Management
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("owner@apex.test")}
+                    title="owner@apex.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                  >
+                    Owner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("dispatcher@apex.test")}
+                    title="dispatcher@apex.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                  >
+                    Dispatcher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("technician@apex.test")}
+                    title="technician@apex.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                  >
+                    Tech (Tom)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("technician2@apex.test")}
+                    title="technician2@apex.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                  >
+                    Tech (Tina)
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-1 text-[11px] font-medium text-slate-500">Org 2 (Beacon Systems):</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("owner@beacon.test")}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-center text-[11px] font-medium text-slate-700 hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                >
-                  Beacon Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill("tech1@beacon.test")}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-center text-[11px] font-medium text-slate-700 hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                >
-                  Beacon Tech
-                </button>
+              <div>
+                <div className="mb-1 text-[11px] font-medium text-slate-600">
+                  Org 2: Summit Infrastructure Services
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("owner@summit.test")}
+                    title="owner@summit.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    Owner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("dispatcher@summit.test")}
+                    title="dispatcher@summit.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    Dispatcher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill("technician@summit.test")}
+                    title="technician@summit.test"
+                    className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] font-medium text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                  >
+                    Tech (Terry)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

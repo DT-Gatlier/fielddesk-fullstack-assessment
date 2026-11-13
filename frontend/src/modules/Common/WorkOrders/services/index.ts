@@ -27,42 +27,46 @@ export const workOrderService = {
     if (filters?.sortBy) params.sortBy = filters.sortBy
     if (filters?.sortOrder) params.sortOrder = filters.sortOrder
 
-    const res = await apiClient.get<PaginatedWorkOrders>("/work-orders", { params })
-    return res.data
+    const res = await apiClient.get<any>("/work-orders", { params })
+    const rawData = res.data?.data ?? (Array.isArray(res.data) ? res.data : [])
+    const pagination = res.data?.pagination || res.data?.meta
+    return {
+      data: rawData,
+      meta: {
+        totalRecords: pagination?.totalRecords ?? rawData.length,
+        totalPages: pagination?.totalPages ?? 1,
+        currentPage: pagination?.page ?? pagination?.currentPage ?? filters?.page ?? 1,
+        limit: pagination?.limit ?? filters?.limit ?? 10,
+      },
+    }
   },
 
   getById: async (id: string): Promise<WorkOrder> => {
-    const res = await apiClient.get<{ workOrder: WorkOrder }>(`/work-orders/${id}`)
-    return res.data.workOrder
+    const res = await apiClient.get<any>(`/work-orders/${id}`)
+    return (res.data?.workOrder ?? res.data) as WorkOrder
   },
 
   create: async (payload: CreateWorkOrderInput): Promise<WorkOrder> => {
-    const res = await apiClient.post<{ workOrder: WorkOrder; message: string }>(
-      "/work-orders",
-      payload
-    )
-    return res.data.workOrder
+    const res = await apiClient.post<any>("/work-orders", payload)
+    return (res.data?.workOrder ?? res.data) as WorkOrder
   },
 
   update: async (id: string, payload: UpdateWorkOrderInput): Promise<WorkOrder> => {
-    const res = await apiClient.patch<{ workOrder: WorkOrder; message: string }>(
-      `/work-orders/${id}`,
-      payload
-    )
-    return res.data.workOrder
+    const res = await apiClient.patch<any>(`/work-orders/${id}`, payload)
+    return (res.data?.workOrder ?? res.data) as WorkOrder
   },
 
   getTechnicians: async (): Promise<TechnicianUser[]> => {
-    const res = await apiClient.get<{ technicians: TechnicianUser[] }>("/users/technicians")
-    return res.data.technicians
+    const res = await apiClient.get<any>("/users/technicians")
+    return res.data?.technicians ?? (Array.isArray(res.data) ? res.data : [])
   },
 
   assignTechnician: async (
     id: string,
     payload: AssignTechnicianInput
   ): Promise<WorkOrder> => {
-    const res = await apiClient.post<WorkOrder>(`/work-orders/${id}/assign`, payload)
-    return res.data
+    const res = await apiClient.post<any>(`/work-orders/${id}/assign`, payload)
+    return (res.data?.workOrder ?? res.data) as WorkOrder
   },
 
   submitProgressEvent: async (
@@ -95,10 +99,10 @@ export const workOrderService = {
   },
 
   listAttachments: async (workOrderId: string): Promise<WorkOrderAttachment[]> => {
-    const res = await apiClient.get<{ attachments: WorkOrderAttachment[] }>(
+    const res = await apiClient.get<any>(
       `/work-orders/${workOrderId}/attachments`
     )
-    return res.data.attachments
+    return res.data?.attachments ?? (Array.isArray(res.data) ? res.data : [])
   },
 
   downloadAttachment: async (attachmentId: string, filename: string): Promise<void> => {
@@ -125,8 +129,8 @@ export const workOrderService = {
   },
 
   getActivity: async (workOrderId: string): Promise<ActivityLogItem[]> => {
-    const res = await apiClient.get<ActivityLogItem[]>(`/work-orders/${workOrderId}/activity`)
-    return res.data
+    const res = await apiClient.get<any>(`/work-orders/${workOrderId}/activity`)
+    return Array.isArray(res.data) ? res.data : (res.data?.activities ?? [])
   },
 
   exportCsv: async (filters?: WorkOrderFilters): Promise<string> => {

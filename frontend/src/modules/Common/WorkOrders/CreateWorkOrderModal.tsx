@@ -1,9 +1,10 @@
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useCreateWorkOrder, useTechnicians } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { Input } from "@/app/shared/widgets/base/input"
 import { Textarea } from "@/app/shared/widgets/base/textarea"
+import { DateTimePicker } from "@/app/shared/widgets/custom/DateTimePicker"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
 import { Loader2 } from "lucide-react"
 
@@ -15,10 +16,11 @@ interface CreateWorkOrderModalProps {
 }
 
 export function CreateWorkOrderModal({ isOpen, onClose }: CreateWorkOrderModalProps) {
-  const { data: technicians = [], isLoading: isTechLoading } = useTechnicians()
+  const { data: technicians = [], isLoading: isTechLoading } = useTechnicians(isOpen)
   const createMutation = useCreateWorkOrder()
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -36,16 +38,27 @@ export function CreateWorkOrderModal({ isOpen, onClose }: CreateWorkOrderModalPr
     },
   })
 
+  const toIsoOrNull = (val?: string | null) => {
+    if (!val || typeof val !== "string" || !val.trim()) return null
+    const d = new Date(val)
+    return Number.isNaN(d.getTime()) ? null : d.toISOString()
+  }
+
   const onSubmit = (data: CreateWorkOrderFormData) => {
+    const assignedTechId =
+      data.assignedTechnicianId && data.assignedTechnicianId.trim() !== ""
+        ? data.assignedTechnicianId
+        : null
+
     createMutation.mutate(
       {
-        title: data.title,
-        description: data.description || undefined,
+        title: data.title.trim(),
+        description: data.description?.trim() ? data.description.trim() : undefined,
         priority: data.priority,
-        siteName: data.siteName,
-        assignedTechnicianId: data.assignedTechnicianId || null,
-        scheduledStart: data.scheduledStart ? new Date(data.scheduledStart).toISOString() : null,
-        scheduledEnd: data.scheduledEnd ? new Date(data.scheduledEnd).toISOString() : null,
+        siteName: data.siteName.trim(),
+        assignedTechnicianId: assignedTechId,
+        scheduledStart: toIsoOrNull(data.scheduledStart),
+        scheduledEnd: toIsoOrNull(data.scheduledEnd),
       },
       {
         onSuccess: () => {
@@ -110,43 +123,57 @@ export function CreateWorkOrderModal({ isOpen, onClose }: CreateWorkOrderModalPr
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="technician-select"
-              className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
-            >
-              Assigned Technician
-            </label>
-            <select
-              id="technician-select"
-              disabled={isTechLoading}
-              className="flex h-9 w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
-              {...register("assignedTechnicianId")}
-            >
-              <option value="">Unassigned (Queue for Dispatch)</option>
-              {technicians.map((tech) => (
-                <option key={tech.id} value={tech.id}>
-                  {tech.name} ({tech.email})
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label
+            htmlFor="technician-select"
+            className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
+          >
+            Assigned Technician
+          </label>
+          <select
+            id="technician-select"
+            disabled={isTechLoading}
+            className="flex h-9 w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
+            {...register("assignedTechnicianId")}
+          >
+            <option value="">Unassigned (Queue for Dispatch)</option>
+            {technicians.map((tech) => (
+              <option key={tech.id} value={tech.id}>
+                {tech.name} ({tech.email})
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-2">
-            <Input
-              label="Scheduled Start"
-              type="datetime-local"
-              error={errors.scheduledStart?.message}
-              {...register("scheduledStart")}
-            />
-            <Input
-              label="Scheduled End"
-              type="datetime-local"
-              error={errors.scheduledEnd?.message}
-              {...register("scheduledEnd")}
-            />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Controller
+            name="scheduledStart"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                id="create-scheduled-start"
+                label="Scheduled Start"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.scheduledStart?.message}
+              />
+            )}
+          />
+          <Controller
+            name="scheduledEnd"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                id="create-scheduled-end"
+                label="Scheduled End"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                error={errors.scheduledEnd?.message}
+              />
+            )}
+          />
         </div>
 
         <Textarea

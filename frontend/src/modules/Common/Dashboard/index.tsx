@@ -2,21 +2,13 @@ import { Link, useNavigate } from "react-router-dom"
 import { useGetProfileDetails } from "@/app/api/queryHooks"
 import { useDashboardMetrics } from "./queryHooks"
 import { ROUTE_CONFIG } from "@/app/router/config"
-import { Can } from "@/app/shared/components/Can"
-import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
 import {
-  ShieldCheck,
-  UserCheck,
-  Building2,
-  CheckCircle2,
-  Lock,
   ArrowRight,
   ClipboardList,
-  Users,
-  Settings,
   Clock,
   PlayCircle,
   AlertCircle,
+  CheckCircle2,
   Activity,
 } from "lucide-react"
 
@@ -86,20 +78,10 @@ function Dashboard() {
       {/* Welcome Banner */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900">Welcome, {user.name}</h2>
-            <StatusBadge status={user.role} />
-          </div>
+          <h2 className="text-xl font-bold text-slate-900">Welcome, {user.name}</h2>
           <p className="text-sm text-slate-500">
             Organization: <strong className="text-slate-800">{user.organisationName}</strong>
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>System Operational</span>
-          </span>
         </div>
       </div>
 
@@ -157,113 +139,6 @@ function Dashboard() {
             )
           })}
         </div>
-      </div>
-
-      {/* Organization and Account Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
-            <Building2 className="w-4 h-4 text-emerald-600" />
-            <span>Organization</span>
-          </div>
-          <div className="text-xl font-bold text-slate-900 truncate" title={user.organisationName}>
-            {user.organisationName}
-          </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Workspace ID: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">{user.organisationId}</code>
-          </p>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
-            <UserCheck className="w-4 h-4 text-sky-600" />
-            <span>Current Role</span>
-          </div>
-          <div className="text-xl font-bold text-slate-900 capitalize">{user.role}</div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Role-based operational and dispatch permissions assigned.
-          </p>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm">
-            <Lock className="w-4 h-4 text-purple-600" />
-            <span>Session Status</span>
-          </div>
-          <div className="text-xl font-bold text-slate-900">Encrypted &amp; Active</div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Secure authenticated session with automatic token refresh.
-          </p>
-        </div>
-      </div>
-
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <Can permission="work_orders:read">
-          <Link
-            to={ROUTE_CONFIG.workOrders.path}
-            className="group block rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <ClipboardList className="h-5 w-5" />
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h4 className="font-bold text-slate-900">Work Orders</h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Manage work orders, assign technicians, and track statuses.
-            </p>
-          </Link>
-        </Can>
-
-        <Can permission="team:read">
-          <Link
-            to={ROUTE_CONFIG.team.path}
-            className="group block rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-sky-500 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-                <Users className="h-5 w-5" />
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h4 className="font-bold text-slate-900">Technicians</h4>
-            <p className="mt-1 text-xs text-slate-500">
-              View technician rosters and real-time scheduling.
-            </p>
-          </Link>
-        </Can>
-
-        <Can permission="org:manage_settings">
-          <Link
-            to={ROUTE_CONFIG.settings.path}
-            className="group block rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-purple-500 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                <Settings className="h-5 w-5" />
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-            </div>
-            <h4 className="font-bold text-slate-900">Organization Settings</h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Configure organization preferences, quotas, and security policies.
-            </p>
-          </Link>
-        </Can>
-      </div>
-
-      {/* Dispatch Platform Overview */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-6 shadow-md space-y-3">
-        <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-          <ShieldCheck className="w-4 h-4" />
-          <span>FieldDesk Dispatch Platform</span>
-        </div>
-        <h3 className="text-lg font-semibold text-white">Centralized Field Service &amp; Work Order Dispatch</h3>
-        <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-          Monitor incoming maintenance requests, schedule active technicians, and review audit history in real time. Work orders and technician schedules synchronize automatically across all active sessions.
-        </p>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams, useNavigate } from "react-router-dom"
 import {
   useGetProfileDetails,
   useGetPermissions,
@@ -22,13 +22,13 @@ import {
 } from "lucide-react"
 
 import { CreateWorkOrderModal } from "./CreateWorkOrderModal"
-import { WorkOrderDetailModal } from "./WorkOrderDetailModal"
 import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
 import { ExportCsvButton } from "./components/ExportCsvButton"
 import type { WorkOrder } from "./services/type"
 
 function WorkOrders() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: userInfo } = useGetProfileDetails()
   const { data: permsData } = useGetPermissions()
@@ -55,7 +55,6 @@ function WorkOrders() {
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [assignTargetWo, setAssignTargetWo] = useState<WorkOrder | null>(null)
   const [progressTargetWo, setProgressTargetWo] = useState<WorkOrder | null>(null)
 
@@ -302,7 +301,7 @@ function WorkOrders() {
                 orders.map((wo: WorkOrder) => (
                   <tr
                     key={wo.id}
-                    onClick={() => setSelectedOrderId(wo.id)}
+                    onClick={() => navigate(`/work-orders/${wo.id}`)}
                     className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                   >
                     <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
@@ -372,7 +371,7 @@ function WorkOrders() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedOrderId(wo.id)
+                            navigate(`/work-orders/${wo.id}`)
                           }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
                         >
@@ -433,24 +432,21 @@ function WorkOrders() {
       </div>
 
       {/* Create Work Order Modal */}
-      <CreateWorkOrderModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
-
-      {/* Work Order Detail Modal */}
-      <WorkOrderDetailModal
-        workOrderId={selectedOrderId}
-        isOpen={!!selectedOrderId}
-        onClose={() => setSelectedOrderId(null)}
-      />
+      {canCreate && (
+        <CreateWorkOrderModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+        />
+      )}
 
       {/* Quick Assign Modal from Table Row */}
-      <AssignTechnicianModal
-        workOrder={assignTargetWo}
-        isOpen={!!assignTargetWo}
-        onClose={() => setAssignTargetWo(null)}
-      />
+      {canAssign && !isTechnician && (
+        <AssignTechnicianModal
+          workOrder={assignTargetWo}
+          isOpen={!!assignTargetWo}
+          onClose={() => setAssignTargetWo(null)}
+        />
+      )}
 
       {/* Progress Event Modal from Table Row */}
       <ProgressEventModal

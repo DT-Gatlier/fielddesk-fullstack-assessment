@@ -5,8 +5,8 @@ export * from "./type"
 
 export const dashboardService = {
   getMetrics: async (): Promise<DashboardMetrics> => {
-    const res = await apiClient.get<{ metrics: DashboardMetrics }>("/dashboard/metrics")
-    return res.data.metrics
+    const res = await apiClient.get<any>("/dashboard/metrics")
+    return (res.data?.metrics ?? res.data) as DashboardMetrics
   },
 }
 

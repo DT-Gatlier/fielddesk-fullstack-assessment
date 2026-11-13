@@ -31,7 +31,6 @@ import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
 import { AttachmentDropzone } from "./components/AttachmentDropzone"
 import { AttachmentList } from "./components/AttachmentList"
-import { QuotaProgressBar } from "./components/QuotaProgressBar"
 import { ActivityTimeline } from "./components/ActivityTimeline"
 
 interface WorkOrderDetailModalProps {
@@ -46,8 +45,9 @@ export function WorkOrderDetailModal({
   onClose,
 }: WorkOrderDetailModalProps) {
   const { data: wo, isLoading, isError } = useWorkOrderDetail(workOrderId)
-  const { data: technicians = [] } = useTechnicians()
   const { hasPermission, role } = usePermissions()
+  const isTechnician = role.toLowerCase() === "technician"
+  const { data: technicians = [] } = useTechnicians(isOpen && !isTechnician)
   const { data: profile } = useGetProfileDetails()
   const { data: attachments = [], isLoading: isLoadingAttachments } =
     useWorkOrderAttachments(workOrderId)
@@ -62,12 +62,16 @@ export function WorkOrderDetailModal({
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false)
 
   const canEdit = hasPermission("work_orders:update") || hasPermission("work_orders:assign")
-  const isTechnician = role.toLowerCase() === "technician"
   const currentUserId = profile?.user?.id
   const isAssignedTech = isTechnician && wo?.assignedTechnicianId === currentUserId
   const canSubmitProgress = isAssignedTech || !isTechnician
 
-  const notificationSource = activities.length > 0 ? activities : wo?.auditLogs || []
+  const notificationSource =
+    Array.isArray(activities) && activities.length > 0
+      ? activities
+      : Array.isArray(wo?.auditLogs)
+      ? wo.auditLogs
+      : []
   const latestNotificationLog = notificationSource.find(
     (log) =>
       log.action === "NOTIFICATION_DELIVERED" ||
@@ -81,7 +85,7 @@ export function WorkOrderDetailModal({
     if (latestNotificationLog?.action === "NOTIFICATION_DELIVERED") {
       return (
         <span
-          title={`Delivered via ${latestNotificationLog.metadata?.provider || "MockNotificationProvider"}`}
+          title={`Delivered via ${latestNotificationLog.metadata?.provider || "NotificationProvider"}`}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
         >
           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -180,9 +184,9 @@ export function WorkOrderDetailModal({
       onClose={onClose}
       title={
         wo ? (
-          <div className="flex items-center justify-between gap-3 w-full pr-6">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 w-full pr-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm sm:text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                 {wo.referenceNumber}
               </span>
               <StatusBadge status={wo.priority} />
@@ -423,9 +427,6 @@ export function WorkOrderDetailModal({
                 JPEG, PNG, PDF (Max 10 MB)
               </span>
             </div>
-
-            {/* Quota Usage Bar */}
-            <QuotaProgressBar compact className="bg-slate-50/70 p-3 rounded-xl border border-slate-200" />
 
             {/* Upload Dropzone (Guarded: assigned tech or dispatcher/owner) */}
             {canSubmitProgress && (

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { useAssignTechnician, useTechnicians } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
-import { Input } from "@/app/shared/widgets/base/input"
+import { DateTimePicker } from "@/app/shared/widgets/custom/DateTimePicker"
 import { Modal } from "@/app/shared/widgets/custom/Modal"
 import { Loader2, UserCheck } from "lucide-react"
 import type { AxiosError } from "axios"
@@ -31,7 +31,7 @@ export function AssignTechnicianModal({
   isOpen,
   onClose,
 }: AssignTechnicianModalProps) {
-  const { data: technicians = [], isLoading: isTechLoading } = useTechnicians()
+  const { data: technicians = [], isLoading: isTechLoading } = useTechnicians(isOpen)
   const assignMutation = useAssignTechnician()
 
   const [conflictData, setConflictData] = useState<ConflictingWorkOrder | undefined>()
@@ -40,6 +40,7 @@ export function AssignTechnicianModal({
   const [formError, setFormError] = useState<string | null>(null)
 
   const {
+    control,
     register,
     handleSubmit,
     watch,
@@ -53,7 +54,7 @@ export function AssignTechnicianModal({
     },
   })
 
-  // Format date helper for datetime-local input
+  // Format date helper for DateTimePicker value
   const toLocalIso = (dateStr?: string | null) => {
     if (!dateStr) return ""
     const d = new Date(dateStr)
@@ -173,17 +174,35 @@ export function AssignTechnicianModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Scheduled Start *"
-              type="datetime-local"
-              error={errors.scheduledStart?.message}
-              {...register("scheduledStart", { required: true })}
+            <Controller
+              name="scheduledStart"
+              control={control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <DateTimePicker
+                  id="assign-scheduled-start"
+                  label="Scheduled Start *"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.scheduledStart?.message}
+                />
+              )}
             />
-            <Input
-              label="Scheduled End *"
-              type="datetime-local"
-              error={errors.scheduledEnd?.message}
-              {...register("scheduledEnd", { required: true })}
+            <Controller
+              name="scheduledEnd"
+              control={control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <DateTimePicker
+                  id="assign-scheduled-end"
+                  label="Scheduled End *"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.scheduledEnd?.message}
+                />
+              )}
             />
           </div>
 
