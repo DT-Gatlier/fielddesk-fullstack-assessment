@@ -1,0 +1,163 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  DISPATCHER
+  TECHNICIAN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum WorkOrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Organisation {
+  id                String          @id @default(uuid())
+  name              String
+  slug              String          @unique
+  storageUsedBytes  BigInt          @default(0)
+  storageLimitBytes BigInt          @default(52428800)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  users             User[]
+  workOrders        WorkOrder[]
+  progressEvents    ProgressEvent[]
+  attachments       Attachment[]
+  auditLogs         AuditLog[]
+  notificationDeliveries NotificationDelivery[]
+}
+
+model User {
+  id                  String          @id @default(uuid())
+  email               String
+  passwordHash        String
+  name                String
+  role                Role
+  isActive            Boolean         @default(true)
+  organisationId      String
+  organisation        Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdWorkOrders   WorkOrder[]     @relation("CreatedWorkOrders")
+  assignedWorkOrders  WorkOrder[]     @relation("AssignedWorkOrders")
+  progressEvents      ProgressEvent[]
+  uploadedAttachments Attachment[]
+  auditActions        AuditLog[] @relation("AuditActor")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@unique([email, organisationId])
+  @@index([organisationId])
+}
+
+model WorkOrder {
+  id                   String          @id @default(uuid())
+  referenceNumber      String
+  title                String
+  description          String
+  priority             Priority        @default(MEDIUM)
+  status               WorkOrderStatus @default(PENDING)
+  siteName             String
+  scheduledStart       DateTime?
+  scheduledEnd         DateTime?
+  organisationId       String
+  organisation         Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creatorId            String
+  creator              User            @relation("CreatedWorkOrders", fields: [creatorId], references: [id], onDelete: Cascade)
+  assignedTechnicianId String?
+  assignedTechnician   User?           @relation("AssignedWorkOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  progressEvents       ProgressEvent[]
+  attachments          Attachment[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@unique([referenceNumber, organisationId])
+  @@index([organisationId])
+  @@index([assignedTechnicianId])
+  @@index([status])
+}
+
+model ProgressEvent {
+  id             String       @id @default(uuid())
+  eventId        String       @unique
+  workOrderId    String
+  workOrder      WorkOrder    @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           String
+  occurredAt     DateTime
+  payload        Json
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId])
+  @@index([workOrderId])
+}
+
+model Attachment {
+  id             String       @id @default(uuid())
+  fileName       String
+  storedFileName String
+  fileSize       Int
+  mimeType       String
+  workOrderId    String
+  workOrder      WorkOrder    @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  uploadedById   String
+  uploadedBy     User         @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId])
+  @@index([workOrderId])
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actor          User?        @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action         String
+  targetType     String
+  targetId       String
+  before         Json?
+  after          Json?
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model NotificationDelivery {
+  id             String       @id @default(uuid())
+  jobId          String       @unique
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  workOrderId    String
+  technicianId   String
+  status         String       @default("QUEUED")
+  attempts       Int          @default(0)
+  lastError      String?
+  result         Json?
+  queuedAt       DateTime     @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organisationId, queuedAt])
+  @@index([status, updatedAt])
+}
