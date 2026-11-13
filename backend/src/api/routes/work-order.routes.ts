@@ -6,6 +6,7 @@ import { workOrderController } from '../controllers/work-order.controller.js';
 import { eventController } from '../controllers/event.controller.js';
 import { attachmentController } from '../controllers/attachment.controller.js';
 import { uploadSingleFile, validateMagicBytes } from '../middlewares/file-validator.js';
+import { progressEventRateLimiter } from '../middlewares/rate-limit.js';
 import {
   listWorkOrdersQuerySchema,
   createWorkOrderSchema,
@@ -56,6 +57,7 @@ router.post(
 router.post(
   '/:id/events',
   authenticate,
+  progressEventRateLimiter,
   validate(progressEventSchema, 'body'),
   eventController.submitProgressEvent
 );
@@ -72,6 +74,12 @@ router.get(
   '/:id/attachments',
   authenticate,
   (req, res, next) => attachmentController.listWorkOrderAttachments(req, res, next)
+);
+
+router.get(
+  '/:id/activity',
+  authenticate,
+  workOrderController.getActivity
 );
 
 export default router;

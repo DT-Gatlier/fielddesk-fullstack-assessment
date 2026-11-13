@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../../domain/errors/index.js';
+import { AppError, RateLimitError } from '../../domain/errors/index.js';
 import { logger } from '../../infrastructure/logger.js';
 
 export function errorHandler(
@@ -51,6 +51,10 @@ export function errorHandler(
   }
 
   if (err instanceof AppError) {
+    if (err instanceof RateLimitError) {
+      res.setHeader('Retry-After', String(err.retryAfterSeconds));
+    }
+
     logger.warn(
       {
         err: err.message,

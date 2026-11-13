@@ -14,6 +14,7 @@ export const useLoginWithCredentials = () => {
     mutationFn: (payload: { email: string; password: string }) =>
       authenticationService.loginWithCredentials(payload),
     onSuccess: (data) => {
+      queryClient.clear()
       queryClient.setQueryData(["user-info"], { user: data.user })
       void queryClient.invalidateQueries({ queryKey: ["user-permissions"] })
       toast.success(`Welcome back, ${data.user.name}`)
@@ -56,14 +57,14 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: () => authenticationService.logOut(),
     onSuccess: () => {
-      void queryClient.removeQueries({ queryKey: ["user-info"] })
-      void queryClient.removeQueries({ queryKey: ["user-permissions"] })
+      void queryClient.cancelQueries()
+      queryClient.clear()
       void navigate(ROUTE_CONFIG.login.path, { replace: true })
       toast.info("You have been signed out.")
     },
     onError: () => {
-      void queryClient.removeQueries({ queryKey: ["user-info"] })
-      void queryClient.removeQueries({ queryKey: ["user-permissions"] })
+      void queryClient.cancelQueries()
+      queryClient.clear()
       void navigate(ROUTE_CONFIG.login.path, { replace: true })
     },
   })

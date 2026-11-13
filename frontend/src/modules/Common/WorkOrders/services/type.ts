@@ -17,10 +17,28 @@ export interface WorkOrderCreator {
   name: string
 }
 
+export interface ActivityLogActor {
+  id: string | null
+  name: string
+}
+
+export interface ActivityLogItem {
+  id: string
+  action: string
+  actor: ActivityLogActor | null
+  targetId: string
+  targetType?: string
+  beforeState: Record<string, any> | null
+  afterState: Record<string, any> | null
+  metadata?: Record<string, any> | null
+  createdAt: string
+}
+
 export interface WorkOrderAuditLog {
   id: string
   action: string
-  actorId: string
+  actorId: string | null
+  actor?: ActivityLogActor | null
   beforeState: Record<string, any> | null
   afterState: Record<string, any> | null
   metadata?: Record<string, any> | null

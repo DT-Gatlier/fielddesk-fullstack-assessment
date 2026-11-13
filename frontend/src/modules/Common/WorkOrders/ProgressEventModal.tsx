@@ -110,20 +110,20 @@ export function ProgressEventModal({
         <div className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-emerald-600" />
           <span className="font-semibold text-slate-900">
-            Field Progress Event — {workOrder.referenceNumber}
+            Field Progress Update — {workOrder.referenceNumber}
           </span>
         </div>
       }
-      description="Record an idempotent mobile progress event with client-generated event tagging."
+      description="Record an update and modify work order status."
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Idempotency Event Tag Banner */}
+        {/* Transaction Tracking ID Banner */}
         <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-slate-700 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Client Idempotency Key
+              Tracking Reference ID
             </span>
             <button
               type="button"
@@ -131,7 +131,7 @@ export function ProgressEventModal({
               className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
-              <span>Regenerate Key</span>
+              <span>Generate New ID</span>
             </button>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -145,11 +145,7 @@ export function ProgressEventModal({
             />
           </div>
           <p className="text-[11px] text-slate-500 leading-normal">
-            Dual-store idempotency ensures that repeated mobile transmissions with the same{" "}
-            <code className="font-mono text-slate-700 bg-slate-200/60 px-1 py-0.5 rounded">
-              eventId
-            </code>{" "}
-            are safely deduplicated without duplicate side-effects.
+            Unique tracking reference used to identify this status update and prevent duplicate submissions.
           </p>
         </div>
 
@@ -213,16 +209,16 @@ export function ProgressEventModal({
           />
         </div>
 
-        {/* Idempotent Response Feedback (if tested in place) */}
+        {/* Response Feedback */}
         {lastSubmissionStatus === "applied" && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-2.5 text-xs text-emerald-800">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Event Applied Successfully</p>
+              <p className="font-semibold">Update Applied Successfully</p>
               <p className="text-[11px] text-emerald-700">
-                Work order state updated to{" "}
+                Work order status updated to{" "}
                 <span className="font-bold capitalize">{status.replace("_", " ")}</span> and
-                immutable audit trail recorded.
+                activity history recorded.
               </p>
             </div>
           </div>
@@ -232,10 +228,10 @@ export function ProgressEventModal({
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-2.5 text-xs text-amber-800">
             <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Duplicate Submission Safely Ignored</p>
+              <p className="font-semibold">Update Already Recorded</p>
               <p className="text-[11px] text-amber-700">
                 Event ID <code className="font-mono font-bold">{eventId}</code> was already
-                processed. The server responded with HTTP 200 without duplicate mutations.
+                processed. No duplicate changes were made.
               </p>
             </div>
           </div>
@@ -254,7 +250,6 @@ export function ProgressEventModal({
           </Button>
 
           <div className="flex items-center gap-2">
-            {/* Quick Test Button: Resend same event to demonstrate duplicate handling */}
             <Button
               type="submit"
               size="sm"
@@ -265,12 +260,12 @@ export function ProgressEventModal({
               {submitEventMutation.isPending ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  <span>Submitting Event...</span>
+                  <span>Submitting Update...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5 mr-1.5" />
-                  <span>Submit Progress Event</span>
+                  <span>Submit Update</span>
                 </>
               )}
             </Button>

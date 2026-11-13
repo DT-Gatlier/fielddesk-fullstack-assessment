@@ -15,6 +15,9 @@ import ProtectedRoutes from "./ProtectedRoutes"
 // Lazy loading the modules
 const Dashboard = lazy(() => import("@/modules/Common/Dashboard"))
 const WorkOrders = lazy(() => import("@/modules/Common/WorkOrders"))
+const WorkOrderDetailPage = lazy(
+  () => import("@/modules/Common/WorkOrders/WorkOrderDetailPage")
+)
 const TeamManagement = lazy(() => import("@/modules/admin/TeamManagement"))
 const TenantSettings = lazy(() => import("@/modules/admin/TenantSettings"))
 
@@ -49,6 +52,15 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute requiredPermission="work_orders:read">
             <WorkOrders />
+          </AdminRoute>
+        ),
+      },
+      {
+        id: ROUTE_CONFIG.workOrderDetail.id,
+        path: ROUTE_CONFIG.workOrderDetail.path,
+        element: (
+          <AdminRoute requiredPermission="work_orders:read">
+            <WorkOrderDetailPage />
           </AdminRoute>
         ),
       },

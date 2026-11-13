@@ -1,7 +1,16 @@
 import { Redis } from 'ioredis';
-import RedisMock from 'ioredis-mock';
+import { createRequire } from 'module';
+import crypto from 'crypto';
 import { config } from './config.js';
 import { logger } from './logger.js';
+
+const requireFromHere = createRequire(import.meta.url);
+
+function createRedisMockClient(): Redis {
+  const mod = requireFromHere('ioredis-mock');
+  const RedisMockCtor = mod?.default || mod;
+  return new RedisMockCtor() as unknown as Redis;
+}
 
 let redisInstance: Redis | null = null;
 
@@ -9,7 +18,7 @@ export function getRedisClient(): Redis {
   if (!redisInstance) {
     if (config.NODE_ENV === 'test') {
       logger.info('Using in-memory RedisMock instance for tests');
-      redisInstance = new (RedisMock as any)() as unknown as Redis;
+      redisInstance = createRedisMockClient();
     } else {
       redisInstance = new Redis(config.REDIS_URL, {
         maxRetriesPerRequest: 1,
@@ -36,7 +45,7 @@ let bullRedisInstance: Redis | null = null;
 export function getBullRedisConnection(): Redis {
   if (!bullRedisInstance) {
     if (config.NODE_ENV === 'test') {
-      bullRedisInstance = new (RedisMock as any)() as unknown as Redis;
+      bullRedisInstance = createRedisMockClient();
     } else {
       bullRedisInstance = new Redis(config.REDIS_URL, {
         maxRetriesPerRequest: null,
@@ -86,38 +95,107 @@ export async function revokeToken(jti: string, ttlSeconds: number): Promise<void
   }
 }
 
+export interface RateLimitCheckResult {
+  allowed: boolean;
+  remaining: number;
+  retryAfterSeconds: number;
+}
+
 /**
- * Rate limiter for failed auth attempts (max 5 failed attempts per 5 minutes per IP)
+ * Generic Redis sliding window rate limiter backed by a sorted set (ZSET).
  */
-export async function checkAuthRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
-  const key = `ratelimit:auth:${ip}`;
-  const maxAttempts = config.AUTH_RATE_LIMIT_MAX; // 5
+export async function consumeSlidingWindowRateLimit(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<RateLimitCheckResult> {
+  const nowMs = Date.now();
+  const windowMs = windowSeconds * 1000;
+  const windowStart = nowMs - windowMs;
+
   try {
     const client = getRedisClient();
-    const countStr = await client.get(key);
-    const count = countStr ? parseInt(countStr, 10) : 0;
-    if (count >= maxAttempts) {
-      return { allowed: false, remaining: 0 };
+    await client.zremrangebyscore(key, 0, windowStart);
+    const currentCount = await client.zcard(key);
+
+    if (currentCount >= limit) {
+      const oldest = await client.zrange(key, 0, 0, 'WITHSCORES');
+      const oldestScore = oldest.length >= 2 ? parseInt(oldest[1], 10) : NaN;
+      const retryAfterMs = Number.isFinite(oldestScore)
+        ? Math.max(1000, oldestScore + windowMs - nowMs)
+        : windowMs;
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
+      };
     }
-    return { allowed: true, remaining: maxAttempts - count };
+
+    const member = `${nowMs}:${crypto.randomUUID()}`;
+    await client.zadd(key, nowMs, member);
+    await client.expire(key, windowSeconds);
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, limit - (currentCount + 1)),
+      retryAfterSeconds: 0,
+    };
   } catch (err: any) {
-    logger.error({ err: err.message }, 'Error reading auth rate limit from Redis');
-    return { allowed: true, remaining: maxAttempts };
+    logger.error({ err: err.message, key }, 'Error checking sliding window rate limit in Redis');
+    return { allowed: true, remaining: limit, retryAfterSeconds: 0 };
   }
 }
 
 /**
- * Record a failed auth attempt in Redis
+ * Rate limiter for failed auth attempts (sliding window: max 5 failed attempts per 5 minutes per IP)
+ */
+export async function checkAuthRateLimit(ip: string): Promise<RateLimitCheckResult> {
+  const key = `ratelimit:auth:${ip}`;
+  const maxAttempts = config.AUTH_RATE_LIMIT_MAX; // 5
+  const windowSeconds = config.AUTH_RATE_LIMIT_WINDOW_SECS; // 300s
+  const nowMs = Date.now();
+  const windowMs = windowSeconds * 1000;
+  const windowStart = nowMs - windowMs;
+
+  try {
+    const client = getRedisClient();
+    await client.zremrangebyscore(key, 0, windowStart);
+    const count = await client.zcard(key);
+    if (count >= maxAttempts) {
+      const oldest = await client.zrange(key, 0, 0, 'WITHSCORES');
+      const oldestScore = oldest.length >= 2 ? parseInt(oldest[1], 10) : NaN;
+      const retryAfterMs = Number.isFinite(oldestScore)
+        ? Math.max(1000, oldestScore + windowMs - nowMs)
+        : windowMs;
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: Math.ceil(retryAfterMs / 1000),
+      };
+    }
+    return {
+      allowed: true,
+      remaining: maxAttempts - count,
+      retryAfterSeconds: 0,
+    };
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Error reading auth rate limit from Redis');
+    return { allowed: true, remaining: maxAttempts, retryAfterSeconds: 0 };
+  }
+}
+
+/**
+ * Record a failed auth attempt in Redis sliding window
  */
 export async function recordFailedAuthAttempt(ip: string): Promise<void> {
   const key = `ratelimit:auth:${ip}`;
   const windowSecs = config.AUTH_RATE_LIMIT_WINDOW_SECS; // 300s
+  const nowMs = Date.now();
   try {
     const client = getRedisClient();
-    const multi = client.multi();
-    multi.incr(key);
-    multi.expire(key, windowSecs);
-    await multi.exec();
+    await client.zremrangebyscore(key, 0, nowMs - windowSecs * 1000);
+    await client.zadd(key, nowMs, `${nowMs}:${crypto.randomUUID()}`);
+    await client.expire(key, windowSecs);
   } catch (err: any) {
     logger.error({ err: err.message }, 'Error recording failed auth attempt in Redis');
   }
@@ -242,5 +320,30 @@ export async function clearIdempotencyKey(
     await client.del(key);
   } catch (err: any) {
     logger.error({ err: err.message }, 'Error clearing idempotency key in Redis');
+  }
+}
+
+/**
+ * Gracefully close Redis connections during shutdown.
+ */
+export async function closeRedisConnections(): Promise<void> {
+  if (redisInstance) {
+    try {
+      await redisInstance.quit();
+    } catch {
+      redisInstance.disconnect();
+    } finally {
+      redisInstance = null;
+    }
+  }
+
+  if (bullRedisInstance) {
+    try {
+      await bullRedisInstance.quit();
+    } catch {
+      bullRedisInstance.disconnect();
+    } finally {
+      bullRedisInstance = null;
+    }
   }
 }

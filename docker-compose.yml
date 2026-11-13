@@ -11,6 +11,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init-docker.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
       - ./database/migrations:/docker-entrypoint-initdb.d/migrations:ro
       - ./database/seeds:/docker-entrypoint-initdb.d/seeds:ro
     healthcheck:
@@ -43,10 +44,27 @@ services:
       - "${PORT:-4000}:4000"
     environment:
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       PORT: 4000
       JWT_SECRET: ${JWT_SECRET:-fielddesk_super_secret_jwt_key_32_bytes_min_length_for_hmac_sha256!}
       DATABASE_URL: postgresql://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk123}@postgres:5432/${POSTGRES_DB:-fielddesk}
       REDIS_URL: redis://redis:6379
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-5}
+      AUTH_RATE_LIMIT_WINDOW_SECS: ${AUTH_RATE_LIMIT_WINDOW_SECS:-300}
+      EVENT_RATE_LIMIT_MAX: ${EVENT_RATE_LIMIT_MAX:-60}
+      EVENT_RATE_LIMIT_WINDOW_SECS: ${EVENT_RATE_LIMIT_WINDOW_SECS:-60}
+      QUEUE_NAME: ${QUEUE_NAME:-technician-notifications}
+      NOTIFICATION_SIMULATION_MODE: ${NOTIFICATION_SIMULATION_MODE:-always_success}
+      ENABLE_EMBEDDED_WORKER: "false"
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,9 +80,16 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgresql://${POSTGRES_USER:-fielddesk}:${POSTGRES_PASSWORD:-fielddesk123}@postgres:5432/${POSTGRES_DB:-fielddesk}
       REDIS_URL: redis://redis:6379
+      QUEUE_NAME: ${QUEUE_NAME:-technician-notifications}
       NOTIFICATION_SIMULATION_MODE: ${NOTIFICATION_SIMULATION_MODE:-always_success}
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline && grep -q 'workers/index.js' /proc/1/cmdline"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,11 +103,17 @@ services:
     container_name: fielddesk-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3001}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   redis_data:
-
+  uploads_data:

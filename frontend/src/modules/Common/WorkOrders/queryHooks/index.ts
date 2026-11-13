@@ -29,11 +29,13 @@ export const useWorkOrderDetail = (id: string | null) => {
   })
 }
 
-export const useTechnicians = () => {
+export const useTechnicians = (enabled = true) => {
   return useQuery({
     queryKey: ["technicians-list"],
     queryFn: () => workOrderService.getTechnicians(),
     staleTime: 60 * 1000,
+    enabled,
+    retry: false,
   })
 }
 
@@ -43,12 +45,15 @@ export const useCreateWorkOrder = () => {
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
-      toast.success(`Work order ${data.referenceNumber} created successfully`)
+      const ref = data?.referenceNumber ? ` ${data.referenceNumber}` : ""
+      toast.success(`Work order${ref} created successfully`)
     },
-    onError: (error: AxiosError<{ message?: string; error?: string }>) => {
+    onError: (error: AxiosError<{ message?: string; error?: string; detail?: string; title?: string }>) => {
       toast.error(
-        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
           error?.response?.data?.error ||
+          error?.response?.data?.title ||
           "Failed to create work order"
       )
     },
@@ -59,16 +64,23 @@ export const useUpdateWorkOrder = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateWorkOrderInput }) =>
       workOrderService.update(id, payload),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      const id = data?.id || variables?.id
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
+      if (id) {
+        void queryClient.invalidateQueries({ queryKey: ["work-order-detail", id] })
+        void queryClient.invalidateQueries({ queryKey: ["work-order-activity", id] })
+      }
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
-      toast.success(`Work order ${data.referenceNumber} updated successfully`)
+      const ref = data?.referenceNumber ? ` ${data.referenceNumber}` : ""
+      toast.success(`Work order${ref} updated successfully`)
     },
-    onError: (error: AxiosError<{ message?: string; error?: string }>) => {
+    onError: (error: AxiosError<{ message?: string; error?: string; detail?: string; title?: string }>) => {
       toast.error(
-        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
           error?.response?.data?.error ||
+          error?.response?.data?.title ||
           "Failed to update work order"
       )
     },
@@ -79,11 +91,16 @@ export const useAssignTechnician = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: AssignTechnicianInput }) =>
       workOrderService.assignTechnician(id, payload),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      const id = data?.id || variables?.id
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
-      void queryClient.invalidateQueries({ queryKey: ["work-order-detail", data.id] })
+      if (id) {
+        void queryClient.invalidateQueries({ queryKey: ["work-order-detail", id] })
+        void queryClient.invalidateQueries({ queryKey: ["work-order-activity", id] })
+      }
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
-      toast.success(`Technician assigned to ${data.referenceNumber}`)
+      const ref = data?.referenceNumber ? ` to ${data.referenceNumber}` : ""
+      toast.success(`Technician assigned${ref}`)
     },
     onError: (error: AxiosError<SchedulingConflictErrorResponse>) => {
       if (error?.response?.status !== 409) {
@@ -110,6 +127,9 @@ export const useSubmitProgressEvent = () => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({
         queryKey: ["work-order-detail", variables.workOrderId],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["work-order-activity", variables.workOrderId],
       })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
       if (data.status === "applied") {
@@ -148,6 +168,15 @@ export const useWorkOrderAttachments = (workOrderId: string | null) => {
   })
 }
 
+export const useWorkOrderActivity = (workOrderId: string | null) => {
+  return useQuery({
+    queryKey: ["work-order-activity", workOrderId],
+    queryFn: () => (workOrderId ? workOrderService.getActivity(workOrderId) : []),
+    enabled: !!workOrderId,
+    staleTime: 10 * 1000,
+  })
+}
+
 export const useUploadAttachment = () => {
   return useMutation({
     mutationFn: ({ workOrderId, file }: { workOrderId: string; file: File }) =>
@@ -158,6 +187,9 @@ export const useUploadAttachment = () => {
       })
       void queryClient.invalidateQueries({
         queryKey: ["work-order-detail", variables.workOrderId],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["work-order-activity", variables.workOrderId],
       })
       void queryClient.invalidateQueries({ queryKey: ["storage-quota"] })
       toast.success(`Attached "${data.originalFilename}" successfully`)
@@ -195,6 +227,9 @@ export const useDeleteAttachment = () => {
         void queryClient.invalidateQueries({
           queryKey: ["work-order-detail", variables.workOrderId],
         })
+        void queryClient.invalidateQueries({
+          queryKey: ["work-order-activity", variables.workOrderId],
+        })
       }
       void queryClient.invalidateQueries({ queryKey: ["storage-quota"] })
       toast.success("Attachment deleted")
@@ -205,6 +240,23 @@ export const useDeleteAttachment = () => {
           error?.response?.data?.message ||
           error?.response?.data?.error ||
           "Failed to delete attachment"
+      )
+    },
+  })
+}
+
+export const useExportWorkOrdersCsv = () => {
+  return useMutation({
+    mutationFn: (filters?: WorkOrderFilters) => workOrderService.exportCsv(filters),
+    onSuccess: (filename) => {
+      toast.success(`Exported "${filename}"`)
+    },
+    onError: (error: AxiosError<{ message?: string; error?: string; detail?: string }>) => {
+      toast.error(
+        error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Failed to export work orders CSV"
       )
     },
   })

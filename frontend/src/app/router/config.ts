@@ -15,6 +15,10 @@ export const ROUTE_CONFIG = {
     id: "work-orders",
     path: "/work-orders",
   },
+  workOrderDetail: {
+    id: "work-order-detail",
+    path: "/work-orders/:id",
+  },
   team: {
     id: "team",
     path: "/team",

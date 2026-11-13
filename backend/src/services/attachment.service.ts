@@ -3,7 +3,7 @@ import { TenantContext } from '../domain/models/tenant-context.js';
 import { attachmentRepository } from '../repositories/attachment.repository.js';
 import { workOrderRepository } from '../repositories/work-order.repository.js';
 import { storageAdapter } from '../infrastructure/storage/index.js';
-import { query } from '../infrastructure/db.js';
+import { auditService } from './audit.service.js';
 import {
   NotFoundError,
   ForbiddenError,
@@ -65,26 +65,26 @@ export async function uploadAttachment(
   });
 
   // 7. Record immutable audit log
-  await query(
-    `INSERT INTO audit_logs (
-      organisation_id, actor_id, action, target_type, target_id, before_state, after_state, metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      ctx.organisationId,
-      ctx.userId,
-      'ATTACHMENT_UPLOADED',
-      'work_order',
-      workOrderId,
-      null,
-      null,
-      JSON.stringify({
-        attachmentId: attachment.id,
-        originalFilename: attachment.originalFilename,
-        fileSizeBytes: attachment.fileSizeBytes,
-        mimeType: attachment.mimeType,
-      }),
-    ]
-  );
+  await auditService.record({
+    organisationId: ctx.organisationId,
+    actorId: ctx.userId,
+    action: 'ATTACHMENT_UPLOADED',
+    targetType: 'work_order',
+    targetId: workOrderId,
+    beforeState: null,
+    afterState: {
+      attachmentId: attachment.id,
+      originalFilename: attachment.originalFilename,
+      fileSizeBytes: attachment.fileSizeBytes,
+      mimeType: attachment.mimeType,
+    },
+    metadata: {
+      attachmentId: attachment.id,
+      originalFilename: attachment.originalFilename,
+      fileSizeBytes: attachment.fileSizeBytes,
+      mimeType: attachment.mimeType,
+    },
+  });
 
   void publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
     type: 'WORK_ORDER_UPDATED',
@@ -156,24 +156,22 @@ export async function deleteAttachment(ctx: TenantContext, attachmentId: string)
   const deleted = await attachmentRepository.delete(attachmentId, ctx.organisationId);
 
   // Audit log
-  await query(
-    `INSERT INTO audit_logs (
-      organisation_id, actor_id, action, target_type, target_id, before_state, after_state, metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      ctx.organisationId,
-      ctx.userId,
-      'ATTACHMENT_DELETED',
-      'work_order',
-      attachment.workOrderId,
-      null,
-      null,
-      JSON.stringify({
-        attachmentId: attachment.id,
-        originalFilename: attachment.originalFilename,
-      }),
-    ]
-  );
+  await auditService.record({
+    organisationId: ctx.organisationId,
+    actorId: ctx.userId,
+    action: 'ATTACHMENT_DELETED',
+    targetType: 'work_order',
+    targetId: attachment.workOrderId,
+    beforeState: {
+      attachmentId: attachment.id,
+      originalFilename: attachment.originalFilename,
+    },
+    afterState: null,
+    metadata: {
+      attachmentId: attachment.id,
+      originalFilename: attachment.originalFilename,
+    },
+  });
 
   void publishRealtimeEvent(ctx.organisationId, 'work_order_updated', {
     type: 'WORK_ORDER_UPDATED',

@@ -34,8 +34,8 @@ export const setStoredRefreshToken = (token: string | null) => {
 export const clearAuthSession = () => {
   inMemoryAccessToken = null
   localStorage.removeItem("fielddesk_refresh_token")
-  queryClient.setQueryData(["user-info"], null)
-  queryClient.setQueryData(["user-permissions"], null)
+  void queryClient.cancelQueries()
+  queryClient.clear()
 }
 
 const apiClient = axios.create({

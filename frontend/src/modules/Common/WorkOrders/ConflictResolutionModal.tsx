@@ -43,7 +43,7 @@ export function ConflictResolutionModal({
           <span>Scheduling Conflict Detected</span>
         </div>
       }
-      description="Concurrency conflict engine prevented overlapping technician bookings."
+      description="The selected technician is already scheduled for an assignment during this time window."
     >
       <div className="space-y-4">
         {/* Conflict Notice Banner */}

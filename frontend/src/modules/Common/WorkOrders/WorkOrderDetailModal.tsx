@@ -8,6 +8,7 @@ import {
   useUpdateWorkOrder,
   useTechnicians,
   useWorkOrderAttachments,
+  useWorkOrderActivity,
 } from "./queryHooks"
 import { Button } from "@/app/shared/widgets/base/button"
 import { StatusBadge } from "@/app/shared/widgets/custom/StatusBadge"
@@ -30,7 +31,7 @@ import { AssignTechnicianModal } from "./AssignTechnicianModal"
 import { ProgressEventModal } from "./ProgressEventModal"
 import { AttachmentDropzone } from "./components/AttachmentDropzone"
 import { AttachmentList } from "./components/AttachmentList"
-import { QuotaProgressBar } from "./components/QuotaProgressBar"
+import { ActivityTimeline } from "./components/ActivityTimeline"
 
 interface WorkOrderDetailModalProps {
   workOrderId: string | null
@@ -44,11 +45,14 @@ export function WorkOrderDetailModal({
   onClose,
 }: WorkOrderDetailModalProps) {
   const { data: wo, isLoading, isError } = useWorkOrderDetail(workOrderId)
-  const { data: technicians = [] } = useTechnicians()
   const { hasPermission, role } = usePermissions()
+  const isTechnician = role.toLowerCase() === "technician"
+  const { data: technicians = [] } = useTechnicians(isOpen && !isTechnician)
   const { data: profile } = useGetProfileDetails()
   const { data: attachments = [], isLoading: isLoadingAttachments } =
     useWorkOrderAttachments(workOrderId)
+  const { data: activities = [], isLoading: isLoadingActivity } =
+    useWorkOrderActivity(workOrderId)
   const updateMutation = useUpdateWorkOrder()
 
   const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus>("open")
@@ -58,12 +62,17 @@ export function WorkOrderDetailModal({
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false)
 
   const canEdit = hasPermission("work_orders:update") || hasPermission("work_orders:assign")
-  const isTechnician = role.toLowerCase() === "technician"
   const currentUserId = profile?.user?.id
   const isAssignedTech = isTechnician && wo?.assignedTechnicianId === currentUserId
   const canSubmitProgress = isAssignedTech || !isTechnician
 
-  const latestNotificationLog = wo?.auditLogs?.find(
+  const notificationSource =
+    Array.isArray(activities) && activities.length > 0
+      ? activities
+      : Array.isArray(wo?.auditLogs)
+      ? wo.auditLogs
+      : []
+  const latestNotificationLog = notificationSource.find(
     (log) =>
       log.action === "NOTIFICATION_DELIVERED" ||
       log.action === "NOTIFICATION_ATTEMPT_FAILED" ||
@@ -76,7 +85,7 @@ export function WorkOrderDetailModal({
     if (latestNotificationLog?.action === "NOTIFICATION_DELIVERED") {
       return (
         <span
-          title={`Delivered via ${latestNotificationLog.metadata?.provider || "MockNotificationProvider"}`}
+          title={`Delivered via ${latestNotificationLog.metadata?.provider || "NotificationProvider"}`}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
         >
           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -175,9 +184,9 @@ export function WorkOrderDetailModal({
       onClose={onClose}
       title={
         wo ? (
-          <div className="flex items-center justify-between gap-3 w-full pr-6">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 w-full pr-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm sm:text-base font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                 {wo.referenceNumber}
               </span>
               <StatusBadge status={wo.priority} />
@@ -419,9 +428,6 @@ export function WorkOrderDetailModal({
               </span>
             </div>
 
-            {/* Quota Usage Bar */}
-            <QuotaProgressBar compact className="bg-slate-50/70 p-3 rounded-xl border border-slate-200" />
-
             {/* Upload Dropzone (Guarded: assigned tech or dispatcher/owner) */}
             {canSubmitProgress && (
               <AttachmentDropzone
@@ -438,51 +444,22 @@ export function WorkOrderDetailModal({
             />
           </div>
 
-          {/* Audit Logs History Section */}
-          <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <History className="w-4 h-4 text-slate-400" />
-              <span>Immutable Audit Trail</span>
-            </h4>
+          {/* Activity Timeline & Immutable Audit Trail */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <History className="w-4 h-4 text-slate-400" />
+                <span>Activity Timeline &amp; Audit History</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-normal">
+                Activity History
+              </span>
+            </div>
 
-            {wo.auditLogs && wo.auditLogs.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {wo.auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-800">
-                        {log.action}
-                      </span>
-                      {log.afterState?.status && (
-                        <span className="text-[11px] text-slate-500">
-                          Status &rarr;{" "}
-                          <strong className="text-slate-700 capitalize">
-                            {log.afterState.status.replace("_", " ")}
-                          </strong>
-                        </span>
-                      )}
-                      {log.action.startsWith("NOTIFICATION_") && log.metadata && (
-                        <span className="text-[11px]">
-                          {log.metadata.error ? (
-                            <span className="text-rose-600 font-medium">({log.metadata.error})</span>
-                          ) : (
-                            <span className="text-emerald-600 font-medium">(Attempt {log.metadata.attempt})</span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-400">
-                      {formatDate(log.createdAt)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic">No recorded audit history yet.</p>
-            )}
+            <ActivityTimeline
+              activities={activities}
+              isLoading={isLoadingActivity}
+            />
           </div>
         </div>
       )}

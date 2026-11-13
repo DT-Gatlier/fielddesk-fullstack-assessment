@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react"
+import { toast } from "sonner"
 import { ENV } from "@/app/api/configs/environment"
 import { getAccessToken } from "@/app/api/client"
 import { queryClient } from "@/app/api/configs/tanStackQuery"
@@ -36,9 +37,19 @@ export function useRealtimeUpdates(enabled = true) {
     }
 
     // Work order created event
-    es.addEventListener("work_order_created", () => {
+    es.addEventListener("work_order_created", (event) => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] })
       void queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] })
+
+      try {
+        const payload = JSON.parse(event.data)
+        const ref = payload?.referenceNumber ? ` (${payload.referenceNumber})` : ""
+        toast.info(`New work order created${ref}`, {
+          description: "Dashboard metrics and work orders updated via live sync.",
+        })
+      } catch {
+        toast.info("New work order created via live real-time sync.")
+      }
     })
 
     // Work order updated event
@@ -55,10 +66,19 @@ export function useRealtimeUpdates(enabled = true) {
           void queryClient.invalidateQueries({
             queryKey: ["work-order-attachments", payload.workOrderId],
           })
+          void queryClient.invalidateQueries({
+            queryKey: ["work-order-activity", payload.workOrderId],
+          })
         }
+        const ref = payload?.referenceNumber ? ` for ${payload.referenceNumber}` : ""
+        toast.info(`Work order updated${ref}`, {
+          description: "Live real-time sync received new updates.",
+        })
       } catch {
         // Fallback broad invalidation
         void queryClient.invalidateQueries({ queryKey: ["work-order-detail"] })
+        void queryClient.invalidateQueries({ queryKey: ["work-order-activity"] })
+        toast.info("Work order updated via live real-time sync.")
       }
     })
 
