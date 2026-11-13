@@ -1,72 +1,125 @@
-# Technical notes
+# Technical Notes
 
-Complete this document as part of the submission.
+## Candidate Details
+- **Name:** Sanooj Sahadevan
+- **GitHub:** Sanooj-Sahadevan
+- **Final Commit SHA:** 0b07a0935e93c9b8cfd9950ce28a7fa12d55c51a
+- **Screen Recording:** [Google Drive Recording](https://drive.google.com/drive/folders/1ziRLAslCsrtqDsNjc4VXerWX6yzoQ9-G?usp=drive_link)
 
-## Candidate
+## 1. Local Setup
 
-- Name:
-- GitHub username:
-- Final commit SHA:
-- Screen-recording link:
+Run the complete application using Docker Compose:
 
-## Local setup
+```bash
+docker compose up --build
+```
 
-Document the exact commands required to configure and start the application.
+Services:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4000
+- PostgreSQL
+- Redis
+- Background Worker
 
-## Sample accounts
+Stop services:
 
-List the seeded organisations, roles and sample login credentials. Use assessment-only credentials.
+```bash
+docker compose down
+```
 
-## Verification results
+## 2. Architecture
 
-| Check | Command | Result |
-| --- | --- | --- |
-| Backend tests |  |  |
-| Frontend tests |  |  |
-| Integration tests |  |  |
-| Lint |  |  |
-| Build |  |  |
+The application uses:
 
-## Architecture
+- **Frontend:** Next.js, React, TypeScript
+- **Backend:** Node.js, Express.js
+- **Database:** PostgreSQL with Prisma
+- **Queue:** Redis and BullMQ
+- **Worker:** TypeScript
+- **Deployment:** Docker Compose
 
-Describe the major components, their responsibilities and important dependencies.
+The frontend communicates with the backend through API routes.
 
-## Database design
+## 3. Authentication and Authorization
 
-Explain the principal tables, relationships, constraints, indexes and migration strategy.
+- Passwords are hashed using bcrypt.
+- JWT authentication uses HTTP-only cookies.
+- Role-based access control supports Owner, Dispatcher, and Technician.
+- Organisation-level data isolation is enforced by the backend.
+- Technicians can access their assigned work orders.
 
-## Authentication, roles and organisation isolation
+## 4. Database Design
 
-Explain how authentication works and where organisation and role restrictions are enforced.
+Main database models:
 
-## Transactions, idempotency and concurrency
+- Organisation
+- User
+- WorkOrder
+- ProgressEvent
+- Attachment
+- AuditLog
+- NotificationDelivery
 
-Explain the transaction boundaries, duplicate-event handling and concurrent scheduling protection.
+Prisma handles database operations, migrations, relationships, and constraints.
 
-## Background jobs
+## 5. Background Jobs and Real-Time Updates
 
-Explain delivery guarantees, retries, backoff, duplicate prevention and permanent failure handling.
+- BullMQ manages notification jobs through Redis.
+- A separate worker processes notification tasks.
+- Retry attempts use exponential backoff.
+- Server-Sent Events (SSE) deliver real-time dashboard updates.
 
-## Real-time updates
+## 6. Security
 
-Explain connection authentication, organisation isolation, reconnection and degraded behaviour.
+The application implements:
 
-## File security and storage limits
+- bcrypt password hashing
+- JWT authentication
+- HTTP-only cookies
+- Role-based authorization
+- Organisation-level access control
+- Request rate limiting
+- File type and size validation
+- Secure file identifiers
+- Helmet security headers
 
-Explain validation, authorisation, quota enforcement and the production object-storage approach.
+## 7. File Storage
 
-## Security considerations
+Attachments are limited to 5 MB and support PDF, JPEG, PNG, and WebP.
 
-Describe relevant threats considered and the protections implemented.
+Files are stored locally using Docker volumes. Production deployment should use private object storage.
 
-## Production deployment and operations
+## 8. Testing and Verification
 
-Explain how you would deploy, scale, monitor, back up and recover the application.
+Run the following commands:
 
-## Assumptions and trade-offs
+```bash
+npm --prefix backend test
+npm --prefix frontend test
+npm --prefix worker test
 
-List significant assumptions and explain important trade-offs.
+npm --prefix frontend run lint
 
-## Known limitations or incomplete requirements
+npm --prefix backend run build
+npm --prefix frontend run build
+npm --prefix worker run build
+```
 
-List anything incomplete or not working. If none, state that explicitly.
+Record the actual results before submission.
+
+## 9. Known Limitations
+
+- Inactive user accounts are not currently rejected during authentication.
+- Technician organisation validation needs improvement during assignment.
+- Schedule validation should require both start and end times.
+- SSE currently uses in-memory connections.
+- Notification processing needs a transactional outbox for better reliability.
+- Additional automated tests are required for concurrency, access control, and worker retries.
+
+## 10. Final Submission
+
+Before submission:
+- Add the latest Git commit SHA.
+- Complete the testing results.
+- Verify the screen-recording link.
+- Confirm that the application runs successfully.
