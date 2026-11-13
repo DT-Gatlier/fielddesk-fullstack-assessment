@@ -1,7 +1,7 @@
 import { ConnectionOptions, Job, UnrecoverableError, Worker } from 'bullmq';
-import { config } from '../infrastructure/config.js';
-import { logger, runWithLogContext } from '../infrastructure/logger.js';
-import { getBullRedisConnection } from '../infrastructure/redis.js';
+import { config } from './infrastructure/config.js';
+import { logger, runWithLogContext } from './infrastructure/logger.js';
+import { getBullRedisConnection } from './infrastructure/redis.js';
 import { mockNotificationProvider } from './providers/mock-notification.provider.js';
 import { NotificationPayload } from './types/notification.types.js';
 import { notificationTrackerService } from './services/notification-tracker.service.js';

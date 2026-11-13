@@ -1,7 +1,7 @@
 import { UnrecoverableError } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
-import { config } from '../../infrastructure/config.js';
-import { logger } from '../../infrastructure/logger.js';
+import { config } from '../infrastructure/config.js';
+import { logger } from '../infrastructure/logger.js';
 import {
   INotificationProvider,
   NotificationPayload,
@@ -48,28 +48,25 @@ export class MockNotificationProvider implements INotificationProvider {
     if (effectiveMode === 'permanent_failure') {
       logger.error(
         { workOrderId: payload.workOrderId, technicianId: payload.technicianId },
-        'Mock provider simulating 400 Invalid Phone Format (Permanent Failure)'
+        'Mock provider simulating 400 Bad Request / Invalid Recipient (Unrecoverable Error)'
       );
-      throw new UnrecoverableError('MOCK_400_INVALID_PHONE_FORMAT');
+      throw new UnrecoverableError('MOCK_400_INVALID_RECIPIENT');
     }
 
-    const deliveredAt = new Date();
-    const messageId = `msg_${uuidv4().slice(0, 12)}`;
-
+    const messageId = `msg-${uuidv4()}`;
     logger.info(
       {
         workOrderId: payload.workOrderId,
         technicianId: payload.technicianId,
-        deliveredAt: deliveredAt.toISOString(),
         messageId,
       },
-      'Notification successfully dispatched via MockNotificationProvider (200 OK)'
+      'Mock notification provider successfully dispatched SMS/Email notification'
     );
 
     return {
       success: true,
       provider: 'MockNotificationProvider',
-      deliveredAt,
+      deliveredAt: new Date(),
       messageId,
     };
   }

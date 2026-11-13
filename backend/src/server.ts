@@ -5,17 +5,10 @@ import { closeDbPool } from './infrastructure/db.js';
 import { closeRedisConnections } from './infrastructure/redis.js';
 import { notificationQueue } from './queues/notification.queue.js';
 import { sseManager } from './realtime/sse-manager.js';
-import {
-  startTechnicianNotificationWorker,
-  stopTechnicianNotificationWorker,
-} from './workers/technician-notification.worker.js';
 
 const app = createApp();
 const server = app.listen(config.PORT, () => {
   logger.info({ port: config.PORT, env: config.NODE_ENV }, 'FieldDesk API Server started');
-  if (config.ENABLE_EMBEDDED_WORKER) {
-    startTechnicianNotificationWorker();
-  }
 });
 
 let isShuttingDown = false;
@@ -46,9 +39,6 @@ export async function gracefulShutdown(signal: string): Promise<void> {
     }
 
     try {
-      if (config.ENABLE_EMBEDDED_WORKER) {
-        await stopTechnicianNotificationWorker();
-      }
       await notificationQueue.close();
       await closeDbPool();
       await closeRedisConnections();

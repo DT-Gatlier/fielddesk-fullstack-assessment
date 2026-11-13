@@ -1,9 +1,9 @@
 import { createTechnicianNotificationWorker } from './technician-notification.worker.js';
-import { closeDbPool } from '../infrastructure/db.js';
-import { logger } from '../infrastructure/logger.js';
-import { closeRedisConnections } from '../infrastructure/redis.js';
+import { closeDbPool } from './infrastructure/db.js';
+import { logger } from './infrastructure/logger.js';
+import { closeRedisConnections } from './infrastructure/redis.js';
 
-logger.info('Initializing FieldDesk Background Notification Worker (Backend)...');
+logger.info('Initializing FieldDesk Background Notification Worker Service...');
 
 const worker = createTechnicianNotificationWorker();
 

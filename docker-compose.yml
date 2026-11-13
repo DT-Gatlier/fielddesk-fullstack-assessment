@@ -73,9 +73,9 @@ services:
 
   worker:
     build:
-      context: ./backend
+      context: ./worker
       dockerfile: Dockerfile
-    command: npm run start:worker
+    command: npm run start
     container_name: fielddesk-worker
     restart: unless-stopped
     environment:
@@ -86,7 +86,7 @@ services:
       QUEUE_NAME: ${QUEUE_NAME:-technician-notifications}
       NOTIFICATION_SIMULATION_MODE: ${NOTIFICATION_SIMULATION_MODE:-always_success}
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline && grep -q 'workers/index.js' /proc/1/cmdline"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline && grep -q 'index.js' /proc/1/cmdline"]
       interval: 10s
       timeout: 5s
       retries: 3

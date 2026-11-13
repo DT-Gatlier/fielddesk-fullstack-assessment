@@ -21,9 +21,7 @@
     "test:worker": "vitest run ../tests/isolation/worker-retry.test.ts",
     "test:realtime": "vitest run ../tests/isolation/realtime-isolation.test.ts",
     "test:audit": "vitest run ../tests/isolation/audit-history.test.ts",
-    "test:reporting": "vitest run ../tests/isolation/csv-export.test.ts",
-    "start:worker": "node dist/workers/index.js",
-    "dev:worker": "tsx src/workers/index.ts"
+    "test:reporting": "vitest run ../tests/isolation/csv-export.test.ts"
   },
   "dependencies": {
     "@types/multer": "^2.3.0",

@@ -1,5 +1,5 @@
-import { auditService } from '../../services/audit.service.js';
-import { logger } from '../../infrastructure/logger.js';
+import { query } from '../infrastructure/db.js';
+import { logger } from '../infrastructure/logger.js';
 
 export interface AuditRecordParams {
   organisationId: string;
@@ -36,16 +36,22 @@ export const notificationTrackerService = {
     }
 
     try {
-      await auditService.record({
-        organisationId: params.organisationId,
-        actorId: null, // System background process has no actor_id
-        action: params.action,
-        targetType: 'work_order',
-        targetId: params.workOrderId,
-        beforeState: null,
-        afterState: null,
-        metadata,
-      });
+      await query(
+        `INSERT INTO audit_logs (
+           organisation_id, actor_id, action, target_type, target_id,
+           before_state, after_state, metadata
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          params.organisationId,
+          null, // System background process has no actor_id
+          params.action,
+          'work_order',
+          params.workOrderId,
+          null,
+          null,
+          JSON.stringify(metadata),
+        ]
+      );
 
       logger.info(
         {
@@ -53,12 +59,12 @@ export const notificationTrackerService = {
           action: params.action,
           attempt: params.attempt,
         },
-        'Recorded notification attempt in audit logs'
+        'Audit log recorded for notification event in worker'
       );
     } catch (err: any) {
       logger.error(
-        { err: err.message, workOrderId: params.workOrderId, action: params.action },
-        'Failed to record notification audit log entry'
+        { err: err.message, workOrderId: params.workOrderId },
+        'Failed to persist notification audit log entry from worker'
       );
     }
   },
