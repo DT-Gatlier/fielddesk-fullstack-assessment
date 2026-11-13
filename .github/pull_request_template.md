@@ -1,5 +1,7 @@
 # FieldDesk assessment submission
 
+Read [Gatlier's no-AI policy](https://github.com/DT-Gatlier/fielddesk-fullstack-assessment/blob/main/docs/INDEPENDENT_WORK_POLICY.md), version 11 November 2026. AI assistance is prohibited for assessments issued under this version. Do not tick untrue confirmations; record earlier or conflicting instructions for HR clarification.
+
 ## Candidate
 
 - Name:
@@ -36,13 +38,16 @@ List the exact commands run and their results.
 - [ ] Docker-based local setup
 - [ ] Documentation and submission templates
 
-## AI-assisted work
+## Independent work and policy compliance
 
-- [ ] `candidate-submission/AI_USAGE.md` is complete.
-- [ ] Every file or section materially affected by AI is identified.
+- [ ] `candidate-submission/AI_USAGE.md` contains my completed independent-work declaration.
+- [ ] I completed this assessment without AI assistance, including planning, debugging, tests and documentation.
+- [ ] I identified external references and non-AI framework generators in the declaration.
 - [ ] I personally reviewed, tested and understand all submitted work.
 
-Provide a short summary here and keep the detailed disclosure in `candidate-submission/AI_USAGE.md`:
+Invitation date and policy version communicated to me:
+
+Any unresolved conflicting instructions or non-compliance (contact Gatlier; do not publish private correspondence):
 
 ## Known limitations
 

@@ -2,6 +2,8 @@
 
 This practical assessment is conducted by **Gatlier** to evaluate full-stack engineering ability, with particular emphasis on backend correctness, security, database design, testing and production awareness.
 
+**No AI assistance: complete this assessment independently.** Read the [independent-work policy](docs/INDEPENDENT_WORK_POLICY.md) before starting. Version: 11 November 2026. Earlier assessments are evaluated against the instructions actually communicated to those candidates.
+
 FieldDesk is a fictional field-service application created solely for this assessment. Candidates are expected to build a working application, explain their technical decisions and take ownership of everything they submit.
 
 ## Start here
@@ -9,7 +11,7 @@ FieldDesk is a fictional field-service application created solely for this asses
 1. Read the complete [assessment brief](docs/ASSESSMENT.md).
 2. Review the [evaluation criteria](docs/EVALUATION.md).
 3. Follow the [submission instructions](docs/SUBMISSION.md).
-4. Complete the [technical notes](candidate-submission/TECHNICAL_NOTES.md) and [AI usage disclosure](candidate-submission/AI_USAGE.md).
+4. Complete the [technical notes](candidate-submission/TECHNICAL_NOTES.md) and [independent-work declaration](candidate-submission/AI_USAGE.md).
 5. Raise questions or blockers through a GitHub Issue in this repository.
 
 ## Required stack
@@ -34,7 +36,7 @@ Libraries and architectural patterns are the candidate's choice. Significant dec
 - A 10–15 minute screen recording
 - The final commit SHA
 
-AI-assisted development tools are permitted. Every use must be disclosed clearly, including the tools used, the files or sections affected, the purpose of the assistance and how the output was verified. The candidate remains responsible for the correctness, security and maintainability of all submitted work.
+AI-assisted tools are prohibited for planning, architecture, implementation, debugging, tests, configuration and submission documentation. Disclosure does not make prohibited assistance acceptable. See the [policy](docs/INDEPENDENT_WORK_POLICY.md) for permitted non-AI resources and how conflicting instructions are handled.
 
 There is no prescribed visual design. A clear, usable interface is sufficient; engineering quality is the main consideration.
 

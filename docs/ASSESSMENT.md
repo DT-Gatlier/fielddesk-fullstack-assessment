@@ -1,5 +1,7 @@
 # Assessment brief
 
+**Independent work is required. AI-assisted tools are prohibited.** Read the [no-AI policy](INDEPENDENT_WORK_POLICY.md), version 11 November 2026, before starting. It defines permitted resources, eligibility and handling of earlier or conflicting instructions.
+
 ## Scenario
 
 FieldDesk is a fictional multi-tenant platform used by maintenance companies to schedule and track field-service work.

@@ -2,6 +2,8 @@
 
 Submit the assessment through a pull request from your own GitHub fork. Do not request direct write access and do not push to Gatlier's `main` branch.
 
+Read the [independent-work and no-AI policy](INDEPENDENT_WORK_POLICY.md), version 11 November 2026, before starting. AI assistance is prohibited. Resolve conflicting invitation/repository instructions with Gatlier in writing before continuing.
+
 ## 1. Fork the repository
 
 Open the assessment repository and select **Fork**:
@@ -48,7 +50,7 @@ Do not commit:
 Before submitting, complete:
 
 - `candidate-submission/TECHNICAL_NOTES.md`
-- `candidate-submission/AI_USAGE.md`
+- `candidate-submission/AI_USAGE.md` (independent-work declaration, not permission for AI use)
 
 Do not delete unanswered sections. Use `Not applicable` where appropriate.
 
@@ -99,6 +101,6 @@ Include in the pull request:
 - Exact test, lint and build commands
 - Results of those commands
 - Known limitations
-- Completed AI usage disclosure
+- Completed independent-work declaration with personally truthful confirmations
 
 Questions, assumptions and blockers must be raised using GitHub Issues in the Gatlier assessment repository.
